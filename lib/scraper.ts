@@ -3,7 +3,7 @@ import fs from "fs";
 import { chromium } from "playwright-core"; // system Chrome (swap to 'playwright' for Docker/CI)
 import { google } from "@ai-sdk/google";
 import { generateObject } from "ai";
-import { z } from "zod";
+import { nullable, z } from "zod";
 
 // ─── helpers ────────────────────────────────────────────────
 
@@ -210,6 +210,10 @@ export const propertySchema = z.object({
     .number()
     .nullable()
     .describe("Number of times the property was shortlisted."),
+  carpetArea: z
+    .string()
+    .nullable()
+    .describe("The specific carpet area of the property"),
   contactsMade: z
     .number()
     .nullable()
@@ -328,6 +332,7 @@ async function extractBySelectors(page: any): Promise<Partial<Property>> {
       '[class*="propAmount"]',
       '[class*="price"]',
     ),
+    carpetArea: await getByLabel("Carpet Area"),
 
     // Improved Area Extraction
     area:

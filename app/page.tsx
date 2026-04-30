@@ -51,6 +51,18 @@ export default function HomePage() {
     }
   };
 
+  const validPrices = results
+    .map((r) => {
+      const priceStr = r.data?.price?.replace(/[^0-9]/g, "");
+      return priceStr ? parseInt(priceStr, 10) : null;
+    })
+    .filter((p): p is number => p !== null && p > 0);
+
+  const averagePrice =
+    validPrices.length > 0
+      ? Math.round(validPrices.reduce((a, b) => a + b, 0) / validPrices.length)
+      : 0;
+
   return (
     <div className="min-h-screen bg-gray-50 p-8 font-sans">
       <div className="max-w-[95%] mx-auto space-y-8">
@@ -115,6 +127,8 @@ export default function HomePage() {
                   <th className="p-4">Image</th>
                   <th className="p-4">Title</th>
                   <th className="p-4">Price</th>
+                  <th className="p-4">Area</th>
+                  <th className="p-4">Carpet Area</th>
                   <th className="p-4">Location</th>
                   <th className="p-4">Action</th>
                 </tr>
@@ -138,6 +152,12 @@ export default function HomePage() {
                     <td className="p-4 text-green-700 font-bold">
                       {item.data?.price || "-"}
                     </td>
+                    <td className="p-4 text-gray-900 font-bold">
+                      {item.data?.area || "N/A"}
+                    </td>
+                    <td className="p-4 text-gray-900 font-bold">
+                      {item.data?.carpetArea || "N/A"}
+                    </td>
                     <td className="p-4">{item.data?.location || "-"}</td>
                     <td className="p-4">
                       <button className="text-blue-600 font-semibold group-hover:underline">
@@ -147,6 +167,22 @@ export default function HomePage() {
                   </tr>
                 ))}
               </tbody>
+              <tfoot className="bg-gray-50 border-t-2 border-gray-200">
+                <tr className="bg-gray-100">
+                  <td
+                    colSpan={2}
+                    className="p-4 font-bold text-gray-900 text-right"
+                  >
+                    Average Market Price:
+                  </td>
+                  <td className="p-4 font-black text-blue-700 text-lg">
+                    ₹{averagePrice.toLocaleString("en-IN")}
+                  </td>
+                  <td colSpan={3} className="p-4 text-xs text-gray-500 italic">
+                    Calculated from {validPrices.length} sucessful scrapes
+                  </td>
+                </tr>
+              </tfoot>
             </table>
           </div>
         )}
