@@ -19,7 +19,7 @@ function PropertyDetailsModal({
   onClose,
 }: PropertyDetailsModalProps) {
   return (
-    <Dialog open={!!property} onOpenChange={() => onClose}>
+    <Dialog open={!!property} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-5xl w-[95vw] max-h-[90vh] overflow-hidden flex flex-col p-0 border-zinc-200 bg-white shadow-2xl rounded-2xl">
         <DialogHeader className="p-6 sm:p-8 border-b border-zinc-50 bg-white space-y-0 flex-row items-center justify-between overflow-x-hidden">
           <div className="space-y-1 text-zinc-900 min-w-0 flex-1">
