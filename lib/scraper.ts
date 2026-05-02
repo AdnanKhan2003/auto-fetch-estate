@@ -387,8 +387,6 @@ async function extractCleanContent(page: any): Promise<string> {
   });
 }
 
-// ─── main ────────────────────────────────────────────────────
-
 export async function processUrl(url: string) {
   const browser = await chromium.launch({ channel: "chrome", headless: true });
   const context = await browser.newContext({
