@@ -3,7 +3,7 @@ import fs from "fs";
 import { chromium } from "playwright-core"; // system Chrome (swap to 'playwright' for Docker/CI)
 import { google } from "@ai-sdk/google";
 import { generateObject } from "ai";
-import { nullable, z } from "zod";
+import { z } from "zod";
 
 // ─── helpers ────────────────────────────────────────────────
 
@@ -241,47 +241,96 @@ export const propertySchema = z.object({
 
 export type Property = z.infer<typeof propertySchema>;
 
-function isBlocked(html: string): boolean {
-  const signals = ["access denied", "captcha", "robot check", "blocked"];
-  return signals.some((s) => html.toLowerCase().includes(s));
+// function isBlocked(html: string): boolean {
+//   const signals = ["access denied", "captcha", "robot check", "blocked"];
+//   return signals.some((s) => html.toLowerCase().includes(s));
+// }
+
+// async function extractStructuredData(page: any): Promise<Partial<Property>> {
+//   return page.evaluate(() => {
+//     const scripts = Array.from(
+//       document.querySelectorAll('script[type="application/ld+json"]'),
+//     );
+//     for (const s of scripts) {
+//       try {
+//         const data = JSON.parse(s.textContent ?? "");
+
+//         // --- ADD THIS CHECK ---
+//         // Skip corporate info, only look for the actual property
+//         const type = data["@type"]?.toLowerCase() || "";
+//         if (
+//           type.includes("organization") ||
+//           data.name?.includes("Realty Services")
+//         ) {
+//           continue;
+//         }
+
+//         if (
+//           type.includes("apartment") ||
+//           type.includes("residence") ||
+//           type.includes("house") ||
+//           data.price
+//         ) {
+//           return {
+//             propertyTitle: data.name ?? null,
+//             price: data.price ?? data.offers?.price ?? null,
+//             address: data.address?.streetAddress ?? null,
+//             city: data.address?.addressLocality ?? null,
+//           };
+//         }
+//       } catch {}
+//     }
+//     return {};
+//   });
+// }
+
+function isBlocked(pageTitle: string, html: string): boolean {
+  const lowTitle = pageTitle.toLowerCase();
+
+  // 1. Check the Page Title (most reliable for real blocks)
+  if (
+    lowTitle.includes("access denied") ||
+    lowTitle.includes("robot check") ||
+    lowTitle.includes("captcha")
+  ) {
+    return true;
+  }
+  // 2. Only check for "blocked" if it's the ONLY thing in the body
+  if (html.length < 500 && html.toLowerCase().includes("blocked")) {
+    return true;
+  }
+  return false;
 }
 
 async function extractStructuredData(page: any): Promise<Partial<Property>> {
-  return page.evaluate(() => {
+  // 1. Grab all raw JSON-LD blocks from the page
+  const jsonLdData = await page.evaluate(() => {
     const scripts = Array.from(
       document.querySelectorAll('script[type="application/ld+json"]'),
     );
-    for (const s of scripts) {
-      try {
-        const data = JSON.parse(s.textContent ?? "");
-
-        // --- ADD THIS CHECK ---
-        // Skip corporate info, only look for the actual property
-        const type = data["@type"]?.toLowerCase() || "";
-        if (
-          type.includes("organization") ||
-          data.name?.includes("Realty Services")
-        ) {
-          continue;
-        }
-
-        if (
-          type.includes("apartment") ||
-          type.includes("residence") ||
-          type.includes("house") ||
-          data.price
-        ) {
-          return {
-            propertyTitle: data.name ?? null,
-            price: data.price ?? data.offers?.price ?? null,
-            address: data.address?.streetAddress ?? null,
-            city: data.address?.addressLocality ?? null,
-          };
-        }
-      } catch {}
-    }
-    return {};
+    return scripts.map((s) => s.textContent).join("\n\n");
   });
+
+  // If there's no JSON-LD, don't waste an AI call
+  if (!jsonLdData || jsonLdData.length < 50) return {};
+
+  try {
+    console.log("[AI] Analyzing JSON-LD block...");
+    const { object } = await generateObject({
+      // model: google("gemini-1.5-flash"),
+      model: google("gemini-1.5-flash-latest"),
+      schema: propertySchema,
+      prompt: `Analyze this Real Estate JSON-LD data. Extract all available property details. 
+               Map them to the schema provided. Focus on: price, area, BHK, location, amenities, and RERA status.
+               
+               JSON-LD DATA:
+               ${jsonLdData.slice(0, 20000)}`, // Safeguard to prevent token overflow
+    });
+    return object;
+  } catch (err) {
+    console.error("[AI Error] JSON-LD extraction failed:", err);
+    return {};
+  }
 }
 
 async function extractBySelectors(page: any): Promise<Partial<Property>> {
@@ -393,23 +442,42 @@ export async function processUrl(url: string) {
     viewport: { width: 1280, height: 800 },
     userAgent:
       "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+    deviceScaleFactor: 1,
+    hasTouch: false,
+    locale: "en-IN", // Set to India
+    timezoneId: "Asia/Kolkata",
   });
 
   await context.addInitScript(() => {
     Object.defineProperty(navigator, "webdriver", { get: () => undefined });
     (window.navigator as any).chrome = { runtime: {} } as any;
+    // Mock languages and plugins
+    Object.defineProperty(navigator, "languages", {
+      get: () => ["en-IN", "en-US", "en"],
+    });
+    Object.defineProperty(navigator, "plugins", { get: () => [1, 2, 3, 4, 5] });
+    // Overwrite Permissions API
+    const originalQuery = window.navigator.permissions.query;
+    (window.navigator.permissions as any).query = (parameters: any) =>
+      parameters.name === "notifications"
+        ? Promise.resolve({ state: Notification.permission })
+        : originalQuery(parameters);
   });
 
   const page = await context.newPage();
 
   try {
-    await page.goto(url, { waitUntil: "domcontentloaded", timeout: 30000 });
+    await page.goto(url, { waitUntil: "domcontentloaded", timeout: 60000 });
     await page.waitForSelector("h1, [class*='price'], [class*='title']", {
       timeout: 10000,
     });
+    await page.waitForTimeout(Math.floor(Math.random() * 2000) + 3000);
 
+    const pageTitle = await page.title();
     const pageHtml = await page.content();
-    if (isBlocked(pageHtml)) throw new Error("Bot protection triggered");
+    // if (isBlocked(pageHtml)) throw new Error("Bot protection triggered");
+    if (isBlocked(pageTitle, pageHtml))
+      throw new Error("Bot protection triggered");
 
     const screenshotName = `screenshot-${Date.now()}.png`;
     const screenshotPath = path.join(
@@ -439,13 +507,28 @@ export async function processUrl(url: string) {
     ] as const;
     const missingCritical = criticalFields.filter((f) => !deterministic[f]);
 
-    if (missingCritical.length === 0 && deterministic.floorNo) {
+    // if (missingCritical.length === 0 && deterministic.floorNo) {
+    //   return {
+    //     url,
+    //     screenshotUrl: `/screenshots/${screenshotName}`,
+    //     data: deterministic,
+    //     status: "success",
+    //     aiUsed: false,
+    //   };
+    // }
+
+    const allFields = Object.keys(propertySchema.shape);
+    const filledFields = Object.values(deterministic).filter(
+      (v) => v !== null && v !== "",
+    ).length;
+    if (filledFields > 15) {
+      // If we got more than 15 fields deterministically, we can skip AI Vision
       return {
         url,
         screenshotUrl: `/screenshots/${screenshotName}`,
         data: deterministic,
         status: "success",
-        aiUsed: false,
+        aiUsed: false, // AI was used in structured stage, but skipped in Vision stage
       };
     }
 
@@ -458,7 +541,8 @@ export async function processUrl(url: string) {
       const screenshotBuffer = fs.readFileSync(screenshotPath);
 
       const { object } = await generateObject({
-        model: google("gemini-1.5-flash"), // FIXED MODEL NAME
+        // model: google("gemini-1.5-flash"), // FIXED MODEL NAME
+        model: google("gemini-1.5-pro-latest"),
         schema: propertySchema,
         messages: [
           {
