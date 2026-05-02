@@ -1,17 +1,46 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import {
   ExternalLink,
   Loader2,
   Plus,
   Trash2,
-  X,
   ShieldCheck,
   MapPin,
   Ruler,
   Home,
+  ArrowRight,
+  Search,
+  Activity,
 } from "lucide-react";
-import { useState } from "react";
+
+// Shadcn UI Components
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableFooter,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 interface ScrapeResult {
   url: string;
@@ -64,327 +93,307 @@ export default function HomePage() {
       : 0;
 
   return (
-    <div className="min-h-screen bg-gray-50 p-8 font-sans">
-      <div className="max-w-[95%] mx-auto space-y-8">
-        {/* Input Section */}
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-          <h1 className="text-2xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-            <Home className="text-blue-600" /> Real Estate Scraper
+    <div className="min-h-screen bg-white text-zinc-900 p-6 md:p-12">
+      <div className="max-w-6xl mx-auto space-y-10">
+        {/* Header Section */}
+        <header className="flex flex-col gap-1">
+          <h1 className="text-3xl font-bold tracking-tight text-zinc-900">
+            V S Jadon Compare
           </h1>
-          <div className="space-y-3">
-            {urls.map((url, index) => (
-              <div key={index} className="flex items-center gap-3">
-                <input
-                  type="url"
-                  value={url}
-                  onChange={(e) => {
-                    const newUrls = [...urls];
-                    newUrls[index] = e.target.value;
-                    setUrls(newUrls);
-                  }}
-                  className="flex-1 p-3 text-gray-900 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                  placeholder="Paste property URL..."
-                />
-                {urls.length > 1 && (
-                  <button
-                    onClick={() => {
+        </header>
+
+        {/* Input Configuration Card */}
+        <Card className="border-zinc-200 shadow-none bg-white rounded-xl">
+          <CardHeader className="pb-4">
+            <CardTitle className="text-lg font-bold flex items-center gap-2 text-zinc-900">
+              <Search className="w-4 h-4 text-zinc-400" /> Target Configuration
+            </CardTitle>
+            <CardDescription className="text-zinc-500">
+              Input URLs to extract valuation data and specifications.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="space-y-3">
+              {urls.map((url, index) => (
+                <div key={index} className="flex items-center gap-2">
+                  <Input
+                    type="url"
+                    value={url}
+                    onChange={(e) => {
                       const newUrls = [...urls];
-                      newUrls.splice(index, 1);
+                      newUrls[index] = e.target.value;
                       setUrls(newUrls);
                     }}
-                    className="p-3 text-red-500 hover:bg-red-50 rounded-lg"
-                  >
-                    <Trash2 className="w-5 h-5" />
-                  </button>
-                )}
-              </div>
-            ))}
-          </div>
-          <div className="flex items-center mt-6 gap-4">
-            <button
-              onClick={() => setUrls([...urls, ""])}
-              className="flex items-center gap-2 px-4 py-2 text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg font-medium"
-            >
-              <Plus className="w-4 h-4" /> Add URL
-            </button>
-            <button
-              onClick={handleScrape}
-              disabled={isLoading || urls.every((u) => !u.trim())}
-              className="ml-auto px-6 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 flex items-center gap-2 disabled:opacity-50"
-            >
-              {isLoading ? <Loader2 className="animate-spin w-4 h-4" /> : null}
-              {isLoading ? "Scraping..." : "Extract Data"}
-            </button>
-          </div>
-        </div>
+                    spellCheck="false"
+                    className="flex-1 bg-zinc-50/30 border-zinc-200 text-zinc-900 focus-visible:ring-zinc-900 h-11"
+                    placeholder="Paste listing URL here..."
+                  />
+                  {urls.length > 1 && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => {
+                        const newUrls = [...urls];
+                        newUrls.splice(index, 1);
+                        setUrls(newUrls);
+                      }}
+                      className="text-zinc-300 hover:text-red-600 hover:bg-red-50 cursor-pointer"
+                    >
+                      <Trash2 size={18} />
+                    </Button>
+                  )}
+                </div>
+              ))}
+            </div>
 
-        {/* Results Table */}
+            <div className="flex items-center justify-between pt-4 border-t border-zinc-100">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setUrls([...urls, ""])}
+                className="text-zinc-900 border-zinc-200 hover:bg-zinc-50 gap-2 font-medium cursor-pointer"
+              >
+                <Plus size={14} /> Add Target
+              </Button>
+              <Button
+                onClick={handleScrape}
+                disabled={isLoading || urls.every((u) => !u.trim())}
+                className="bg-black text-white hover:bg-zinc-800 px-10 h-11 font-bold cursor-pointer disabled:bg-zinc-200 disabled:text-zinc-400 border-none transition-all shadow-sm"
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className="animate-spin w-4 h-4 mr-2" />
+                    Extracting...
+                  </>
+                ) : (
+                  "Execute Scrape"
+                )}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Results Data Table */}
         {results.length > 0 && (
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-            <table className="w-full text-left text-sm text-gray-600">
-              <thead className="bg-gray-50 text-gray-900 font-semibold border-b">
-                <tr>
-                  <th className="p-4">Image</th>
-                  <th className="p-4">Title</th>
-                  <th className="p-4">Price</th>
-                  <th className="p-4">Area</th>
-                  <th className="p-4">Carpet Area</th>
-                  <th className="p-4">Location</th>
-                  <th className="p-4">Action</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200">
-                {results.map((item, idx) => (
-                  <tr
-                    key={idx}
-                    onClick={() => setSelectedProperty(item)}
-                    className="hover:bg-blue-50 cursor-pointer transition-colors group"
-                  >
-                    <td className="p-4">
-                      <img
-                        src={item.screenshotUrl}
-                        className="w-20 h-14 object-cover rounded border"
-                      />
-                    </td>
-                    <td className="p-4 font-medium text-gray-900">
-                      {item.data?.propertyTitle || "Pending..."}
-                    </td>
-                    <td className="p-4 text-green-700 font-bold">
-                      {item.data?.price || "-"}
-                    </td>
-                    <td className="p-4 text-gray-900 font-bold">
-                      {item.data?.area || "N/A"}
-                    </td>
-                    <td className="p-4 text-gray-900 font-bold">
-                      {item.data?.carpetArea || "N/A"}
-                    </td>
-                    <td className="p-4">{item.data?.location || "-"}</td>
-                    <td className="p-4">
-                      <button className="text-blue-600 font-semibold group-hover:underline">
-                        View Details
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-              <tfoot className="bg-gray-50 border-t-2 border-gray-200">
-                <tr className="bg-gray-100">
-                  <td
-                    colSpan={2}
-                    className="p-4 font-bold text-gray-900 text-right"
-                  >
-                    Average Market Price:
-                  </td>
-                  <td className="p-4 font-black text-blue-700 text-lg">
-                    ₹{averagePrice.toLocaleString("en-IN")}
-                  </td>
-                  <td colSpan={3} className="p-4 text-xs text-gray-500 italic">
-                    Calculated from {validPrices.length} sucessful scrapes
-                  </td>
-                </tr>
-              </tfoot>
-            </table>
+          <div className="space-y-4 animate-in fade-in duration-700">
+            <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400 px-1">
+              {/* Market Discoveries */}
+              Compare Prices
+            </h2>
+            <Card className="border-zinc-200 shadow-none bg-white rounded-xl overflow-hidden">
+              <Table>
+                <TableHeader className="hover:bg-transparent border-none">
+                  <TableRow className="hover:bg-transparent border-none">
+                    <TableHead className="w-[100px] py-4 pl-6 text-zinc-400 text-[10px] uppercase font-black">
+                      Evidence
+                    </TableHead>
+                    <TableHead className="py-4 text-zinc-400 text-[10px] uppercase font-black">
+                      Property
+                    </TableHead>
+                    <TableHead className="py-4 text-zinc-400 text-[10px] uppercase font-black text-center">
+                      Price
+                    </TableHead>
+                    <TableHead className="py-4 text-zinc-400 text-[10px] uppercase font-black text-center">
+                      Carpet Area
+                    </TableHead>
+                    <TableHead className="py-4 text-zinc-400 text-[10px] uppercase font-black text-right pr-6">
+                      Locality
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {results.map((item, idx) => (
+                    <TableRow
+                      key={idx}
+                      onClick={() => setSelectedProperty(item)}
+                      className="cursor-pointer hover:bg-zinc-50/50 transition-colors border-zinc-100"
+                    >
+                      <TableCell className="py-4 pl-6">
+                        <div className="w-14 h-10 rounded border border-zinc-100 bg-zinc-50 overflow-hidden">
+                          <img
+                            src={item.screenshotUrl}
+                            className="object-cover w-full h-full transition-all duration-700"
+                          />
+                        </div>
+                      </TableCell>
+                      <TableCell className="py-4 font-bold text-zinc-900">
+                        {item.data?.propertyTitle || "Pending Analysis..."}
+                      </TableCell>
+                      <TableCell className="py-4 text-center font-black text-zinc-900">
+                        {item.data?.price || "-"}
+                      </TableCell>
+                      <TableCell className="py-4 text-center text-zinc-600 font-medium">
+                        {item.data?.carpetArea || item.data?.area || "-"}
+                      </TableCell>
+                      <TableCell className="py-4 text-right pr-6 text-zinc-400 text-sm">
+                        {item.data?.location || "-"}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+                <TableFooter className="bg-zinc-900 text-zinc-50 border-t-0">
+                  <TableRow className="hover:bg-transparent">
+                    <TableCell
+                      colSpan={3}
+                      className="py-8 pl-6 font-medium text-zinc-400 text-right"
+                    >
+                      Aggregated Market Average:
+                    </TableCell>
+                    <TableCell colSpan={2} className="py-8 pr-6 text-right">
+                      <span className="text-2xl font-black text-white">
+                        ₹{averagePrice.toLocaleString("en-IN")}
+                      </span>
+                    </TableCell>
+                  </TableRow>
+                </TableFooter>
+              </Table>
+            </Card>
           </div>
         )}
       </div>
 
-      {/* --- FULL DETAILS MODAL --- */}
-      {selectedProperty && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col animate-in fade-in zoom-in duration-200">
-            {/* Modal Header */}
-            <div className="p-6 border-b border-gray-100 flex items-center justify-between bg-white sticky top-0 z-10">
-              <div>
-                <h2 className="text-xl font-bold text-gray-900">
-                  {selectedProperty.data?.propertyTitle || "Property Details"}
-                </h2>
-                <p className="text-sm text-gray-500 truncate max-w-md">
-                  {selectedProperty.url}
-                </p>
-              </div>
-              <button
-                onClick={() => setSelectedProperty(null)}
-                className="p-2 hover:bg-gray-100 rounded-full transition-colors"
-              >
-                <X className="w-6 h-6" />
-              </button>
-            </div>
-
-            {/* Modal Body */}
-            <div className="overflow-y-auto p-8 space-y-10">
-              {/* Section A: Valuation Summary */}
-              <div>
-                <h3 className="text-xs font-bold uppercase tracking-widest text-blue-600 mb-4 flex items-center gap-2">
-                  <ShieldCheck className="w-4 h-4" /> Section A: Valuation
-                  Summary
-                </h3>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-                  <div className="bg-blue-50 p-4 rounded-xl">
-                    <p className="text-xs text-blue-600 font-medium mb-1">
-                      Total Price
-                    </p>
-                    <p className="text-xl font-bold text-gray-900">
-                      {selectedProperty.data?.price || "N/A"}
-                    </p>
-                  </div>
-                  <div className="bg-gray-50 p-4 rounded-xl">
-                    <p className="text-xs text-gray-500 font-medium mb-1">
-                      Price per Sqft
-                    </p>
-                    <p className="text-lg font-semibold text-gray-900">
-                      {selectedProperty.data?.pricePerSqft || "N/A"}
-                    </p>
-                  </div>
-                  <div className="bg-gray-50 p-4 rounded-xl">
-                    <p className="text-xs text-gray-500 font-medium mb-1">
-                      Area
-                    </p>
-                    <p className="text-lg font-semibold text-gray-900">
-                      {selectedProperty.data?.area || "N/A"}
-                    </p>
-                  </div>
-                  <div className="bg-gray-50 p-4 rounded-xl">
-                    <p className="text-xs text-gray-500 font-medium mb-1">
-                      Building Age
-                    </p>
-                    <p className="text-lg font-semibold text-gray-900">
-                      {selectedProperty.data?.ageOfBuilding || "N/A"}
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Section B: Location & Scores */}
-              <div>
-                <h3 className="text-xs font-bold uppercase tracking-widest text-orange-600 mb-4 flex items-center gap-2">
-                  <MapPin className="w-4 h-4" /> Section B: Location & Scores
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="border border-gray-100 rounded-xl p-4 flex justify-between items-center">
-                    <span className="text-gray-500">City / Locality</span>
-                    <span className="font-semibold text-gray-900">
-                      {selectedProperty.data?.city} /{" "}
-                      {selectedProperty.data?.location}
-                    </span>
-                  </div>
-                  <div className="border border-gray-100 rounded-xl p-4 flex justify-between items-center">
-                    <span className="text-gray-500">Livability Score</span>
-                    <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full font-bold">
-                      {selectedProperty.data?.livabilityScore || "N/A"}
-                    </span>
-                  </div>
-                  <div className="border border-gray-100 rounded-xl p-4 flex justify-between items-center">
-                    <span className="text-gray-500">Safety Score</span>
-                    <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full font-bold">
-                      {selectedProperty.data?.safetyScore || "N/A"}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Section C: Technical Specs */}
-              <div>
-                <h3 className="text-xs font-bold uppercase tracking-widest text-purple-600 mb-4 flex items-center gap-2">
-                  <Ruler className="w-4 h-4" /> Section C: Technical Specs
-                </h3>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
-                  <div className="p-4 border border-gray-100 rounded-xl">
-                    <p className="text-[10px] text-gray-400 uppercase font-bold mb-1">
-                      Floor
-                    </p>
-                    <p className="font-semibold text-gray-900">
-                      {selectedProperty.data?.floorNo} /{" "}
-                      {selectedProperty.data?.totalFloors}
-                    </p>
-                  </div>
-                  <div className="p-4 border border-gray-100 rounded-xl">
-                    <p className="text-[10px] text-gray-400 uppercase font-bold mb-1">
-                      Facing
-                    </p>
-                    <p className="font-semibold text-gray-900">
-                      {selectedProperty.data?.facing || "N/A"}
-                    </p>
-                  </div>
-                  <div className="p-4 border border-gray-100 rounded-xl">
-                    <p className="text-[10px] text-gray-400 uppercase font-bold mb-1">
-                      Overlooking
-                    </p>
-                    <p className="font-semibold text-gray-900">
-                      {selectedProperty.data?.overlooking || "N/A"}
-                    </p>
-                  </div>
-                  <div className="p-4 border border-gray-100 rounded-xl">
-                    <p className="text-[10px] text-gray-400 uppercase font-bold mb-1">
-                      Furnishing
-                    </p>
-                    <p className="font-semibold text-gray-900">
-                      {selectedProperty.data?.furnishingStatus || "N/A"}
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Section D: Trust & Legal */}
-              <div className="bg-gray-900 p-6 rounded-2xl text-white">
-                <h3 className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-4 flex items-center gap-2">
-                  <ShieldCheck className="w-4 h-4" /> Section D: Trust & Legal
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <div className="flex items-center gap-3">
-                    <div
-                      className={`w-3 h-3 rounded-full ${selectedProperty.data?.reraApproved ? "bg-green-500" : "bg-red-500"}`}
-                    />
-                    <span>
-                      RERA Approved:{" "}
-                      <b>
-                        {selectedProperty.data?.reraApproved ? "YES" : "NO"}
-                      </b>
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <div
-                      className={`w-3 h-3 rounded-full ${selectedProperty.data?.verifiedTag ? "bg-blue-500" : "bg-gray-500"}`}
-                    />
-                    <span>
-                      Verified Listing:{" "}
-                      <b>{selectedProperty.data?.verifiedTag ? "YES" : "NO"}</b>
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <span>
-                      Ownership:{" "}
-                      <b>{selectedProperty.data?.ownershipType || "N/A"}</b>
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Full Page Screenshot Preview */}
-              <div className="space-y-4">
-                <h3 className="text-xs font-bold uppercase tracking-widest text-gray-500">
-                  Full Webpage Evidence
-                </h3>
-                <img
-                  src={selectedProperty.screenshotUrl}
-                  alt="Full Screenshot"
-                  className="w-full rounded-xl border border-gray-200 shadow-sm"
-                />
+      {/* Property Details Modal - Fixed Width & Content Layout */}
+      <Dialog
+        open={!!selectedProperty}
+        onOpenChange={() => setSelectedProperty(null)}
+      >
+        <DialogContent className="sm:max-w-5xl w-[95vw] max-h-[90vh] overflow-hidden flex flex-col p-0 border-zinc-200 bg-white shadow-2xl rounded-2xl">
+          <DialogHeader className="p-6 sm:p-8 border-b border-zinc-50 bg-white space-y-0 flex-row items-center justify-between overflow-x-hidden">
+            <div className="space-y-1 text-zinc-900 min-w-0 flex-1">
+              <DialogTitle className="text-xl sm:text-2xl font-bold tracking-tight truncate">
+                {selectedProperty?.data?.propertyTitle || "Property Overview"}
+              </DialogTitle>
+              <div className="flex items-center gap-2 text-[10px] sm:text-xs text-zinc-400 font-mono italic bg-zinc-50 w-fit px-2 py-0.5 rounded border border-zinc-100 max-w-full">
+                <ExternalLink size={10} className="shrink-0" />
+                <span className="truncate max-w-[200px] sm:max-w-sm">
+                  {selectedProperty?.url}
+                </span>
               </div>
             </div>
+          </DialogHeader>
 
-            {/* Modal Footer */}
-            <div className="p-4 bg-gray-50 border-t border-gray-100 flex justify-end">
-              <a
-                href={selectedProperty.url}
-                target="_blank"
-                className="flex items-center gap-2 px-6 py-2 bg-gray-900 text-white rounded-lg font-medium hover:bg-black transition-colors"
-              >
-                <ExternalLink className="w-4 h-4" /> Visit Original Website
-              </a>
+          <div className="flex-1 overflow-y-auto overflow-x-hidden p-6 sm:p-10 space-y-12 bg-white">
+            {/* Primary Metrics Section */}
+            <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {[
+                {
+                  label: "Market Price",
+                  value: selectedProperty?.data?.price,
+                  highlight: true,
+                },
+                {
+                  label: "Rate / Sqft",
+                  value: selectedProperty?.data?.pricePerSqft,
+                },
+                { label: "Total Area", value: selectedProperty?.data?.area },
+                {
+                  label: "Bldg Age",
+                  value: selectedProperty?.data?.ageOfBuilding,
+                },
+              ].map((stat, i) => (
+                <div
+                  key={i}
+                  className={`p-6 rounded-xl border border-zinc-100 ${stat.highlight ? "bg-zinc-900 text-zinc-50 shadow-lg" : "bg-white text-zinc-900"} min-w-0 overflow-hidden`}
+                >
+                  <p
+                    className={`text-[10px] uppercase tracking-widest font-black mb-2 ${stat.highlight ? "text-zinc-500" : "text-zinc-400"}`}
+                  >
+                    {stat.label}
+                  </p>
+                  <p className="text-xl font-bold tracking-tight truncate">
+                    {stat.value || "N/A"}
+                  </p>
+                </div>
+              ))}
+            </section>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+              {/* Technical Specifications */}
+              <div className="space-y-6">
+                <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-zinc-300 border-b border-zinc-50 pb-3">
+                  Technical Matrix
+                </h4>
+                <div className="space-y-4">
+                  {[
+                    {
+                      label: "Locality",
+                      value: selectedProperty?.data?.location,
+                      icon: <MapPin size={14} />,
+                    },
+                    {
+                      label: "Internal Floor Area",
+                      value: selectedProperty?.data?.carpetArea,
+                      icon: <Ruler size={14} />,
+                    },
+                    {
+                      label: "Vertical Position",
+                      value: selectedProperty?.data?.floorNo,
+                      icon: <Home size={14} />,
+                    },
+                    {
+                      label: "Cardinal Facing",
+                      value: selectedProperty?.data?.facing,
+                      icon: <ArrowRight size={14} />,
+                    },
+                    {
+                      label: "Furnishing Status",
+                      value: selectedProperty?.data?.furnishingStatus,
+                      icon: <Home size={14} />,
+                    },
+                    {
+                      label: "Legal Status",
+                      value: selectedProperty?.data?.reraApproved
+                        ? "RERA Approved"
+                        : "Pending",
+                      icon: <ShieldCheck size={14} />,
+                    },
+                  ].map((row, i) => (
+                    <div
+                      key={i}
+                      className="flex items-center justify-between py-2 text-sm border-b border-zinc-50 last:border-0"
+                    >
+                      <span className="text-zinc-400 flex items-center gap-3">
+                        {row.icon} {row.label}
+                      </span>
+                      <span className="font-semibold text-zinc-900">
+                        {row.value || "-"}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Visual Evidence Area */}
+              <div className="space-y-6">
+                <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-zinc-300 border-b border-zinc-50 pb-3">
+                  Evidence Verification
+                </h4>
+                <div className="rounded-xl border border-zinc-200 overflow-hidden bg-zinc-50 shadow-inner group relative">
+                  {selectedProperty && (
+                    <img
+                      src={selectedProperty.screenshotUrl}
+                      className="w-full h-auto transition-all duration-1000"
+                    />
+                  )}
+                </div>
+                <Button
+                  variant="outline"
+                  className="w-full h-12 text-zinc-600 hover:text-zinc-900 border-zinc-200 font-bold rounded-xl gap-3 cursor-pointer"
+                  asChild
+                >
+                  <a
+                    href={selectedProperty?.url}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    <ExternalLink size={16} /> Open Original Source
+                  </a>
+                </Button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
