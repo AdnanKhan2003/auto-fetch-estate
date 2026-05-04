@@ -13,12 +13,16 @@ interface ResultsTableProps {
   results: any[];
   onRowClick: (property: any) => void;
   averagePrice: number;
+  discountPercentage: number;
+  discountedAverage: number;
 }
 
 function ResultsTable({
   results,
   onRowClick,
   averagePrice,
+  discountPercentage,
+  discountedAverage,
 }: ResultsTableProps) {
   return (
     <div className="space-y-4 animate-in fade-in duration-700">
@@ -91,17 +95,43 @@ function ResultsTable({
               ))
             )}
           </TableBody>
-          <TableFooter className="bg-zinc-900 text-zinc-50 border-t-0">
-            <TableRow className="hover:bg-transparent">
+          <TableFooter className="border-t-0">
+            <TableRow className="bg-zinc-900 text-zinc-50 hover:bg-zinc-900">
               <TableCell
                 colSpan={3}
-                className="py-8 pl-6 font-medium text-zinc-400 text-right"
+                className="py-4 pl-6 font-medium text-zinc-400 text-right"
               >
                 Aggregated Market Average:
               </TableCell>
-              <TableCell colSpan={2} className="py-8 pr-6 text-right">
-                <span className="text-2xl font-black text-white">
+              <TableCell colSpan={2} className="py-4 pr-6 text-right">
+                <span className="text-xl font-black text-white">
                   ₹{averagePrice.toLocaleString("en-IN")}
+                </span>
+              </TableCell>
+            </TableRow>
+            <TableRow className="bg-zinc-100 text-zinc-900 hover:bg-zinc-100">
+              <TableCell
+                colSpan={3}
+                className="py-4 pl-6 font-medium text-zinc-600 text-right"
+              >
+                Discount Percentage:
+              </TableCell>
+              <TableCell colSpan={2} className="py-4 pr-6 text-right">
+                <span className="text-xl font-black text-zinc-900">
+                  {discountPercentage}%
+                </span>
+              </TableCell>
+            </TableRow>
+            <TableRow className="bg-zinc-900 text-zinc-50 hover:bg-zinc-900">
+              <TableCell
+                colSpan={3}
+                className="py-4 pl-6 font-medium text-zinc-400 text-right"
+              >
+                Discounted Average (After Discount):
+              </TableCell>
+              <TableCell colSpan={2} className="py-4 pr-6 text-right">
+                <span className="text-2xl font-black text-white">
+                  ₹{discountedAverage.toLocaleString("en-IN")}
                 </span>
               </TableCell>
             </TableRow>

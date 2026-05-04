@@ -5,6 +5,7 @@ import EstateHeader from "./estate-header";
 import ScrapeInputCard from "./scrape-input-card";
 import ResultsTable from "./results-table";
 import PropertyDetailsModal from "./property-details-modal";
+import { Input } from "../ui/input";
 
 interface ScrapeResult {
   url: string;
@@ -13,10 +14,27 @@ interface ScrapeResult {
   status: "success" | "error";
 }
 
+function parseIndianPrice(priceText?: string | null): number | null {
+  if (!priceText) return null;
+
+  const text = priceText.toLowerCase().replace(/,/g, " ").replace(/\s+/g, " ").trim();
+  const numMatch = text.match(/(\d+(\.\d+)?)/);
+  if (!numMatch) return null;
+
+  const value = Number(numMatch[1]);
+  if (Number.isNaN(value)) return null;
+
+  if (/\b(cr|crore|crores)\b/.test(text)) return Math.round(value * 1_00_00_000);
+  if (/\b(lac|lakh|lakhs)\b/.test(text)) return Math.round(value * 1_00_000);
+  if (/\b(k|thousand)\b/.test(text)) return Math.round(value * 1_000);
+  return Math.round(value);
+}
+
 export default function EstateAnalyzer() {
   const [urls, setUrls] = useState<string[]>([""]);
   const [isLoading, setIsLoading] = useState(false);
   const [results, setResults] = useState<ScrapeResult[]>([]);
+  const [discountPercentage, setDiscountPercentage] = useState<number>(0);
   const [selectedProperty, setSelectedProperty] = useState<ScrapeResult | null>(
     null,
   );
@@ -89,16 +107,15 @@ export default function EstateAnalyzer() {
   };
 
   const validPrices = results
-    .map((r) => {
-      const priceStr = r.data?.price?.replace(/[^0-9]/g, "");
-      return priceStr ? parseInt(priceStr, 10) : null;
-    })
+    .map((r) => parseIndianPrice(r.data?.price))
     .filter((p): p is number => p !== null && p > 0);
 
   const averagePrice =
     validPrices.length > 0
       ? Math.round(validPrices.reduce((a, b) => a + b, 0) / validPrices.length)
       : 0;
+  const discountAmount = Math.round((averagePrice * discountPercentage) / 100);
+  const discountedAverage = Math.max(averagePrice - discountAmount, 0);
 
   return (
     <div className="min-h-screen bg-white text-zinc-900 p-6 md:p-12">
@@ -110,10 +127,48 @@ export default function EstateAnalyzer() {
           isLoading={isLoading}
           onScrape={handleScrape}
         />
+        <div className="rounded-xl border border-zinc-200 bg-white p-4">
+          <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+            <div>
+              <p className="text-xs font-black uppercase tracking-[0.2em] text-zinc-400">
+                Discount Configuration
+              </p>
+              <p className="mt-1 text-sm text-zinc-500">
+                Apply discount percentage on aggregated average.
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <label
+                htmlFor="discountPercentage"
+                className="text-sm font-medium text-zinc-600"
+              >
+                Discount %
+              </label>
+              <Input
+                id="discountPercentage"
+                type="number"
+                min={0}
+                max={100}
+                value={discountPercentage}
+                onChange={(e) => {
+                  const value = Number(e.target.value);
+                  if (Number.isNaN(value)) {
+                    setDiscountPercentage(0);
+                    return;
+                  }
+                  setDiscountPercentage(Math.min(100, Math.max(0, value)));
+                }}
+                className="h-10 w-28 bg-zinc-50/30 text-right"
+              />
+            </div>
+          </div>
+        </div>
         <ResultsTable
           results={results}
           onRowClick={setSelectedProperty}
           averagePrice={averagePrice}
+          discountPercentage={discountPercentage}
+          discountedAverage={discountedAverage}
         />
       </div>
       <PropertyDetailsModal
