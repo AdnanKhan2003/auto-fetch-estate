@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import EstateHeader from "./estate-header";
 import ScrapeInputCard from "./scrape-input-card";
 import ResultsTable from "./results-table";
@@ -21,27 +21,71 @@ export default function EstateAnalyzer() {
     null,
   );
 
+  useEffect(() => {
+    const saved = localStorage.getItem("scrape_history");
+    if (saved) {
+      try {
+        setResults(JSON.parse(saved));
+      } catch (e) {
+        console.error("Failed to load history", e);
+      }
+    }
+  }, []);
+
+  // const handleScrape = async () => {
+  //   setIsLoading(true);
+  //   const urlArray = urls.filter((u) => u.trim() !== "");
+  //   if (urlArray.length === 0) {
+  //     setIsLoading(false);
+  //     return;
+  //   }
+
+  //   try {
+  //     const response = await fetch("/api/scrape", {
+  //       method: "POST",
+  //       headers: { "Content-Type": "application/json" },
+  //       body: JSON.stringify({ urls: urlArray }),
+  //     });
+  //     const data = await response.json();
+  //     setResults(data.results || []);
+  //   } catch (error) {
+  //     console.error("Scrape failed:", error);
+  //   } finally {
+  //     setIsLoading(false);
+  //   }
+  // };
+
   const handleScrape = async () => {
     setIsLoading(true);
-    const urlArray = urls.filter((u) => u.trim() !== "");
-    if (urlArray.length === 0) {
-      setIsLoading(false);
-      return;
-    }
-
     try {
       const response = await fetch("/api/scrape", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ urls: urlArray }),
+        body: JSON.stringify({ urls: urls.filter((u) => u.trim()) }),
       });
       const data = await response.json();
-      setResults(data.results || []);
-    } catch (error) {
-      console.error("Scrape failed:", error);
+
+      if (data.results) {
+        // 1. Combine new results with existing ones
+        // 2. Filter out duplicates based on URL
+        const newResults = [...data.results, ...results];
+        const uniqueResults = Array.from(
+          new Map(newResults.map((item) => [item.url, item])).values(),
+        );
+
+        setResults(uniqueResults);
+        localStorage.setItem("scrape_history", JSON.stringify(uniqueResults));
+      }
+    } catch (err) {
+      console.error(err);
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const clearHistory = () => {
+    setResults([]);
+    localStorage.removeItem("scrape_history");
   };
 
   const validPrices = results
@@ -59,7 +103,7 @@ export default function EstateAnalyzer() {
   return (
     <div className="min-h-screen bg-white text-zinc-900 p-6 md:p-12">
       <div className="max-w-6xl mx-auto space-y-10">
-        <EstateHeader />
+        <EstateHeader onClear={clearHistory} />
         <ScrapeInputCard
           urls={urls}
           setUrls={setUrls}

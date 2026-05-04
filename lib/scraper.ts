@@ -1,11 +1,12 @@
 import path from "path";
 import fs from "fs";
 import { chromium } from "playwright-core"; // system Chrome (swap to 'playwright' for Docker/CI)
-import { google } from "@ai-sdk/google";
+import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { generateObject } from "ai";
 import { z } from "zod";
 
 // ─── helpers ────────────────────────────────────────────────
+const DEFAULT_GOOGLE_MODEL = "gemini-2.5-flash";
 
 export const propertySchema = z.object({
   // Basic Information
@@ -233,56 +234,16 @@ export const propertySchema = z.object({
     .number()
     .nullable()
     .describe("Number of photos available for the property."),
-  videoTourAvailable: z
-    .boolean()
-    .nullable()
-    .describe("Indicates if a video tour is available."),
+  videoTourAvailable: z.boolean().nullable().optional(),
+  marketPrice: z.string().nullable().optional(),
+  ownerName: z.string().nullable().optional(),
+  internalFloorArea: z.string().nullable().optional(),
+  verticalPositioning: z.string().nullable().optional(),
+  cardinalFacing: z.string().nullable().optional(),
+  legalStatus: z.string().nullable().optional(),
 });
 
 export type Property = z.infer<typeof propertySchema>;
-
-// function isBlocked(html: string): boolean {
-//   const signals = ["access denied", "captcha", "robot check", "blocked"];
-//   return signals.some((s) => html.toLowerCase().includes(s));
-// }
-
-// async function extractStructuredData(page: any): Promise<Partial<Property>> {
-//   return page.evaluate(() => {
-//     const scripts = Array.from(
-//       document.querySelectorAll('script[type="application/ld+json"]'),
-//     );
-//     for (const s of scripts) {
-//       try {
-//         const data = JSON.parse(s.textContent ?? "");
-
-//         // --- ADD THIS CHECK ---
-//         // Skip corporate info, only look for the actual property
-//         const type = data["@type"]?.toLowerCase() || "";
-//         if (
-//           type.includes("organization") ||
-//           data.name?.includes("Realty Services")
-//         ) {
-//           continue;
-//         }
-
-//         if (
-//           type.includes("apartment") ||
-//           type.includes("residence") ||
-//           type.includes("house") ||
-//           data.price
-//         ) {
-//           return {
-//             propertyTitle: data.name ?? null,
-//             price: data.price ?? data.offers?.price ?? null,
-//             address: data.address?.streetAddress ?? null,
-//             city: data.address?.addressLocality ?? null,
-//           };
-//         }
-//       } catch {}
-//     }
-//     return {};
-//   });
-// }
 
 function isBlocked(pageTitle: string, html: string): boolean {
   const lowTitle = pageTitle.toLowerCase();
@@ -302,8 +263,12 @@ function isBlocked(pageTitle: string, html: string): boolean {
   return false;
 }
 
-async function extractStructuredData(page: any): Promise<Partial<Property>> {
-  // 1. Grab all raw JSON-LD blocks from the page
+async function extractStructuredData(
+  page: any,
+  cleanText: string,
+  knownData: Partial<Property> = {},
+  scrapeUrl?: string,
+): Promise<Partial<Property>> {
   const jsonLdData = await page.evaluate(() => {
     const scripts = Array.from(
       document.querySelectorAll('script[type="application/ld+json"]'),
@@ -311,24 +276,89 @@ async function extractStructuredData(page: any): Promise<Partial<Property>> {
     return scripts.map((s) => s.textContent).join("\n\n");
   });
 
-  // If there's no JSON-LD, don't waste an AI call
-  if (!jsonLdData || jsonLdData.length < 50) return {};
+  const urlLabel = scrapeUrl ?? "(unknown URL)";
+  console.log("\n" + "=".repeat(60));
+  console.log(`JSON-LD DATA — ${urlLabel}`);
+  console.log("=".repeat(60));
+  console.log(`script blocks joined length (chars): ${jsonLdData?.length ?? 0}`);
+  console.log(jsonLdData?.trim() ? jsonLdData : "(empty — no application/ld+json or blank)");
+  console.log("=".repeat(60) + "\n");
+
+  // If there's no data at all, return empty
+  if ((!jsonLdData || jsonLdData.length < 50) && !cleanText) return {};
+
+  const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
+  const modelName = process.env.GOOGLE_MODEL || DEFAULT_GOOGLE_MODEL;
+  if (!apiKey) {
+    console.error("❌ [AI Error] GOOGLE_GENERATIVE_AI_API_KEY is missing from .env!");
+    return {};
+  }
+  console.log(`[AI] Using API Key: ${apiKey.slice(0, 5)}...`);
+  console.log(`[AI] Using Model: ${modelName}`);
+
+  // Do not force .../v1 — generateObject sends responseSchema/responseMimeType on generation_config,
+  // which the v1 REST surface rejects ("Unknown name responseMimeType/responseSchema").
+  const googleProvider = createGoogleGenerativeAI({ apiKey });
 
   try {
-    console.log("[AI] Analyzing JSON-LD block...");
+    const prompt = `
+         You are a Real Estate Data Specialist. 
+         I will provide you with raw JSON-LD blocks and the full text content from a property listing.
+         
+         TASK:
+         1. Scrutinize EVERY JSON-LD block and the provided page text.
+         2. Extract all available property details into the provided schema.
+         3. **PRIORITY FIELDS**: Ensure you extract the following if present:
+            - Property Name (propertyTitle)
+            - Price & Market Price
+            - Carpet Area / Internal Floor Area
+            - Total Area
+            - Rate per Sqft (pricePerSqft)
+            - Building Age (ageOfBuilding)
+            - Locality (location)
+            - Vertical Position (floorNo)
+            - Cardinal Facing (facing)
+            - Furnishing Status
+            - Legal Status (reraApproved/reraNumber)
+            - Owner Name (ownerName)
+         4. Look for patterns like "Lac", "Cr", "sqft", "BHK", "Ready to move", "X years old", etc.
+         5. Combine data from both sources to get the most accurate picture.
+
+         DATA TO ANALYZE (JSON-LD):
+         ${jsonLdData.slice(0, 10000)}
+
+         DATA TO ANALYZE (PAGE TEXT):
+         ${cleanText.slice(0, 20000)}
+
+         DATA ALREADY FOUND (Selectors):
+         ${JSON.stringify(knownData, null, 2)}
+      `;
+
+    // LOG 2: Exact prompt given to AI
+    console.log("--- LOG 2: AI PROMPT & CONTEXT ---");
+    console.log(prompt);
+    console.log("----------------------------------");
+
     const { object } = await generateObject({
-      // model: google("gemini-1.5-flash"),
-      model: google("gemini-1.5-flash-latest"),
+      model: googleProvider(modelName),
       schema: propertySchema,
-      prompt: `Analyze this Real Estate JSON-LD data. Extract all available property details. 
-               Map them to the schema provided. Focus on: price, area, BHK, location, amenities, and RERA status.
-               
-               JSON-LD DATA:
-               ${jsonLdData.slice(0, 20000)}`, // Safeguard to prevent token overflow
+      prompt,
     });
+
+    if (object && Object.keys(object).length > 0) {
+      console.log("✅ [AI] Extraction successful!");
+    }
+
+    // LOG 3: Result from AI
+    console.log("--- LOG 3: AI RESULT ---");
+    console.log(JSON.stringify(object, null, 2));
+    console.log("------------------------");
+
     return object;
-  } catch (err) {
-    console.error("[AI Error] JSON-LD extraction failed:", err);
+  } catch (err: any) {
+    console.error("\n❌ [AI Error] Extraction failed!");
+    console.error(`Reason: ${err.message}`);
+    if (err.stack) console.error(err.stack);
     return {};
   }
 }
@@ -390,15 +420,21 @@ async function extractBySelectors(page: any): Promise<Partial<Property>> {
       (await getByLabel("Built-up Area")) ||
       (await get(".mb-ldp__dtls__body__list--value")),
 
-    // Explicitly hunt for Price per Sqft which is often near the price or area
+    // Explicitly hunt for Price per Sqft
     pricePerSqft:
       (
         await page
-          .locator('.mb-ldp__dtls__body__list--value:has-text("/sqft")')
+          .locator('.mb-ldp__dtls__body__list--value:has-text("sqft")')
           .first()
-          .textContent({ timeout: 1000 })
+          .innerText({ timeout: 1000 })
+          .then((val: string | null) => {
+            if (!val) return null;
+            // REGEX: Find the currency symbol and the number/sqft, ignore the list of units
+            const match = val.match(/(₹|Rs\.?)\s*[\d,.]+(\/sqft| per sqft)/i);
+            return match ? match[0] : val.split("\n").pop()?.trim();
+          })
           .catch(() => null)
-      )?.trim() || null,
+      ) || null,
 
     location: await get(
       ".mb-ldp__dtls__title--link",
@@ -408,31 +444,51 @@ async function extractBySelectors(page: any): Promise<Partial<Property>> {
 
     // Detailed Specs
     floorNo: await getByLabel("Floor"),
+    verticalPositioning: await getByLabel("Floor"),
     facing: await getByLabel("Facing"),
+    cardinalFacing: await getByLabel("Facing"),
     furnishingStatus: await getByLabel("Furnishing"),
     overlooking: await getByLabel("Overlooking"),
     ageOfBuilding: await getByLabel("Age of Construction"),
     constructionStatus:
       (await getByLabel("Status")) || (await getByLabel("Possession")),
+    
+    // Legal & Owner
+    legalStatus: (await getByLabel("RERA ID")) || (await getByLabel("Status")),
+    ownerName: await get(".mb-ldp__dtls__contact-name", ".mb-ldp__dtls__seller-name"),
+    internalFloorArea: await getByLabel("Carpet Area"),
   };
 }
 
+// Helper to clean page content for AI analysis
 async function extractCleanContent(page: any): Promise<string> {
-  // ── Stage 3: cleaned content (moderate cost if sent to AI) ──
   return page.evaluate(() => {
-    // Remove noise
-    document
-      .querySelectorAll(
-        'script:not([type="application/ld+json"]), style, nav, footer, header, [class*="ad"]',
-      )
-      .forEach((el) => el.remove());
+    // 1. Target junk elements for removal
+    const junkSelectors = [
+      "script", "style", "iframe", "noscript", 
+      "footer", "nav", "header", 
+      ".footer", ".header", ".sidebar", 
+      ".seo-section", ".faq-section", ".about-portal",
+      "[class*='disclaimer']", "[class*='advertisement']", "[class*='ad-unit']"
+    ];
+    
+    junkSelectors.forEach(selector => {
+      document.querySelectorAll(selector).forEach(el => el.remove());
+    });
 
-    const main =
-      document.querySelector(
-        'main, [class*="detail"], [class*="property-info"]',
-      ) ?? document.body;
-
-    return (main as HTMLElement).innerText.replace(/\n{3,}/g, "\n\n").trim();
+    // 2. Extract text from the remaining content
+    // We prioritize 'main' or article areas if they exist, fallback to body
+    const main = document.querySelector("main, article, #main, .main, [class*='detail-container']") || document.body;
+    const text = (main as HTMLElement).innerText || "";
+    
+    // 3. Clean up whitespace and collapse gaps
+    const clean = text.replace(/\n{3,}/g, "\n\n").replace(/\s\s+/g, " ").trim();
+    
+    // 4. Block check: If the text is just a security alert, return empty
+    if (clean.toLowerCase().includes("request blocked") || clean.toLowerCase().includes("suspicious activity")) {
+      return "";
+    }
+    return clean;
   });
 }
 
@@ -441,10 +497,10 @@ export async function processUrl(url: string) {
   const context = await browser.newContext({
     viewport: { width: 1280, height: 800 },
     userAgent:
-      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/12" + Math.floor(Math.random() * 9) + ".0.0.0 Safari/537.36",
     deviceScaleFactor: 1,
     hasTouch: false,
-    locale: "en-IN", // Set to India
+    locale: "en-IN", 
     timezoneId: "Asia/Kolkata",
   });
 
@@ -467,10 +523,13 @@ export async function processUrl(url: string) {
   const page = await context.newPage();
 
   try {
-    await page.goto(url, { waitUntil: "domcontentloaded", timeout: 60000 });
+    await page.goto(url, { waitUntil: "networkidle", timeout: 60000 });
+    // Wait for the body to ensure content is loaded, then try to find specific markers
+    await page.waitForSelector("body", { timeout: 10000 });
+    // Attempt to wait for markers but don't crash if they don't appear (handles lazy loading)
     await page.waitForSelector("h1, [class*='price'], [class*='title']", {
-      timeout: 10000,
-    });
+      timeout: 5000,
+    }).catch(() => console.log("[Scraper] Major markers not found, proceeding anyway..."));
     await page.waitForTimeout(Math.floor(Math.random() * 2000) + 3000);
 
     const pageTitle = await page.title();
@@ -489,12 +548,46 @@ export async function processUrl(url: string) {
     fs.mkdirSync(path.dirname(screenshotPath), { recursive: true });
     await page.screenshot({ path: screenshotPath });
 
-    const [structuredData, selectorData] = await Promise.all([
-      extractStructuredData(page),
-      extractBySelectors(page),
-    ]);
+    const cleanText = await extractCleanContent(page);
+
+    console.log("\n" + "=".repeat(60));
+    console.log(`UNSTRUCTURED BODY DATA — ${url}`);
+    console.log("=".repeat(60));
+    console.log(`characters: ${cleanText.length}`);
+    if (cleanText.length === 0) {
+      console.log(
+        "(EMPTY — bot wall, hydration not finished, or extractCleanContent removed all visible text)",
+      );
+    } else {
+      console.log(cleanText);
+    }
+    console.log("=".repeat(60) + "\n");
+
+    // 1. Run selectors first (deterministic)
+    const selectorData = await extractBySelectors(page);
+    console.log("\n" + "=".repeat(60));
+    console.log(`SELECTORS DATA — ${url}`);
+    console.log("=".repeat(60));
+    console.log(JSON.stringify(selectorData, null, 2));
+    console.log("=".repeat(60) + "\n");
+
+    // 2. Pass known data to AI to fill the gaps
+    const structuredData = await extractStructuredData(
+      page,
+      cleanText,
+      selectorData,
+      url,
+    );
+
+    // 3. Pre-initialize the object with nulls for all fields in the schema
+    const defaultData = Object.keys(propertySchema.shape).reduce((acc, key) => {
+      acc[key] = null;
+      if (key === "nearbyLandmarks" || key === "amenities") acc[key] = [];
+      return acc;
+    }, {} as any);
 
     const deterministic: Partial<Property> = {
+      ...defaultData,
       ...selectorData,
       ...structuredData,
     };
@@ -507,88 +600,81 @@ export async function processUrl(url: string) {
     ] as const;
     const missingCritical = criticalFields.filter((f) => !deterministic[f]);
 
-    // if (missingCritical.length === 0 && deterministic.floorNo) {
-    //   return {
-    //     url,
-    //     screenshotUrl: `/screenshots/${screenshotName}`,
-    //     data: deterministic,
-    //     status: "success",
-    //     aiUsed: false,
-    //   };
-    // }
-
     const allFields = Object.keys(propertySchema.shape);
     const filledFields = Object.values(deterministic).filter(
       (v) => v !== null && v !== "",
     ).length;
-    if (filledFields > 15) {
-      // If we got more than 15 fields deterministically, we can skip AI Vision
-      return {
-        url,
-        screenshotUrl: `/screenshots/${screenshotName}`,
-        data: deterministic,
-        status: "success",
-        aiUsed: false, // AI was used in structured stage, but skipped in Vision stage
-      };
-    }
-
-    const cleanText = await extractCleanContent(page);
-    let aiData: any = {};
-    let visionUsed = false;
-
-    try {
-      console.log(`[AI] Attempting Vision extraction for: ${url}`);
-      const screenshotBuffer = fs.readFileSync(screenshotPath);
-
-      const { object } = await generateObject({
-        // model: google("gemini-1.5-flash"), // FIXED MODEL NAME
-        model: google("gemini-1.5-pro-latest"),
-        schema: propertySchema,
-        messages: [
-          {
-            role: "user",
-            content: [
-              {
-                type: "text",
-                text: `
-                  Extract real estate data. 
-                  Ignore corporate HQ in Noida.
-                  Find Price per Sqft, Livability Score, Safety Score, Facing, Overlooking, Furnishing, Ownership.
-                  
-                  Missing: ${missingCritical.join(", ")}
-                  Known: ${JSON.stringify(deterministic)}
-                  Text: ${cleanText.slice(0, 10000)}
-                `,
-              },
-              {
-                type: "image",
-                image: screenshotBuffer,
-                mimeType: "image/png",
-              } as any,
-            ],
-          },
-        ],
-      });
-
-      aiData = object;
-      visionUsed = true;
-      console.log(`[AI] Vision extraction successful!`);
-    } catch (aiError: any) {
-      console.error("CRITICAL AI ERROR:", aiError.message);
-    }
-
     const cleanDeterministic = Object.fromEntries(
       Object.entries(deterministic).filter(([_, v]) => v !== null && v !== ""),
     );
 
+    let aiData: any = {};
+    let visionUsed = false;
+
+    // Only run Vision if we are still missing critical fields or have very few total fields
+    if (missingCritical.length > 0 || filledFields < 15) {
+      try {
+        const visionApiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
+        const visionModelName = process.env.GOOGLE_MODEL || DEFAULT_GOOGLE_MODEL;
+        if (!visionApiKey) {
+          console.log("[AI] Vision skipped: GOOGLE_GENERATIVE_AI_API_KEY not set");
+        } else {
+        console.log(`[AI] Attempting Vision extraction for: ${url}`);
+        console.log(`[AI] Vision Model: ${visionModelName}`);
+        const screenshotBuffer = fs.readFileSync(screenshotPath);
+
+        const visionGoogle = createGoogleGenerativeAI({ apiKey: visionApiKey });
+
+        const { object } = await generateObject({
+          model: visionGoogle(visionModelName),
+          schema: propertySchema,
+          messages: [
+            {
+              role: "user",
+              content: [
+                {
+                  type: "text",
+                  text: `
+                    Extract real estate data from this screenshot and text. 
+                    Focus on: ${missingCritical.join(", ")}
+                    Already Found: ${JSON.stringify(cleanDeterministic)}
+                    Raw Text Preview: ${cleanText.slice(0, 5000)}
+                  `,
+                },
+                {
+                  type: "image",
+                  image: screenshotBuffer,
+                  mimeType: "image/png",
+                } as any,
+              ],
+            },
+          ],
+        });
+
+        aiData = object;
+        visionUsed = true;
+        console.log("\n--- LOG 3.5: AI VISION RESULT (From Screenshot) ---");
+        console.log(JSON.stringify(aiData, null, 2));
+        console.log("--------------------------------------------------\n");
+        console.log(`✅ [AI] Vision extraction successful!`);
+        }
+      } catch (aiError: any) {
+        console.error("❌ [AI Vision Error]:", aiError.message);
+      }
+    }
+
+    const finalData = { ...cleanDeterministic, ...aiData };
+    const hasAiData = Object.keys(structuredData).length > 0 || visionUsed;
+
     return {
       url,
       screenshotUrl: `/screenshots/${screenshotName}`,
-      data: { ...aiData, ...cleanDeterministic },
+      data: finalData,
       status: "success" as const,
-      aiUsed: true,
+      aiUsed: hasAiData,
       visionUsed,
       missingFields: missingCritical,
+      cleanText,
     };
   } catch (error: any) {
     console.error(`Failed to process ${url}:`, error);
