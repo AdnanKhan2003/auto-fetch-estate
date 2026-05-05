@@ -23,12 +23,12 @@ function ScrapeInputCard({
   onScrape,
 }: ScrapeInputCardProps) {
   return (
-    <Card className="border-zinc-200 shadow-none bg-white rounded-xl">
+    <Card className="rounded-xl border-border bg-card shadow-none">
       <CardHeader className="pb-4">
-        <CardTitle className="text-lg font-bold flex items-center gap-2 text-zinc-900">
-          <Search className="w-4 h-4 text-zinc-400" /> Target Configuration
+        <CardTitle className="flex items-center gap-2 text-lg font-bold text-card-foreground">
+          <Search className="h-4 w-4 text-muted-foreground" /> Target Configuration
         </CardTitle>
-        <CardDescription className="text-zinc-500">
+        <CardDescription className="text-muted-foreground">
           Input URLs to extract valuation data and specifications.
         </CardDescription>
       </CardHeader>
@@ -45,7 +45,7 @@ function ScrapeInputCard({
                   setUrls(newUrls);
                 }}
                 spellCheck="false"
-                className="flex-1 bg-zinc-50/30 border-zinc-200 text-zinc-900 focus-visible:ring-zinc-900 h-11"
+                className="h-11 flex-1 border-border bg-background text-foreground focus-visible:ring-ring"
                 placeholder="Paste listing URL here..."
               />
               {urls.length > 1 && (
@@ -57,7 +57,7 @@ function ScrapeInputCard({
                     newUrls.splice(index, 1);
                     setUrls(newUrls);
                   }}
-                  className="text-zinc-300 hover:text-red-600 hover:bg-red-50 cursor-pointer"
+                  className="cursor-pointer text-muted-foreground hover:bg-red-500/10 hover:text-red-500"
                 >
                   <Trash2 size={18} />
                 </Button>
@@ -66,19 +66,19 @@ function ScrapeInputCard({
           ))}
         </div>
 
-        <div className="flex items-center justify-between pt-4 border-t border-zinc-100">
+        <div className="flex items-center justify-between border-t border-border pt-4">
           <Button
             variant="outline"
             size="sm"
             onClick={() => setUrls([...urls, ""])}
-            className="text-zinc-900 border-zinc-200 hover:bg-zinc-50 gap-2 font-medium cursor-pointer"
+            className="cursor-pointer gap-2 border-border font-medium text-foreground hover:bg-muted"
           >
             <Plus size={14} /> Add Target
           </Button>
           <Button
             onClick={onScrape}
             disabled={isLoading || urls.every((u) => !u.trim())}
-            className="bg-black text-white hover:bg-zinc-800 px-10 h-11 font-bold cursor-pointer disabled:bg-zinc-200 disabled:text-zinc-400 border-none transition-all shadow-sm"
+            className="h-11 cursor-pointer border-none bg-primary px-10 font-bold text-primary-foreground shadow-sm transition-all hover:bg-primary/90 disabled:bg-muted disabled:text-muted-foreground"
           >
             {isLoading ? (
               <>
