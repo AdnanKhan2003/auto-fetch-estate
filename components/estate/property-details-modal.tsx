@@ -20,13 +20,13 @@ function PropertyDetailsModal({
 }: PropertyDetailsModalProps) {
   return (
     <Dialog open={!!property} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-5xl w-[95vw] max-h-[90vh] overflow-hidden flex flex-col p-0 border-zinc-200 bg-white shadow-2xl rounded-2xl">
-        <DialogHeader className="p-6 sm:p-8 border-b border-zinc-50 bg-white space-y-0 flex-row items-center justify-between overflow-x-hidden">
-          <div className="space-y-1 text-zinc-900 min-w-0 flex-1">
+      <DialogContent className="flex max-h-[90vh] w-[95vw] flex-col overflow-hidden rounded-2xl border-border bg-card p-0 shadow-2xl sm:max-w-5xl">
+        <DialogHeader className="flex-row items-center justify-between space-y-0 overflow-x-hidden border-b border-border bg-card p-6 sm:p-8">
+          <div className="min-w-0 flex-1 space-y-1 text-card-foreground">
             <DialogTitle className="text-xl sm:text-2xl font-bold tracking-tight truncate">
               {property?.data?.propertyTitle || "Property Overview"}
             </DialogTitle>
-            <div className="flex items-center gap-2 text-[10px] sm:text-xs text-zinc-400 font-mono italic bg-zinc-50 w-fit px-2 py-0.5 rounded border border-zinc-100 max-w-full">
+            <div className="flex w-fit max-w-full items-center gap-2 rounded border border-border bg-muted px-2 py-0.5 font-mono text-[10px] italic text-muted-foreground sm:text-xs">
               <ExternalLink size={10} className="shrink-0" />
               <span className="truncate max-w-[200px] sm:max-w-sm">
                 {property?.url}
@@ -35,7 +35,7 @@ function PropertyDetailsModal({
           </div>
         </DialogHeader>
 
-        <div className="flex-1 overflow-y-auto overflow-x-hidden p-6 sm:p-10 space-y-12 bg-white">
+        <div className="flex-1 space-y-12 overflow-y-auto overflow-x-hidden bg-card p-6 sm:p-10">
           {/* Primary Metrics Section */}
           <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {[
@@ -56,10 +56,10 @@ function PropertyDetailsModal({
             ].map((stat, i) => (
               <div
                 key={i}
-                className={`p-6 rounded-xl border border-zinc-100 ${stat.highlight ? "bg-zinc-900 text-zinc-50 shadow-lg" : "bg-white text-zinc-900"} min-w-0 overflow-hidden`}
+                className={`min-w-0 overflow-hidden rounded-xl border border-border p-6 ${stat.highlight ? "bg-primary text-primary-foreground shadow-lg" : "bg-card text-card-foreground"}`}
               >
                 <p
-                  className={`text-[10px] uppercase tracking-widest font-black mb-2 ${stat.highlight ? "text-zinc-500" : "text-zinc-400"}`}
+                  className={`mb-2 text-[10px] font-black uppercase tracking-widest ${stat.highlight ? "text-primary-foreground/70" : "text-muted-foreground"}`}
                 >
                   {stat.label}
                 </p>
@@ -73,7 +73,7 @@ function PropertyDetailsModal({
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
             {/* Technical Specifications */}
             <div className="space-y-6">
-              <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-zinc-300 border-b border-zinc-50 pb-3">
+              <h4 className="border-b border-border pb-3 text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground">
                 Technical Matrix
               </h4>
               <div className="space-y-4">
@@ -113,12 +113,12 @@ function PropertyDetailsModal({
                 ].map((row, i) => (
                   <div
                     key={i}
-                    className="flex items-center justify-between py-2 text-sm border-b border-zinc-50 last:border-0"
+                    className="flex items-center justify-between border-b border-border py-2 text-sm last:border-0"
                   >
-                    <span className="text-zinc-400 flex items-center gap-3">
+                    <span className="flex items-center gap-3 text-muted-foreground">
                       {row.icon} {row.label}
                     </span>
-                    <span className="font-semibold text-zinc-900">
+                    <span className="font-semibold text-foreground">
                       {row.value || "-"}
                     </span>
                   </div>
@@ -128,10 +128,10 @@ function PropertyDetailsModal({
 
             {/* Visual Evidence Area */}
             <div className="space-y-6">
-              <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-zinc-300 border-b border-zinc-50 pb-3">
+              <h4 className="border-b border-border pb-3 text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground">
                 Evidence Verification
               </h4>
-              <div className="rounded-xl border border-zinc-200 overflow-hidden bg-zinc-50 shadow-inner group relative">
+              <div className="group relative overflow-hidden rounded-xl border border-border bg-muted shadow-inner">
                 {property && (
                   <img
                     src={property.screenshotUrl}
@@ -141,7 +141,7 @@ function PropertyDetailsModal({
               </div>
               <Button
                 variant="outline"
-                className="w-full h-12 text-zinc-600 hover:text-zinc-900 border-zinc-200 font-bold rounded-xl gap-3 cursor-pointer"
+                className="h-12 w-full cursor-pointer gap-3 rounded-xl border-border font-bold text-muted-foreground hover:text-foreground"
                 asChild
               >
                 <a href={property?.url} target="_blank" rel="noreferrer">

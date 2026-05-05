@@ -26,26 +26,26 @@ function ResultsTable({
 }: ResultsTableProps) {
   return (
     <div className="space-y-4 animate-in fade-in duration-700">
-      <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400 px-1">
+      <h2 className="px-1 text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">
         Compare Prices
       </h2>
-      <Card className="border-zinc-200 shadow-none bg-white rounded-xl overflow-hidden">
+      <Card className="overflow-hidden rounded-xl border-border bg-card shadow-none">
         <Table>
           <TableHeader className="hover:bg-transparent border-none">
             <TableRow className="hover:bg-transparent border-none">
-              <TableHead className="w-[100px] py-4 pl-6 text-zinc-400 text-[10px] uppercase font-black">
+              <TableHead className="w-[100px] py-4 pl-6 text-[10px] font-black uppercase text-muted-foreground">
                 Evidence
               </TableHead>
-              <TableHead className="py-4 text-zinc-400 text-[10px] uppercase font-black">
+              <TableHead className="py-4 text-[10px] font-black uppercase text-muted-foreground">
                 Property
               </TableHead>
-              <TableHead className="py-4 text-zinc-400 text-[10px] uppercase font-black text-center">
+              <TableHead className="py-4 text-center text-[10px] font-black uppercase text-muted-foreground">
                 Price
               </TableHead>
-              <TableHead className="py-4 text-zinc-400 text-[10px] uppercase font-black text-center">
+              <TableHead className="py-4 text-center text-[10px] font-black uppercase text-muted-foreground">
                 Carpet Area
               </TableHead>
-              <TableHead className="py-4 text-zinc-400 text-[10px] uppercase font-black text-right pr-6">
+              <TableHead className="py-4 pr-6 text-right text-[10px] font-black uppercase text-muted-foreground">
                 Locality
               </TableHead>
             </TableRow>
@@ -55,10 +55,10 @@ function ResultsTable({
               <TableRow>
                 <TableCell colSpan={5} className="py-24 text-center">
                   <div className="flex flex-col items-center gap-2">
-                    <p className="text-zinc-400 font-medium">
+                    <p className="font-medium text-muted-foreground">
                       No results to compare yet.
                     </p>
-                    <p className="text-zinc-300 text-xs">
+                    <p className="text-xs text-muted-foreground/70">
                       Enter listing URLs above to start your analysis.
                     </p>
                   </div>
@@ -69,26 +69,26 @@ function ResultsTable({
                 <TableRow
                   key={idx}
                   onClick={() => onRowClick(item)}
-                  className="cursor-pointer hover:bg-zinc-50/50 transition-colors border-zinc-100"
+                  className="cursor-pointer border-border transition-colors hover:bg-muted/40"
                 >
                   <TableCell className="py-4 pl-6">
-                    <div className="w-14 h-10 rounded border border-zinc-100 bg-zinc-50 overflow-hidden">
+                    <div className="h-10 w-14 overflow-hidden rounded border border-border bg-muted">
                       <img
                         src={item.screenshotUrl}
                         className="object-cover w-full h-full transition-all duration-700"
                       />
                     </div>
                   </TableCell>
-                  <TableCell className="py-4 font-bold text-zinc-900">
+                  <TableCell className="py-4 font-bold text-foreground">
                     {item.data?.propertyTitle || "Pending Analysis..."}
                   </TableCell>
-                  <TableCell className="py-4 text-center font-black text-zinc-900">
+                  <TableCell className="py-4 text-center font-black text-foreground">
                     {item.data?.price || "-"}
                   </TableCell>
-                  <TableCell className="py-4 text-center text-zinc-600 font-medium">
+                  <TableCell className="py-4 text-center font-medium text-muted-foreground">
                     {item.data?.carpetArea || item.data?.area || "-"}
                   </TableCell>
-                  <TableCell className="py-4 text-right pr-6 text-zinc-400 text-sm">
+                  <TableCell className="py-4 pr-6 text-right text-sm text-muted-foreground">
                     {item.data?.location || "-"}
                   </TableCell>
                 </TableRow>
@@ -96,41 +96,41 @@ function ResultsTable({
             )}
           </TableBody>
           <TableFooter className="border-t-0">
-            <TableRow className="bg-zinc-900 text-zinc-50 hover:bg-zinc-900">
+            <TableRow className="bg-secondary text-secondary-foreground hover:bg-secondary">
               <TableCell
                 colSpan={3}
-                className="py-4 pl-6 font-medium text-zinc-400 text-right"
+                className="py-4 pl-6 text-right font-medium text-secondary-foreground/70"
               >
                 Aggregated Market Average:
               </TableCell>
               <TableCell colSpan={2} className="py-4 pr-6 text-right">
-                <span className="text-xl font-black text-white">
+                <span className="text-xl font-black text-secondary-foreground">
                   ₹{averagePrice.toLocaleString("en-IN")}
                 </span>
               </TableCell>
             </TableRow>
-            <TableRow className="bg-zinc-100 text-zinc-900 hover:bg-zinc-100">
+            <TableRow className="bg-background text-foreground hover:bg-background">
               <TableCell
                 colSpan={3}
-                className="py-4 pl-6 font-medium text-zinc-600 text-right"
+                className="py-4 pl-6 text-right font-medium text-muted-foreground"
               >
                 Discount Percentage:
               </TableCell>
               <TableCell colSpan={2} className="py-4 pr-6 text-right">
-                <span className="text-xl font-black text-zinc-900">
+                <span className="text-xl font-black text-foreground">
                   {discountPercentage}%
                 </span>
               </TableCell>
             </TableRow>
-            <TableRow className="bg-zinc-900 text-zinc-50 hover:bg-zinc-900">
+            <TableRow className="bg-secondary text-secondary-foreground hover:bg-secondary">
               <TableCell
                 colSpan={3}
-                className="py-4 pl-6 font-medium text-zinc-400 text-right"
+                className="py-4 pl-6 text-right font-medium text-secondary-foreground/70"
               >
                 Discounted Average (After Discount):
               </TableCell>
               <TableCell colSpan={2} className="py-4 pr-6 text-right">
-                <span className="text-2xl font-black text-white">
+                <span className="text-2xl font-black text-secondary-foreground">
                   ₹{discountedAverage.toLocaleString("en-IN")}
                 </span>
               </TableCell>

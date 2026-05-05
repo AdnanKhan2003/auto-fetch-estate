@@ -5,7 +5,7 @@ import EstateHeader from "./estate-header";
 import ScrapeInputCard from "./scrape-input-card";
 import ResultsTable from "./results-table";
 import PropertyDetailsModal from "./property-details-modal";
-import { Input } from "../ui/input";
+import DiscountCard from "./discount-card";
 
 interface ScrapeResult {
   url: string;
@@ -118,7 +118,7 @@ export default function EstateAnalyzer() {
   const discountedAverage = Math.max(averagePrice - discountAmount, 0);
 
   return (
-    <div className="min-h-screen bg-white text-zinc-900 p-6 md:p-12">
+    <div className="min-h-screen bg-background text-foreground p-6 md:p-12">
       <div className="max-w-6xl mx-auto space-y-10">
         <EstateHeader onClear={clearHistory} />
         <ScrapeInputCard
@@ -127,42 +127,7 @@ export default function EstateAnalyzer() {
           isLoading={isLoading}
           onScrape={handleScrape}
         />
-        <div className="rounded-xl border border-zinc-200 bg-white p-4">
-          <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-            <div>
-              <p className="text-xs font-black uppercase tracking-[0.2em] text-zinc-400">
-                Discount Configuration
-              </p>
-              <p className="mt-1 text-sm text-zinc-500">
-                Apply discount percentage on aggregated average.
-              </p>
-            </div>
-            <div className="flex items-center gap-2">
-              <label
-                htmlFor="discountPercentage"
-                className="text-sm font-medium text-zinc-600"
-              >
-                Discount %
-              </label>
-              <Input
-                id="discountPercentage"
-                type="number"
-                min={0}
-                max={100}
-                value={discountPercentage}
-                onChange={(e) => {
-                  const value = Number(e.target.value);
-                  if (Number.isNaN(value)) {
-                    setDiscountPercentage(0);
-                    return;
-                  }
-                  setDiscountPercentage(Math.min(100, Math.max(0, value)));
-                }}
-                className="h-10 w-28 bg-zinc-50/30 text-right"
-              />
-            </div>
-          </div>
-        </div>
+        <DiscountCard discountPercentage={discountPercentage} setDiscountPercentage={setDiscountPercentage} />
         <ResultsTable
           results={results}
           onRowClick={setSelectedProperty}

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Poppins } from "next/font/google"; // Import Poppins
-
+import ThemeProvider from "@/components/theme/theme-provider";
 import "./globals.css";
 
 const poppins = Poppins({
@@ -20,11 +20,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="h-full">
+    <html lang="en" className="h-full" suppressHydrationWarning>
       <body
-        className={`${poppins.className} min-h-full flex flex-col antialiased selection:bg-zinc-900 selection:text-white`}
+        className={`${poppins.className} min-h-full flex flex-col antialiased selection:bg-zinc-900 selection:text-white dark:selection:bg-zinc-200 dark:selection:text-zinc-900`}
       >
-        {children}
+        <ThemeProvider>
+          {children}
+        </ThemeProvider>
       </body>
     </html>
   );
