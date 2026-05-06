@@ -11,7 +11,8 @@ interface ScrapeResult {
   url: string;
   screenshotUrl?: string;
   data?: any;
-  status: "success" | "error";
+  status: "success" | "error" | "discarded";
+  reason?: string;
 }
 
 function parsePricePerSqft(priceText?: string | null): number | null {
@@ -103,8 +104,13 @@ export default function EstateAnalyzer() {
           if (!line.trim()) continue;
           try {
             const result = JSON.parse(line);
-            // Remove from pending as soon as this URL resolves
+            // Always remove from pending — URL is done regardless of outcome
             setPendingUrls((prev) => prev.filter((u) => u !== result.url));
+            // Silently drop discarded results (e.g. no carpet area) — never show in UI
+            if (result.status === "discarded") {
+              console.log(`[Stream] Discarded: ${result.url} — ${result.reason}`);
+              continue;
+            }
             // Append to table immediately
             setResults((prev) => {
               const merged = [result, ...prev];
@@ -144,9 +150,9 @@ export default function EstateAnalyzer() {
   const discountedAverage = Math.max(averagePrice - discountAmount, 0);
 
   return (
-    <div className="min-h-screen bg-background text-foreground p-6 md:p-12">
-      <div className="max-w-6xl mx-auto space-y-10">
-        <EstateHeader onClear={clearHistory} />
+    <div className="min-h-screen bg-background text-foreground">
+      <EstateHeader onClear={clearHistory} />
+      <div className="max-w-6xl mx-auto space-y-10 p-6 md:p-12">
         <ScrapeInputCard
           urls={urls}
           setUrls={setUrls}

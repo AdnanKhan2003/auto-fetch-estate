@@ -758,6 +758,15 @@ export async function processUrl(url: string) {
 
     const hasAiData = Object.keys(structuredData).length > 0 || visionUsed;
 
+    // ── Carpet Area Gate ────────────────────────────────────────
+    // Discard the result entirely if no carpet area was found.
+    // A missing carpetArea means the listing data is too incomplete
+    // to be useful for comparison.
+    if (!finalData.carpetArea) {
+      console.log(`[Scraper] 🗑️  Discarding ${url} — carpet area not found.`);
+      return { url, status: "discarded" as const, reason: "No carpet area found" };
+    }
+
     return {
       url,
       screenshotUrl: `/screenshots/${screenshotName}`,
