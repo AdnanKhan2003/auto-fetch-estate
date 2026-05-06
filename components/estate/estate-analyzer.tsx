@@ -5,7 +5,6 @@ import EstateHeader from "./estate-header";
 import ScrapeInputCard from "./scrape-input-card";
 import ResultsTable from "./results-table";
 import PropertyDetailsModal from "./property-details-modal";
-import DiscountCard from "./discount-card";
 
 interface ScrapeResult {
   url: string;
@@ -26,7 +25,7 @@ function parsePricePerSqft(priceText?: string | null): number | null {
 }
 
 export default function EstateAnalyzer() {
-  const [urls, setUrls] = useState<string[]>([""]);
+  const [urls, setUrls] = useState<string[]>([""]);  
   const [isLoading, setIsLoading] = useState(false);
   const [results, setResults] = useState<ScrapeResult[]>([]);
   const [discountPercentage, setDiscountPercentage] = useState<number>(0);
@@ -34,40 +33,26 @@ export default function EstateAnalyzer() {
     null,
   );
   const [pendingUrls, setPendingUrls] = useState<string[]>([]);
+  // URLs whose rows are checked (included in avg price calculation).
+  // Auto-checked when carpetArea is present, unchecked otherwise.
+  const [selectedUrls, setSelectedUrls] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     const saved = localStorage.getItem("scrape_history");
     if (saved) {
       try {
-        setResults(JSON.parse(saved));
+        const parsed = JSON.parse(saved);
+        setResults(parsed);
+        // Auto-check rows that have carpet area
+        const withCarpet = new Set<string>(
+          parsed.filter((r: any) => r.data?.carpetArea).map((r: any) => r.url)
+        );
+        setSelectedUrls(withCarpet);
       } catch (e) {
         console.error("Failed to load history", e);
       }
     }
   }, []);
-
-  // const handleScrape = async () => {
-  //   setIsLoading(true);
-  //   const urlArray = urls.filter((u) => u.trim() !== "");
-  //   if (urlArray.length === 0) {
-  //     setIsLoading(false);
-  //     return;
-  //   }
-
-  //   try {
-  //     const response = await fetch("/api/scrape", {
-  //       method: "POST",
-  //       headers: { "Content-Type": "application/json" },
-  //       body: JSON.stringify({ urls: urlArray }),
-  //     });
-  //     const data = await response.json();
-  //     setResults(data.results || []);
-  //   } catch (error) {
-  //     console.error("Scrape failed:", error);
-  //   } finally {
-  //     setIsLoading(false);
-  //   }
-  // };
 
   const handleScrape = async () => {
     setIsLoading(true);
@@ -120,6 +105,10 @@ export default function EstateAnalyzer() {
               localStorage.setItem("scrape_history", JSON.stringify(unique));
               return unique;
             });
+            // Auto-check this URL if it has carpet area
+            if (result.data?.carpetArea) {
+              setSelectedUrls((prev) => new Set([...prev, result.url]));
+            }
           } catch (e) {
             console.error("Failed to parse streamed line:", line, e);
           }
@@ -135,10 +124,22 @@ export default function EstateAnalyzer() {
 
   const clearHistory = () => {
     setResults([]);
+    setSelectedUrls(new Set());
     localStorage.removeItem("scrape_history");
   };
 
+  const toggleUrl = (url: string) => {
+    setSelectedUrls((prev) => {
+      const next = new Set(prev);
+      if (next.has(url)) next.delete(url);
+      else next.add(url);
+      return next;
+    });
+  };
+
+  // Only count rows the user has checked (selectedUrls) in the avg calculation.
   const validPrices = results
+    .filter((r) => selectedUrls.has(r.url))
     .map((r) => parsePricePerSqft(r.data?.pricePerSqft))
     .filter((p): p is number => p !== null && p > 0);
 
@@ -159,14 +160,16 @@ export default function EstateAnalyzer() {
           isLoading={isLoading}
           onScrape={handleScrape}
         />
-        <DiscountCard discountPercentage={discountPercentage} setDiscountPercentage={setDiscountPercentage} />
         <ResultsTable
           results={results}
           pendingUrls={pendingUrls}
           onRowClick={setSelectedProperty}
           averagePrice={averagePrice}
           discountPercentage={discountPercentage}
+          setDiscountPercentage={setDiscountPercentage}
           discountedAverage={discountedAverage}
+          selectedUrls={selectedUrls}
+          onToggleUrl={toggleUrl}
         />
       </div>
       <PropertyDetailsModal

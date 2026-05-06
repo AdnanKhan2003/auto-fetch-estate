@@ -1,4 +1,6 @@
+import { CheckSquare, Square } from "lucide-react";
 import { Card } from "../ui/card";
+import { Input } from "../ui/input";
 import {
   Table,
   TableBody,
@@ -15,13 +17,19 @@ interface ResultsTableProps {
   onRowClick: (property: any) => void;
   averagePrice: number;
   discountPercentage: number;
+  setDiscountPercentage: (value: number) => void;
   discountedAverage: number;
+  selectedUrls: Set<string>;
+  onToggleUrl: (url: string) => void;
 }
 
 function SkeletonRow() {
   return (
     <TableRow className="animate-pulse border-border">
-      <TableCell className="py-4 pl-6">
+      <TableCell className="py-4 pl-4 w-10">
+        <div className="mx-auto h-4 w-4 rounded bg-muted" />
+      </TableCell>
+      <TableCell className="py-4 pl-2">
         <div className="h-10 w-14 rounded border border-border bg-muted" />
       </TableCell>
       <TableCell className="py-4">
@@ -46,7 +54,10 @@ function ResultsTable({
   onRowClick,
   averagePrice,
   discountPercentage,
+  setDiscountPercentage,
   discountedAverage,
+  selectedUrls,
+  onToggleUrl,
 }: ResultsTableProps) {
   const isEmpty = results.length === 0 && pendingUrls.length === 0;
 
@@ -59,7 +70,10 @@ function ResultsTable({
         <Table>
           <TableHeader className="hover:bg-transparent border-none">
             <TableRow className="hover:bg-transparent border-none">
-              <TableHead className="w-[100px] py-4 pl-6 text-[10px] font-black uppercase text-muted-foreground">
+              <TableHead className="w-10 py-4 pl-4 text-[10px] font-black uppercase text-muted-foreground">
+                {/* checkbox */}
+              </TableHead>
+              <TableHead className="w-[100px] py-4 pl-2 text-[10px] font-black uppercase text-muted-foreground">
                 Evidence
               </TableHead>
               <TableHead className="py-4 text-[10px] font-black uppercase text-muted-foreground">
@@ -79,7 +93,7 @@ function ResultsTable({
           <TableBody>
             {isEmpty ? (
               <TableRow>
-                <TableCell colSpan={5} className="py-24 text-center">
+                <TableCell colSpan={6} className="py-24 text-center">
                   <div className="flex flex-col items-center gap-2">
                     <p className="font-medium text-muted-foreground">
                       No results to compare yet.
@@ -98,7 +112,20 @@ function ResultsTable({
                     onClick={() => onRowClick(item)}
                     className="cursor-pointer border-border transition-colors hover:bg-muted/40"
                   >
-                    <TableCell className="py-4 pl-6">
+                    {/* Checkbox — stops row click so only toggle fires */}
+                    <TableCell
+                      className="py-4 pl-4 w-10"
+                      onClick={(e) => { e.stopPropagation(); onToggleUrl(item.url); }}
+                    >
+                      <button className="flex items-center justify-center cursor-pointer">
+                        {selectedUrls.has(item.url) ? (
+                          <CheckSquare size={18} className="text-primary transition-colors" />
+                        ) : (
+                          <Square size={18} className="text-muted-foreground/40 transition-colors" />
+                        )}
+                      </button>
+                    </TableCell>
+                    <TableCell className="py-4 pl-2">
                       <div className="h-10 w-14 overflow-hidden rounded border border-border bg-muted">
                         {item.screenshotUrl ? (
                           <img
@@ -137,7 +164,7 @@ function ResultsTable({
           <TableFooter className="border-t-0">
             <TableRow className="bg-secondary text-secondary-foreground hover:bg-secondary">
               <TableCell
-                colSpan={3}
+                colSpan={4}
                 className="py-4 pl-6 text-right font-medium text-secondary-foreground/70"
               >
                 Avg Price/sqft:
@@ -152,20 +179,34 @@ function ResultsTable({
             </TableRow>
             <TableRow className="bg-background text-foreground hover:bg-background">
               <TableCell
-                colSpan={3}
+                colSpan={4}
                 className="py-4 pl-6 text-right font-medium text-muted-foreground"
               >
-                Discount Percentage:
+                Discount %
               </TableCell>
               <TableCell colSpan={2} className="py-4 pr-6 text-right">
-                <span className="text-xl font-black text-foreground">
-                  {discountPercentage}%
-                </span>
+                <div className="flex items-center justify-end gap-2">
+                  <Input
+                    id="discountPercentage"
+                    type="number"
+                    min={0}
+                    max={100}
+                    value={discountPercentage}
+                    onChange={(e) => {
+                      const value = Number(e.target.value);
+                      setDiscountPercentage(
+                        Number.isNaN(value) ? 0 : Math.min(100, Math.max(0, value))
+                      );
+                    }}
+                    className="h-9 w-24 bg-background text-right text-foreground font-black text-lg border-border"
+                  />
+                  <span className="text-lg font-black text-foreground">%</span>
+                </div>
               </TableCell>
             </TableRow>
             <TableRow className="bg-secondary text-secondary-foreground hover:bg-secondary">
               <TableCell
-                colSpan={3}
+                colSpan={4}
                 className="py-4 pl-6 text-right font-medium text-secondary-foreground/70"
               >
                 Discounted Avg Price/sqft:
