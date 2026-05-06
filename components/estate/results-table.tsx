@@ -76,7 +76,7 @@ function ResultsTable({
               <TableHead className="w-[100px] py-4 pl-2 text-[10px] font-black uppercase text-muted-foreground">
                 Evidence
               </TableHead>
-              <TableHead className="py-4 text-[10px] font-black uppercase text-muted-foreground">
+              <TableHead className="max-w-[180px] py-4 text-[10px] font-black uppercase text-muted-foreground">
                 Property
               </TableHead>
               <TableHead className="py-4 text-center text-[10px] font-black uppercase text-muted-foreground">
@@ -140,8 +140,13 @@ function ResultsTable({
                         )}
                       </div>
                     </TableCell>
-                    <TableCell className="py-4 font-bold text-foreground">
-                      {item.data?.propertyTitle || "Pending Analysis..."}
+                    <TableCell className="py-4 max-w-[180px]">
+                      <p
+                        className="truncate text-sm font-bold text-foreground"
+                        title={item.data?.propertyTitle || ""}
+                      >
+                        {item.data?.propertyTitle || "Pending Analysis..."}
+                      </p>
                     </TableCell>
                     <TableCell className="py-4 text-center font-black text-foreground">
                       {item.data?.pricePerSqft || "-"}
