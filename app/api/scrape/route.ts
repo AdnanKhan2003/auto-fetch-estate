@@ -16,36 +16,39 @@ export async function POST(request: Request) {
       );
     }
 
-    const activeUrls = urls.filter(url => url.trim());
-    
+    const activeUrls = urls.filter((url: string) => url.trim());
+
     console.log("\n\n" + "=".repeat(60));
     console.log(`🚀 BATCH ATTEMPT #${batchCounter}`);
     console.log(`🧪 RUN ID: ${runId}`);
-    console.log(`🔗 PROCESSING ${activeUrls.length} URLs`);
+    console.log(`🔗 PROCESSING ${activeUrls.length} URLs IN PARALLEL`);
     console.log("=".repeat(60) + "\n");
 
-    const results = [];
-    for (const url of activeUrls) {
-      console.log(`[Batch] Scraping: ${url}`);
-      const result = await processUrl(url.trim());
-      results.push(result);
-    }
+    const encoder = new TextEncoder();
 
-    // LOG 4 (Batch): All Deterministic Data
-    console.log("\n--- LOG 4: BATCH DETERMINISTIC DATA (Selectors + JSON-LD) ---");
-    activeUrls.forEach((url, i) => {
-      console.log(`URL ${i + 1}: ${url}`);
-      console.log(JSON.stringify(results[i].data, null, 2));
-      console.log("-".repeat(30));
+    const stream = new ReadableStream({
+      async start(controller) {
+        // Fire all scrapes in parallel; flush each result the moment it resolves
+        await Promise.allSettled(
+          activeUrls.map(async (url: string) => {
+            console.log(`[Batch] Scraping: ${url}`);
+            const result = await processUrl(url.trim());
+            console.log(`[Batch] Done: ${url}`);
+            // NDJSON — one JSON object per line, pushed immediately
+            controller.enqueue(encoder.encode(JSON.stringify(result) + "\n"));
+          })
+        );
+        controller.close();
+      },
     });
 
-    // LOG 5 (Batch): Final Combined Results
-    console.log("\n--- LOG 5: FINAL BATCH RESULTS ---");
-    console.log(`RUN_ID: ${runId}`);
-    console.log(JSON.stringify(results.map(r => ({ url: r.url, data: r.data })), null, 2));
-    console.log("=".repeat(60) + "\n");
-
-    return NextResponse.json({ runId, results });
+    return new Response(stream, {
+      headers: {
+        "Content-Type": "application/x-ndjson",
+        "Transfer-Encoding": "chunked",
+        "X-Run-Id": runId,
+      },
+    });
   } catch (error: any) {
     console.error("[Batch Error]", error);
     return NextResponse.json({ error: error.message }, { status: 500 });

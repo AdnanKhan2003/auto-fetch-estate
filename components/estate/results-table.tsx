@@ -11,19 +11,45 @@ import {
 
 interface ResultsTableProps {
   results: any[];
+  pendingUrls: string[];
   onRowClick: (property: any) => void;
   averagePrice: number;
   discountPercentage: number;
   discountedAverage: number;
 }
 
+function SkeletonRow() {
+  return (
+    <TableRow className="animate-pulse border-border">
+      <TableCell className="py-4 pl-6">
+        <div className="h-10 w-14 rounded border border-border bg-muted" />
+      </TableCell>
+      <TableCell className="py-4">
+        <div className="h-4 w-52 rounded bg-muted" />
+      </TableCell>
+      <TableCell className="py-4 text-center">
+        <div className="mx-auto h-4 w-24 rounded bg-muted" />
+      </TableCell>
+      <TableCell className="py-4 text-center">
+        <div className="mx-auto h-4 w-16 rounded bg-muted" />
+      </TableCell>
+      <TableCell className="py-4 pr-6 text-right">
+        <div className="ml-auto h-4 w-28 rounded bg-muted" />
+      </TableCell>
+    </TableRow>
+  );
+}
+
 function ResultsTable({
   results,
+  pendingUrls,
   onRowClick,
   averagePrice,
   discountPercentage,
   discountedAverage,
 }: ResultsTableProps) {
+  const isEmpty = results.length === 0 && pendingUrls.length === 0;
+
   return (
     <div className="space-y-4 animate-in fade-in duration-700">
       <h2 className="px-1 text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">
@@ -40,10 +66,10 @@ function ResultsTable({
                 Property
               </TableHead>
               <TableHead className="py-4 text-center text-[10px] font-black uppercase text-muted-foreground">
-                Price
+                Price/sqft
               </TableHead>
               <TableHead className="py-4 text-center text-[10px] font-black uppercase text-muted-foreground">
-                Carpet Area
+                Area
               </TableHead>
               <TableHead className="py-4 pr-6 text-right text-[10px] font-black uppercase text-muted-foreground">
                 Locality
@@ -51,7 +77,7 @@ function ResultsTable({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {results.length === 0 ? (
+            {isEmpty ? (
               <TableRow>
                 <TableCell colSpan={5} className="py-24 text-center">
                   <div className="flex flex-col items-center gap-2">
@@ -65,34 +91,47 @@ function ResultsTable({
                 </TableCell>
               </TableRow>
             ) : (
-              results.map((item, idx) => (
-                <TableRow
-                  key={idx}
-                  onClick={() => onRowClick(item)}
-                  className="cursor-pointer border-border transition-colors hover:bg-muted/40"
-                >
-                  <TableCell className="py-4 pl-6">
-                    <div className="h-10 w-14 overflow-hidden rounded border border-border bg-muted">
-                      <img
-                        src={item.screenshotUrl}
-                        className="object-cover w-full h-full transition-all duration-700"
-                      />
-                    </div>
-                  </TableCell>
-                  <TableCell className="py-4 font-bold text-foreground">
-                    {item.data?.propertyTitle || "Pending Analysis..."}
-                  </TableCell>
-                  <TableCell className="py-4 text-center font-black text-foreground">
-                    {item.data?.price || "-"}
-                  </TableCell>
-                  <TableCell className="py-4 text-center font-medium text-muted-foreground">
-                    {item.data?.carpetArea || item.data?.area || "-"}
-                  </TableCell>
-                  <TableCell className="py-4 pr-6 text-right text-sm text-muted-foreground">
-                    {item.data?.location || "-"}
-                  </TableCell>
-                </TableRow>
-              ))
+              <>
+                {results.map((item, idx) => (
+                  <TableRow
+                    key={idx}
+                    onClick={() => onRowClick(item)}
+                    className="cursor-pointer border-border transition-colors hover:bg-muted/40"
+                  >
+                    <TableCell className="py-4 pl-6">
+                      <div className="h-10 w-14 overflow-hidden rounded border border-border bg-muted">
+                        {item.screenshotUrl ? (
+                          <img
+                            src={item.screenshotUrl}
+                            className="object-cover w-full h-full transition-all duration-700"
+                            alt="screenshot"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-[9px] text-muted-foreground">
+                            N/A
+                          </div>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell className="py-4 font-bold text-foreground">
+                      {item.data?.propertyTitle || "Pending Analysis..."}
+                    </TableCell>
+                    <TableCell className="py-4 text-center font-black text-foreground">
+                      {item.data?.pricePerSqft || "-"}
+                    </TableCell>
+                    <TableCell className="py-4 text-center font-medium text-muted-foreground">
+                      {item.data?.area || item.data?.carpetArea || "-"}
+                    </TableCell>
+                    <TableCell className="py-4 pr-6 text-right text-sm text-muted-foreground">
+                      {item.data?.location || "-"}
+                    </TableCell>
+                  </TableRow>
+                ))}
+                {/* Skeleton rows for URLs still being scraped */}
+                {pendingUrls.map((url) => (
+                  <SkeletonRow key={url} />
+                ))}
+              </>
             )}
           </TableBody>
           <TableFooter className="border-t-0">
@@ -101,11 +140,13 @@ function ResultsTable({
                 colSpan={3}
                 className="py-4 pl-6 text-right font-medium text-secondary-foreground/70"
               >
-                Aggregated Market Average:
+                Avg Price/sqft:
               </TableCell>
               <TableCell colSpan={2} className="py-4 pr-6 text-right">
                 <span className="text-xl font-black text-secondary-foreground">
-                  ₹{averagePrice.toLocaleString("en-IN")}
+                  {averagePrice > 0
+                    ? `₹${averagePrice.toLocaleString("en-IN")}`
+                    : "—"}
                 </span>
               </TableCell>
             </TableRow>
@@ -127,11 +168,13 @@ function ResultsTable({
                 colSpan={3}
                 className="py-4 pl-6 text-right font-medium text-secondary-foreground/70"
               >
-                Discounted Average (After Discount):
+                Discounted Avg Price/sqft:
               </TableCell>
               <TableCell colSpan={2} className="py-4 pr-6 text-right">
                 <span className="text-2xl font-black text-secondary-foreground">
-                  ₹{discountedAverage.toLocaleString("en-IN")}
+                  {discountedAverage > 0
+                    ? `₹${discountedAverage.toLocaleString("en-IN")}`
+                    : "—"}
                 </span>
               </TableCell>
             </TableRow>

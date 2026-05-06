@@ -245,6 +245,43 @@ export const propertySchema = z.object({
 
 export type Property = z.infer<typeof propertySchema>;
 
+// Collapses all whitespace/newlines in a raw price string.
+// Handles SquareYards-style: "₹ 85 L\n            \n                + Charges" → "₹ 85 L + Charges"
+function normalizePrice(raw?: string | null): string | null {
+  if (!raw) return null;
+  return raw.replace(/\s+/g, " ").trim() || null;
+}
+
+// Normalises any pricePerSqft string to a consistent "₹X,XXX/sqft" format.
+// Handles: "₹24,286/sqft", "₹3,132 per sqft", "₹ 84,307 per sqft", "24286"
+function normalizePricePerSqft(raw?: string | null): string | null {
+  if (!raw) return null;
+  const cleaned = raw.replace(/,/g, "");
+  const match = cleaned.match(/(\d+(?:\.\d+)?)/); // grab first number
+  if (!match) return null;
+  const num = Math.round(Number(match[1]));
+  if (!num || Number.isNaN(num)) return null;
+  return `\u20b9${num.toLocaleString("en-IN")}/sqft`;
+}
+
+// Normalises any area string to "350 sqft Carpet Area" format.
+// Detects area type from the raw string if present.
+function normalizeArea(raw?: string | null): string | null {
+  if (!raw) return null;
+  const numMatch = raw.match(/(\d+(?:\.\d+)?)/);
+  if (!numMatch) return null;
+  const num = Math.round(Number(numMatch[1]));
+  if (!num || Number.isNaN(num)) return null;
+
+  let areaType = "";
+  if (/carpet/i.test(raw)) areaType = "Carpet Area";
+  else if (/super\s*built[\s-]*up/i.test(raw)) areaType = "Super Built-up Area";
+  else if (/built[\s-]*up/i.test(raw)) areaType = "Built-up Area";
+  else if (/super/i.test(raw)) areaType = "Super Area";
+
+  return areaType ? `${num} sqft ${areaType}` : `${num} sqft`;
+}
+
 function isBlocked(pageTitle: string, html: string): boolean {
   const lowTitle = pageTitle.toLowerCase();
 
@@ -563,6 +600,26 @@ export async function processUrl(url: string) {
     }
     console.log("=".repeat(60) + "\n");
 
+    // ── Fix 1: Detect 404 / error pages — treat as a scrape failure ──
+    const ERROR_PAGE_PHRASES = [
+      "something is missing",
+      "page not found",
+      "404 not found",
+      "oops, nothing here",
+      "the page you requested was not found",
+      "this listing has been removed",
+      "listing not available",
+      "property not found",
+    ];
+    const lowerClean = cleanText.toLowerCase();
+    const isErrorPage =
+      ERROR_PAGE_PHRASES.some((phrase) => lowerClean.includes(phrase)) &&
+      cleanText.length < 500;
+    if (isErrorPage) {
+      console.log(`[Scraper] ⚠️  Error/404 page detected for: ${url}`);
+      throw new Error("Page returned a 404 or error page");
+    }
+
     // 1. Run selectors first (deterministic)
     const selectorData = await extractBySelectors(page);
     console.log("\n" + "=".repeat(60));
@@ -664,6 +721,41 @@ export async function processUrl(url: string) {
     }
 
     const finalData = { ...cleanDeterministic, ...aiData };
+
+    // Fix 2: Collapse newlines/whitespace in raw price strings (e.g. SquareYards)
+    if (finalData.price) {
+      finalData.price = normalizePrice(finalData.price) ?? finalData.price;
+    }
+
+    // Normalise pricePerSqft to a single consistent format regardless of source
+    if (finalData.pricePerSqft) {
+      finalData.pricePerSqft = normalizePricePerSqft(finalData.pricePerSqft) ?? finalData.pricePerSqft;
+    }
+
+    // Normalise area to "350 sqft Carpet Area" format
+    if (finalData.area) {
+      finalData.area = normalizeArea(finalData.area) ?? finalData.area;
+    }
+    if (finalData.carpetArea) {
+      finalData.carpetArea = normalizeArea(finalData.carpetArea) ?? finalData.carpetArea;
+    }
+
+    // Fix 3: Sanity-check area — null out physically impossible values (> 50,000 sqft)
+    // Catches sites like SquareYards that publish "8500000 Sq.Ft." due to data-entry errors
+    const RESIDENTIAL_AREA_LIMIT_SQFT = 50_000;
+    for (const areaField of ["area", "carpetArea", "internalFloorArea"] as const) {
+      if (finalData[areaField]) {
+        const numStr = (finalData[areaField] as string).match(/(\d+(?:[,\d]*)?)/)?.[1]?.replace(/,/g, "");
+        const areaNum = numStr ? Number(numStr) : NaN;
+        if (!Number.isNaN(areaNum) && areaNum > RESIDENTIAL_AREA_LIMIT_SQFT) {
+          console.warn(
+            `[Scraper] ⚠️  Implausible ${areaField} value "${finalData[areaField]}" for ${url} — nulled out.`,
+          );
+          finalData[areaField] = null;
+        }
+      }
+    }
+
     const hasAiData = Object.keys(structuredData).length > 0 || visionUsed;
 
     return {

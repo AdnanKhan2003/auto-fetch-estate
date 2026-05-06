@@ -14,20 +14,14 @@ interface ScrapeResult {
   status: "success" | "error";
 }
 
-function parseIndianPrice(priceText?: string | null): number | null {
+function parsePricePerSqft(priceText?: string | null): number | null {
   if (!priceText) return null;
-
-  const text = priceText.toLowerCase().replace(/,/g, " ").replace(/\s+/g, " ").trim();
-  const numMatch = text.match(/(\d+(\.\d+)?)/);
-  if (!numMatch) return null;
-
-  const value = Number(numMatch[1]);
-  if (Number.isNaN(value)) return null;
-
-  if (/\b(cr|crore|crores)\b/.test(text)) return Math.round(value * 1_00_00_000);
-  if (/\b(lac|lakh|lakhs)\b/.test(text)) return Math.round(value * 1_00_000);
-  if (/\b(k|thousand)\b/.test(text)) return Math.round(value * 1_000);
-  return Math.round(value);
+  // Handles: "₹24,286/sqft", "₹84,307 per sqft", "24286"
+  const cleaned = priceText.replace(/,/g, "");
+  const match = cleaned.match(/(\d+(?:\.\d+)?)/);  
+  if (!match) return null;
+  const value = Number(match[1]);
+  return Number.isNaN(value) ? null : Math.round(value);
 }
 
 export default function EstateAnalyzer() {
@@ -38,6 +32,7 @@ export default function EstateAnalyzer() {
   const [selectedProperty, setSelectedProperty] = useState<ScrapeResult | null>(
     null,
   );
+  const [pendingUrls, setPendingUrls] = useState<string[]>([]);
 
   useEffect(() => {
     const saved = localStorage.getItem("scrape_history");
@@ -75,29 +70,60 @@ export default function EstateAnalyzer() {
 
   const handleScrape = async () => {
     setIsLoading(true);
+    const activeUrls = urls.filter((u) => u.trim());
+    setPendingUrls(activeUrls); // show skeleton rows immediately
     try {
       const response = await fetch("/api/scrape", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ urls: urls.filter((u) => u.trim()) }),
+        body: JSON.stringify({ urls: activeUrls }),
       });
-      const data = await response.json();
 
-      if (data.results) {
-        // 1. Combine new results with existing ones
-        // 2. Filter out duplicates based on URL
-        const newResults = [...data.results, ...results];
-        const uniqueResults = Array.from(
-          new Map(newResults.map((item) => [item.url, item])).values(),
-        );
+      if (!response.ok || !response.body) {
+        throw new Error("Scrape request failed");
+      }
 
-        setResults(uniqueResults);
-        localStorage.setItem("scrape_history", JSON.stringify(uniqueResults));
+      // ── Stream reader — each line = one completed scrape result ──
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        // Network may deliver partial lines; accumulate in buffer
+        buffer += decoder.decode(value, { stream: true });
+
+        // Every complete newline-terminated line is one result
+        const lines = buffer.split("\n");
+        buffer = lines.pop() ?? ""; // keep incomplete tail for next chunk
+
+        for (const line of lines) {
+          if (!line.trim()) continue;
+          try {
+            const result = JSON.parse(line);
+            // Remove from pending as soon as this URL resolves
+            setPendingUrls((prev) => prev.filter((u) => u !== result.url));
+            // Append to table immediately
+            setResults((prev) => {
+              const merged = [result, ...prev];
+              const unique = Array.from(
+                new Map(merged.map((item) => [item.url, item])).values()
+              );
+              localStorage.setItem("scrape_history", JSON.stringify(unique));
+              return unique;
+            });
+          } catch (e) {
+            console.error("Failed to parse streamed line:", line, e);
+          }
+        }
       }
     } catch (err) {
       console.error(err);
     } finally {
       setIsLoading(false);
+      setPendingUrls([]); // clear any stragglers
     }
   };
 
@@ -107,7 +133,7 @@ export default function EstateAnalyzer() {
   };
 
   const validPrices = results
-    .map((r) => parseIndianPrice(r.data?.price))
+    .map((r) => parsePricePerSqft(r.data?.pricePerSqft))
     .filter((p): p is number => p !== null && p > 0);
 
   const averagePrice =
@@ -130,6 +156,7 @@ export default function EstateAnalyzer() {
         <DiscountCard discountPercentage={discountPercentage} setDiscountPercentage={setDiscountPercentage} />
         <ResultsTable
           results={results}
+          pendingUrls={pendingUrls}
           onRowClick={setSelectedProperty}
           averagePrice={averagePrice}
           discountPercentage={discountPercentage}
