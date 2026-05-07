@@ -146,10 +146,20 @@ function PropertyDetailsModal({
                       label: "Legal Status",
                       value: property?.data?.reraApproved
                         ? "RERA Approved"
-                        : "Pending",
+                        : property?.data?.legalStatus || "Pending",
                       icon: <ShieldCheck size={14} />,
                     },
-                  ].map((row, i) => (
+                    // Dynamically map over any additional features found by AI
+                    ...Object.entries(property?.data?.additionalFeatures || {}).map(
+                      ([key, value]) => ({
+                        label: key.replace(/([A-Z])/g, " $1").replace(/^./, (str) => str.toUpperCase()), // Convert camelCase to Title Case
+                        value: String(value),
+                        icon: <ArrowRight size={14} />,
+                      })
+                    ),
+                  ]
+                    .filter((row) => row.value && row.value !== "Pending" && row.value !== "undefined" && row.value !== "null")
+                    .map((row, i) => (
                     <div
                       key={i}
                       className="flex items-center justify-between border-b border-border py-2 text-sm last:border-0"
@@ -157,8 +167,8 @@ function PropertyDetailsModal({
                       <span className="flex items-center gap-3 text-muted-foreground">
                         {row.icon} {row.label}
                       </span>
-                      <span className="font-semibold text-foreground">
-                        {row.value || "-"}
+                      <span className="font-semibold text-foreground text-right max-w-[60%] truncate" title={row.value}>
+                        {row.value}
                       </span>
                     </div>
                   ))}
@@ -210,7 +220,7 @@ function PropertyDetailsModal({
       {/* ── Fullscreen Lightbox ──────────────────────────────── */}
       {lightboxOpen && (
         <div
-          className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/92 backdrop-blur-sm animate-in fade-in duration-200 pointer-events-auto"
+          className="fixed inset-0 z-9999 flex items-center justify-center bg-black/92 backdrop-blur-sm animate-in fade-in duration-200 pointer-events-auto"
           onClick={() => {
             // Delay unmount so Radix onInteractOutside sees lightboxOpen=true during this event
             setTimeout(() => setLightboxOpen(false), 0);

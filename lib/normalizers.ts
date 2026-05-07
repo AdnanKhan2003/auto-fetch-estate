@@ -16,8 +16,20 @@ export function normalizePricePerSqft(raw?: string | null): string | null {
   const cleaned = raw.replace(/,/g, "");
   const match = cleaned.match(/(\d+(?:\.\d+)?)/);
   if (!match) return null;
-  const num = Math.round(Number(match[1]));
+  
+  let num = Number(match[1]);
   if (!num || Number.isNaN(num)) return null;
+
+  const lowerRaw = raw.toLowerCase();
+  if (lowerRaw.includes("sqm") || lowerRaw.includes("sq.m") || lowerRaw.includes("sq m") || lowerRaw.includes("square meter")) {
+    num = num / 10.7639;
+  } else if (lowerRaw.includes("sqyd") || lowerRaw.includes("sq.yd") || lowerRaw.includes("sq yd") || lowerRaw.includes("sq yard") || lowerRaw.includes("square yard")) {
+    num = num / 9;
+  } else if (lowerRaw.includes("acre")) {
+    num = num / 43560;
+  }
+
+  num = Math.round(num);
   return `\u20b9${num.toLocaleString("en-IN")}/sqft`;
 }
 
@@ -27,10 +39,22 @@ export function normalizePricePerSqft(raw?: string | null): string | null {
  */
 export function normalizeArea(raw?: string | null): string | null {
   if (!raw) return null;
-  const numMatch = raw.match(/(\d+(?:\.\d+)?)/);
+  const numMatch = raw.replace(/,/g, "").match(/(\d+(?:\.\d+)?)/);
   if (!numMatch) return null;
-  const num = Math.round(Number(numMatch[1]));
+  
+  let num = Number(numMatch[1]);
   if (!num || Number.isNaN(num)) return null;
+
+  const lowerRaw = raw.toLowerCase();
+  if (lowerRaw.includes("sqm") || lowerRaw.includes("sq.m") || lowerRaw.includes("sq m") || lowerRaw.includes("square meter")) {
+    num = num * 10.7639;
+  } else if (lowerRaw.includes("sqyd") || lowerRaw.includes("sq.yd") || lowerRaw.includes("sq yd") || lowerRaw.includes("sq yard") || lowerRaw.includes("square yard")) {
+    num = num * 9;
+  } else if (lowerRaw.includes("acre")) {
+    num = num * 43560;
+  }
+
+  num = Math.round(num);
 
   let areaType = "";
   if (/carpet/i.test(raw)) areaType = "Carpet Area";

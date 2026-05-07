@@ -17,7 +17,7 @@ function ThemeToggle() {
     const isDark = currentTheme === 'dark';
 
   return (
-    <Button type='button' variant='outline' onClick={() => setTheme(isDark ? 'light' : 'dark')} className='cursor-pointer size-8'>{isDark ? <SunIcon /> : <MoonIcon />}</Button>
+    <Button type='button' aria-label="Toggle theme" variant='outline' onClick={() => setTheme(isDark ? 'light' : 'dark')} className='cursor-pointer size-8'>{isDark ? <SunIcon /> : <MoonIcon />}</Button>
   )
 }
 

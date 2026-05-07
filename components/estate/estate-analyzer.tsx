@@ -153,7 +153,7 @@ export default function EstateAnalyzer() {
   return (
     <div className="min-h-screen bg-background text-foreground">
       <EstateHeader onClear={clearHistory} />
-      <div className="max-w-6xl mx-auto space-y-10 p-6 md:p-12">
+      <main className="max-w-6xl mx-auto space-y-10 p-6 md:p-12">
         <ScrapeInputCard
           urls={urls}
           setUrls={setUrls}
@@ -171,7 +171,7 @@ export default function EstateAnalyzer() {
           selectedUrls={selectedUrls}
           onToggleUrl={toggleUrl}
         />
-      </div>
+      </main>
       <PropertyDetailsModal
         property={selectedProperty}
         onClose={() => setSelectedProperty(null)}

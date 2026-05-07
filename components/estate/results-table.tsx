@@ -117,7 +117,7 @@ function ResultsTable({
                       className="py-4 pl-4 w-10"
                       onClick={(e) => { e.stopPropagation(); onToggleUrl(item.url); }}
                     >
-                      <button className="flex items-center justify-center cursor-pointer">
+                      <button aria-label="Select row" className="flex items-center justify-center cursor-pointer">
                         {selectedUrls.has(item.url) ? (
                           <CheckSquare size={18} className="text-primary transition-colors" />
                         ) : (
@@ -193,6 +193,7 @@ function ResultsTable({
                 <div className="flex items-center justify-end gap-2">
                   <Input
                     id="discountPercentage"
+                    aria-label="Discount Percentage"
                     type="number"
                     min={0}
                     max={100}

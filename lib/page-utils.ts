@@ -140,20 +140,32 @@ export async function extractBySelectors(page: any): Promise<Record<string, any>
     pricePerSqft:
       (
         await page
-          .locator('.mb-ldp__dtls__body__list--value:has-text("sqft")')
-          .first()
-          .innerText({ timeout: 1000 })
-          .then((val: string | null) => {
-            if (!val) return null;
-            // Find the line that contains both a currency symbol and "sqft"
-            // Avoids regex-literal slash parsing issues in Turbopack/SWC
-            const lines = val.split("\n");
-            const priceLine = lines.find(
-              (line) =>
-                (line.includes("₹") || line.toLowerCase().includes("rs")) &&
-                line.toLowerCase().includes("sqft")
-            );
-            return priceLine?.trim() ?? lines.pop()?.trim() ?? null;
+          .locator(".mb-ldp__dtls__body__list--value")
+          .allInnerTexts()
+          .then((texts: string[]) => {
+            for (const val of texts) {
+              if (!val) continue;
+              const lines = val.split("\n");
+              const priceLine = lines.find((line) => {
+                const lower = line.toLowerCase();
+                return (
+                  (lower.includes("₹") || lower.includes("rs")) &&
+                  (lower.includes("sqft") ||
+                    lower.includes("sq.ft") ||
+                    lower.includes("sq ft") ||
+                    lower.includes("sqm") ||
+                    lower.includes("sq.m") ||
+                    lower.includes("sq m") ||
+                    lower.includes("sqyd") ||
+                    lower.includes("sq.yd") ||
+                    lower.includes("sq yd") ||
+                    lower.includes("acre") ||
+                    lower.includes("bigha"))
+                );
+              });
+              if (priceLine) return priceLine.trim();
+            }
+            return null;
           })
           .catch(() => null)
       ) || null,

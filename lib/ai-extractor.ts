@@ -64,9 +64,9 @@ export async function extractStructuredData(
          3. **PRIORITY FIELDS**: Ensure you extract the following if present:
             - Property Name (propertyTitle)
             - Price & Market Price
-            - Carpet Area / Internal Floor Area
-            - Total Area
-            - Rate per Sqft (pricePerSqft)
+            - Carpet Area / Internal Floor Area (IMPORTANT: Include the unit, e.g. "sqm", "sqyd", "sqft")
+            - Total Area (IMPORTANT: Include the unit, e.g. "sqm", "sqyd", "sqft")
+            - Rate per Area (pricePerSqft) (IMPORTANT: Include the unit, e.g. "/sqm", "/sqyd", "/sqft")
             - Building Age (ageOfBuilding)
             - Locality (location)
             - Vertical Position (floorNo)
@@ -74,8 +74,9 @@ export async function extractStructuredData(
             - Furnishing Status
             - Legal Status (reraApproved/reraNumber)
             - Owner Name (ownerName)
-         4. Look for patterns like "Lac", "Cr", "sqft", "BHK", "Ready to move", "X years old", etc.
-         5. Combine data from both sources to get the most accurate picture.
+         4. **MATH CALCULATION**: If "Rate per Area" (pricePerSqft) is NOT explicitly written on the page, but you have the Total Price and Total Area, you MUST mathematically calculate it yourself (Price / Area) and include it with the unit.
+         5. **CATCH-ALL EXTRACTION**: Look for ANY other property features, fees, or data points (e.g., Water Supply, Corner Plot, Brokerage, Pet Rules, Floor Type, Overlooking, Security, etc.). Put ALL of this extra data into the \`additionalFeatures\` dictionary. DO NOT DISCARD ANY DATA.
+         6. Combine data from both sources to get the most accurate picture.
 
          DATA TO ANALYZE (JSON-LD):
          ${jsonLdData.slice(0, 10000)}
