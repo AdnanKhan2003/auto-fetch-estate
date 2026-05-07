@@ -50,7 +50,16 @@ function PropertyDetailsModal({
   return (
     <>
       <Dialog open={!!property} onOpenChange={onClose}>
-        <DialogContent className="flex max-h-[90vh] w-[95vw] flex-col overflow-hidden rounded-2xl border-border bg-card p-0 shadow-2xl sm:max-w-5xl">
+        <DialogContent 
+          className="flex max-h-[90vh] w-[95vw] flex-col overflow-hidden rounded-2xl border-border bg-card p-0 shadow-2xl sm:max-w-5xl"
+          onInteractOutside={(e) => {
+            // Prevent Radix from closing the modal if the lightbox is open
+            // or if the user is interacting with the lightbox.
+            if (lightboxOpen) {
+              e.preventDefault();
+            }
+          }}
+        >
           <DialogHeader className="flex-row items-center justify-between space-y-0 overflow-x-hidden border-b border-border bg-card p-6 sm:p-8">
             <div className="min-w-0 flex-1 space-y-1 text-card-foreground">
               <DialogTitle className="text-xl sm:text-2xl font-bold tracking-tight truncate">
@@ -201,24 +210,26 @@ function PropertyDetailsModal({
       {/* ── Fullscreen Lightbox ──────────────────────────────── */}
       {lightboxOpen && (
         <div
-          className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/92 backdrop-blur-sm animate-in fade-in duration-200"
-          onClick={() => setLightboxOpen(false)}
-          // Radix Dialog uses pointerdown to detect outside-clicks.
-          // Stopping it here prevents the modal from closing when the
-          // lightbox backdrop or X button is clicked.
-          onPointerDown={(e) => e.stopPropagation()}
+          className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/92 backdrop-blur-sm animate-in fade-in duration-200 pointer-events-auto"
+          onClick={() => {
+            // Delay unmount so Radix onInteractOutside sees lightboxOpen=true during this event
+            setTimeout(() => setLightboxOpen(false), 0);
+          }}
         >
           {/* X close button */}
           <button
-            className="absolute top-4 right-4 flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white backdrop-blur-sm transition-colors hover:bg-white/20"
-            onClick={(e) => { e.stopPropagation(); setLightboxOpen(false); }}
+            className="absolute top-4 right-4 flex h-10 w-10 cursor-pointer items-center justify-center rounded-full bg-white/10 text-white backdrop-blur-sm transition-colors hover:bg-white/20"
+            onClick={(e) => {
+              e.stopPropagation();
+              setTimeout(() => setLightboxOpen(false), 0);
+            }}
             aria-label="Close fullscreen"
           >
             <X size={20} />
           </button>
 
           {/* ESC hint */}
-          <span className="absolute bottom-4 left-1/2 -translate-x-1/2 text-xs text-white/40 select-none">
+          <span className="absolute bottom-4 left-1/2 -translate-x-1/2 text-xs text-white/40 select-none pointer-events-none">
             Press ESC or click anywhere to close
           </span>
 
