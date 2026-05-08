@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { processUrl } from "@/lib/scraper";
+import { processUrl } from "@/features/property-extraction/scraper";
 
 let batchCounter = 0;
 
