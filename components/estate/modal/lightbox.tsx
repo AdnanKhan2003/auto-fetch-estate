@@ -1,13 +1,16 @@
 import { useEffect } from "react";
 import { X } from "lucide-react";
+import Image from "next/image";
+
 
 interface LightboxProps {
   isOpen: boolean;
   onClose: () => void;
   imageUrl?: string;
+  title?: string | null;
 }
 
-export function Lightbox({ isOpen, onClose, imageUrl }: LightboxProps) {
+export function Lightbox({ isOpen, onClose, imageUrl, title }: LightboxProps) {
   useEffect(() => {
     if (!isOpen) return;
     const onKey = (e: KeyboardEvent) => {
@@ -43,12 +46,17 @@ export function Lightbox({ isOpen, onClose, imageUrl }: LightboxProps) {
         Press ESC or click anywhere to close
       </span>
 
-      <img
-        src={imageUrl}
-        className="max-h-[92vh] max-w-[92vw] rounded-lg object-contain shadow-2xl"
-        alt="Fullscreen screenshot"
-        onClick={(e) => e.stopPropagation()}
-      />
+      {imageUrl && (
+        <Image
+          src={imageUrl}
+          width={1280}
+          height={800}
+          className="max-h-[92vh] max-w-[92vw] w-auto h-auto rounded-lg object-contain shadow-2xl"
+          alt={`Fullscreen screenshot of ${title || 'property'}`}
+          title={`Fullscreen screenshot of ${title || 'property'}`}
+          onClick={(e) => e.stopPropagation()}
+        />
+      )}
     </div>
   );
 }

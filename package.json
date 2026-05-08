@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@ai-sdk/google": "^3.0.65",
+    "@tanstack/react-table": "^8.21.3",
     "ai": "^6.0.170",
     "axios": "^1.16.0",
     "cheerio": "^1.2.0",

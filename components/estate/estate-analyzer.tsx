@@ -33,9 +33,7 @@ export default function EstateAnalyzer() {
     null,
   );
   const [pendingUrls, setPendingUrls] = useState<string[]>([]);
-  // URLs whose rows are checked (included in avg price calculation).
-  // Auto-checked when carpetArea is present, unchecked otherwise.
-  const [selectedUrls, setSelectedUrls] = useState<Set<string>>(new Set());
+  const [rowSelection, setRowSelection] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     const saved = localStorage.getItem("scrape_history");
@@ -44,10 +42,11 @@ export default function EstateAnalyzer() {
         const parsed = JSON.parse(saved);
         setResults(parsed);
         // Auto-check rows that have carpet area
-        const withCarpet = new Set<string>(
-          parsed.filter((r: any) => r.data?.carpetArea).map((r: any) => r.url)
-        );
-        setSelectedUrls(withCarpet);
+        const initSelection: Record<string, boolean> = {};
+        parsed.forEach((r: any) => {
+          if (r.data?.carpetArea) initSelection[r.url] = true;
+        });
+        setRowSelection(initSelection);
       } catch (e) {
         console.error("Failed to load history", e);
       }
@@ -107,7 +106,7 @@ export default function EstateAnalyzer() {
             });
             // Auto-check this URL if it has carpet area
             if (result.data?.carpetArea) {
-              setSelectedUrls((prev) => new Set([...prev, result.url]));
+              setRowSelection((prev) => ({ ...prev, [result.url]: true }));
             }
           } catch (e) {
             console.error("Failed to parse streamed line:", line, e);
@@ -124,22 +123,13 @@ export default function EstateAnalyzer() {
 
   const clearHistory = () => {
     setResults([]);
-    setSelectedUrls(new Set());
+    setRowSelection({});
     localStorage.removeItem("scrape_history");
   };
 
-  const toggleUrl = (url: string) => {
-    setSelectedUrls((prev) => {
-      const next = new Set(prev);
-      if (next.has(url)) next.delete(url);
-      else next.add(url);
-      return next;
-    });
-  };
-
-  // Only count rows the user has checked (selectedUrls) in the avg calculation.
+  // Only count rows the user has checked in the avg calculation.
   const validPrices = results
-    .filter((r) => selectedUrls.has(r.url))
+    .filter((r) => rowSelection[r.url])
     .map((r) => parsePricePerSqft(r.data?.pricePerSqft))
     .filter((p): p is number => p !== null && p > 0);
 
@@ -168,8 +158,8 @@ export default function EstateAnalyzer() {
           discountPercentage={discountPercentage}
           setDiscountPercentage={setDiscountPercentage}
           discountedAverage={discountedAverage}
-          selectedUrls={selectedUrls}
-          onToggleUrl={toggleUrl}
+          rowSelection={rowSelection}
+          setRowSelection={setRowSelection}
         />
       </main>
       <PropertyDetailsModal

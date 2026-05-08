@@ -17,6 +17,7 @@ export function UrlInputRow({ url, canDelete, onChange, onDelete }: UrlInputRowP
         value={url}
         onChange={(e) => onChange(e.target.value)}
         spellCheck="false"
+        aria-label="Property listing URL"
         className="h-11 flex-1 border-border bg-background text-foreground focus-visible:ring-ring"
         placeholder="Paste listing URL here..."
       />
@@ -25,6 +26,7 @@ export function UrlInputRow({ url, canDelete, onChange, onDelete }: UrlInputRowP
           variant="ghost"
           size="icon"
           onClick={onDelete}
+          aria-label="Remove URL input"
           className="cursor-pointer text-muted-foreground hover:bg-red-500/10 hover:text-red-500"
         >
           <Trash2 size={18} />

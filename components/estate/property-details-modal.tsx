@@ -69,6 +69,7 @@ function PropertyDetailsModal({
         isOpen={lightboxOpen} 
         onClose={() => setLightboxOpen(false)} 
         imageUrl={property?.screenshotUrl} 
+        title={property?.data?.propertyTitle}
       />
     </>
   );
