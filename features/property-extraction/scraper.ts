@@ -17,6 +17,8 @@ const RESIDENTIAL_AREA_LIMIT_SQFT = 50_000;
 
 const CRITICAL_FIELDS = ["propertyTitle", "price", "location", "area"] as const;
 
+const NUMERIC_EXTRACTION_REGEX = /(\d+(?:[,\d]*)?)/;
+
 // ─── Browser helpers ─────────────────────────────────────────────────────────
 
 async function launchBrowser() {
@@ -92,7 +94,7 @@ function applyNormalizations(data: Record<string, any>): void {
 function applySanityChecks(data: Record<string, any>, url: string): void {
   for (const field of ["area", "carpetArea", "internalFloorArea"] as const) {
     if (!data[field]) continue;
-    const numStr = (data[field] as string).match(/(\d+(?:[,\d]*)?)/)?.[1]?.replace(/,/g, "");
+    const numStr = (data[field] as string).match(NUMERIC_EXTRACTION_REGEX)?.[1]?.replace(/,/g, "");
     const areaNum = numStr ? Number(numStr) : NaN;
     if (!Number.isNaN(areaNum) && areaNum > RESIDENTIAL_AREA_LIMIT_SQFT) {
       console.warn(`[Scraper] ⚠️  Implausible ${field} value "${data[field]}" for ${url} — nulled out.`);
