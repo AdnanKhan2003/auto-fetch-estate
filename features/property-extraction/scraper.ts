@@ -13,11 +13,9 @@ export type { Property };
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
-const RESIDENTIAL_AREA_LIMIT_SQFT = 50_000;
 
 const CRITICAL_FIELDS = ["propertyTitle", "price", "location", "area"] as const;
 
-const NUMERIC_EXTRACTION_REGEX = /(\d+(?:[,\d]*)?)/;
 
 // ─── Browser helpers ─────────────────────────────────────────────────────────
 
@@ -90,18 +88,6 @@ function applyNormalizations(data: Record<string, any>): void {
   if (data.carpetArea)   data.carpetArea   = normalizeArea(data.carpetArea)          ?? data.carpetArea;
 }
 
-/** Nulls out area fields with physically impossible values (> 50,000 sqft). */
-function applySanityChecks(data: Record<string, any>, url: string): void {
-  for (const field of ["area", "carpetArea", "internalFloorArea"] as const) {
-    if (!data[field]) continue;
-    const numStr = (data[field] as string).match(NUMERIC_EXTRACTION_REGEX)?.[1]?.replace(/,/g, "");
-    const areaNum = numStr ? Number(numStr) : NaN;
-    if (!Number.isNaN(areaNum) && areaNum > RESIDENTIAL_AREA_LIMIT_SQFT) {
-      console.warn(`[Scraper] ⚠️  Implausible ${field} value "${data[field]}" for ${url} — nulled out.`);
-      data[field] = null;
-    }
-  }
-}
 
 // ─── Main export ─────────────────────────────────────────────────────────────
 
@@ -183,7 +169,6 @@ export async function processUrl(url: string) {
     // Step 10 — Final merge, normalise, sanity-check
     const finalData: Record<string, any> = { ...cleanMerged, ...aiData };
     applyNormalizations(finalData);
-    applySanityChecks(finalData, url);
 
     // Step 11 — Return
     const hasAiData = Object.keys(structuredData).length > 0 || visionUsed;

@@ -1,7 +1,6 @@
 import { useEffect } from "react";
-import { X } from "lucide-react";
+import { X, Download } from "lucide-react";
 import Image from "next/image";
-
 
 interface LightboxProps {
   isOpen: boolean;
@@ -28,19 +27,43 @@ export function Lightbox({ isOpen, onClose, imageUrl, title }: LightboxProps) {
 
   return (
     <div
-      className="fixed inset-0 z-9999 flex items-center justify-center bg-black/92 backdrop-blur-sm animate-in fade-in duration-200 pointer-events-auto"
+      className="fixed inset-0 z-100 flex items-center justify-center bg-black/92 backdrop-blur-sm animate-in fade-in duration-200 pointer-events-auto"
       onClick={() => setTimeout(() => onClose(), 0)}
     >
-      <button
-        className="absolute top-4 right-4 flex h-10 w-10 cursor-pointer items-center justify-center rounded-full bg-white/10 text-white backdrop-blur-sm transition-colors hover:bg-white/20"
-        onClick={(e) => {
-          e.stopPropagation();
-          setTimeout(() => onClose(), 0);
-        }}
-        aria-label="Close fullscreen"
-      >
-        <X size={20} />
-      </button>
+      <div className="absolute top-4 right-4 flex gap-3">
+        {imageUrl && (
+          <button
+            className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-full bg-white/10 text-white backdrop-blur-sm transition-colors hover:bg-white/20"
+            onClick={(e) => {
+              e.stopPropagation();
+              const link = document.createElement("a");
+              link.href = imageUrl;
+              link.download = title
+                ? `screenshot-${title.replace(/\s+/g, "-").toLowerCase()}.png`
+                : `screenshot-${Date.now()}.png`;
+              document.body.appendChild(link);
+              link.click();
+              document.body.removeChild(link);
+            }}
+            aria-label="Download image"
+            title="Download screenshot"
+          >
+            <Download size={20} />
+          </button>
+        )}
+
+        <button
+          className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-full bg-white/10 text-white backdrop-blur-sm transition-colors hover:bg-white/20"
+          onClick={(e) => {
+            e.stopPropagation();
+            setTimeout(() => onClose(), 0);
+          }}
+          aria-label="Close fullscreen"
+          title="Close (Esc)"
+        >
+          <X size={20} />
+        </button>
+      </div>
 
       <span className="absolute bottom-4 left-1/2 -translate-x-1/2 text-xs text-white/40 select-none pointer-events-none">
         Press ESC or click anywhere to close
@@ -52,8 +75,8 @@ export function Lightbox({ isOpen, onClose, imageUrl, title }: LightboxProps) {
           width={1280}
           height={800}
           className="max-h-[92vh] max-w-[92vw] w-auto h-auto rounded-lg object-contain shadow-2xl"
-          alt={`Fullscreen screenshot of ${title || 'property'}`}
-          title={`Fullscreen screenshot of ${title || 'property'}`}
+          alt={`Fullscreen screenshot of ${title || "property"}`}
+          title={`Fullscreen screenshot of ${title || "property"}`}
           onClick={(e) => e.stopPropagation()}
         />
       )}
