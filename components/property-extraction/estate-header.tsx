@@ -1,4 +1,5 @@
 import ThemeToggle from "../theme/theme-toggle";
+import { SidebarTrigger } from "../ui/sidebar";
 
 interface EstateHeaderProps {
   onClear: () => void;
@@ -7,10 +8,13 @@ interface EstateHeaderProps {
 function EstateHeader({ onClear }: EstateHeaderProps) {
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border bg-background/80 backdrop-blur-md">
-      <div className="max-w-6xl mx-auto flex items-center justify-between gap-3 px-6 md:px-12 py-4">
-        <h1 className="text-3xl font-bold tracking-tight text-foreground">
-          V S Jadon Compare
-        </h1>
+      <div className="flex h-[64px] items-center justify-between gap-4 px-6 md:px-12">
+        <div className="flex items-center gap-4">
+          <SidebarTrigger className="cursor-pointer" />
+          <h1 className="text-xl font-bold tracking-tight text-foreground">
+            V S Jadon Compare
+          </h1>
+        </div>
         <div className="flex items-center gap-3">
           <ThemeToggle />
           <button
