@@ -29,7 +29,7 @@ function SidebarProfile() {
           <DropdownMenuTrigger asChild>
             <SidebarMenuButton
               size="lg"
-              className="w-full justify-start gap-3 p-2"
+              className="w-full justify-start gap-3 p-2 cursor-pointer"
             >
               <Avatar className="h-8 w-8">
                 <AvatarImage src={session?.user?.image || ""}></AvatarImage>
