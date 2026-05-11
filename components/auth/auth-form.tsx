@@ -51,7 +51,10 @@ function AuthForm() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-linear-to-br from-background-to-muted p-4">
       <Tabs defaultValue="login" className="w-full max-w-[400px] shadow-2xl">
-        <TabsList className="grid w-full grid-cols-2 bg-muted/50">
+        <TabsList
+          className="grid w-full grid-cols-2 bg-muted/50"
+          aria-label="Authentication Options"
+        >
           <TabsTrigger
             value="login"
             className="dta-[state=active]:bg-primary dta-[state=active]:text-primary-foreground cursor-pointer"
@@ -84,8 +87,9 @@ function AuthForm() {
                   <Input
                     id="email"
                     className="pl-10"
-                    placeholder="name@example.com"
+                    placeholder="Enter Your Email"
                     value={form.email}
+                    aria-label="Email Address"
                     onChange={(e) =>
                       setForm({ ...form, email: e.target.value })
                     }
@@ -95,12 +99,17 @@ function AuthForm() {
               <div className="space-y-2">
                 <Label htmlFor="password">Password</Label>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Lock
+                    aria-hidden="true"
+                    className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground"
+                  />
                   <Input
                     id="password"
                     type={showPassword ? "text" : "password"}
                     className="pl-10 pr-10"
                     value={form.password}
+                    aria-label="Password"
+                    placeholder="Enter Your Password"
                     onChange={(e) =>
                       setForm({ ...form, password: e.target.value })
                     }
@@ -154,6 +163,7 @@ function AuthForm() {
                     id="name"
                     className="pl-10"
                     placeholder="Enter Your Name"
+                    aria-label="Name"
                     value={form.name}
                     onChange={(e) => setForm({ ...form, name: e.target.value })}
                   />
@@ -166,7 +176,8 @@ function AuthForm() {
                   <Input
                     id="email-up"
                     className="pl-10"
-                    placeholder="name@example.com"
+                    placeholder="Enter Your Email"
+                    aria-label="Email Address"
                     value={form.email}
                     onChange={(e) =>
                       setForm({ ...form, email: e.target.value })
@@ -177,12 +188,17 @@ function AuthForm() {
               <div className="space-y-2">
                 <Label htmlFor="pass-up">Password</Label>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Lock
+                    aria-hidden="true"
+                    className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground"
+                  />
                   <Input
                     id="pass-up"
                     type={showPassword ? "text" : "password"}
                     className="pl-10"
+                    placeholder="Enter Your Password"
                     value={form.password}
+                    aria-label="Password"
                     onChange={(e) =>
                       setForm({ ...form, password: e.target.value })
                     }

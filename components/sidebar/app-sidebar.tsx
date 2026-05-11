@@ -2,6 +2,7 @@
 
 import { authClient } from "@/lib/auth/auth-client";
 import { useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import {
   Sidebar,
   SidebarContent,
@@ -26,6 +27,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 function AppSidebar() {
   const router = useRouter();
   const { data: session } = authClient.useSession();
+  const pathname = usePathname();
 
   const handleLogout = async () => {
     await authClient.signOut({
@@ -54,10 +56,14 @@ function AppSidebar() {
         <SidebarGroup>
           <SidebarGroupLabel>Menu</SidebarGroupLabel>
           <SidebarGroupContent>
-            <SidebarMenu>
+            <SidebarMenu aria-label="Main Navigation">
               <SidebarMenuItem>
-                <SidebarMenuButton asChild tooltip="Dashboard">
-                  <a href="/">
+                <SidebarMenuButton
+                  asChild
+                  tooltip="Dashboard"
+                  isActive={pathname === "/"}
+                >
+                  <a href="/" aria-label="Go to Dashboard" title="Dashboard">
                     <Home />
                     <span>Dashboard</span>
                   </a>
@@ -65,7 +71,11 @@ function AppSidebar() {
               </SidebarMenuItem>
               <SidebarMenuItem>
                 <SidebarMenuButton asChild tooltip="History">
-                  <a href="#">
+                  <a
+                    href="#"
+                    aria-label="View Scrape History"
+                    title="Scrape History"
+                  >
                     <Search />
                     <span>Scrape History</span>
                   </a>
@@ -76,7 +86,7 @@ function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
       <SidebarFooter>
-        <SidebarMenu>
+        <SidebarMenu aria-label="User Settings">
           <SidebarMenuItem>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>

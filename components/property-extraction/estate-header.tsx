@@ -8,7 +8,9 @@ interface EstateHeaderProps {
 function EstateHeader({ onClear }: EstateHeaderProps) {
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border bg-background/80 backdrop-blur-md">
-      <div className="flex h-[64px] items-center justify-between gap-4 px-6 md:px-12">
+      <div className="flex h-[64px] items-center justify-between gap-4 px-8">
+        {" "}
+        {/* Use px-8 here */}
         <div className="flex items-center gap-4">
           <SidebarTrigger className="cursor-pointer" />
           <h1 className="text-xl font-bold tracking-tight text-foreground">

@@ -18,14 +18,14 @@ function parsePricePerSqft(priceText?: string | null): number | null {
   if (!priceText) return null;
   // Handles: "₹24,286/sqft", "₹84,307 per sqft", "24286"
   const cleaned = priceText.replace(/,/g, "");
-  const match = cleaned.match(/(\d+(?:\.\d+)?)/);  
+  const match = cleaned.match(/(\d+(?:\.\d+)?)/);
   if (!match) return null;
   const value = Number(match[1]);
   return Number.isNaN(value) ? null : Math.round(value);
 }
 
 export default function EstateAnalyzer() {
-  const [urls, setUrls] = useState<string[]>([""]);  
+  const [urls, setUrls] = useState<string[]>([""]);
   const [isLoading, setIsLoading] = useState(false);
   const [results, setResults] = useState<ScrapeResult[]>([]);
   const [discountPercentage, setDiscountPercentage] = useState<number>(0);
@@ -92,14 +92,16 @@ export default function EstateAnalyzer() {
             setPendingUrls((prev) => prev.filter((u) => u !== result.url));
             // Silently drop discarded results (e.g. no carpet area) — never show in UI
             if (result.status === "discarded") {
-              console.log(`[Stream] Discarded: ${result.url} — ${result.reason}`);
+              console.log(
+                `[Stream] Discarded: ${result.url} — ${result.reason}`,
+              );
               continue;
             }
             // Append to table immediately
             setResults((prev) => {
               const merged = [result, ...prev];
               const unique = Array.from(
-                new Map(merged.map((item) => [item.url, item])).values()
+                new Map(merged.map((item) => [item.url, item])).values(),
               );
               localStorage.setItem("scrape_history", JSON.stringify(unique));
               return unique;
@@ -143,7 +145,7 @@ export default function EstateAnalyzer() {
   return (
     <div className="min-h-screen bg-background text-foreground">
       <EstateHeader onClear={clearHistory} />
-      <main className="max-w-6xl mx-auto space-y-10 p-6 md:p-12">
+      <main className="w-full space-y-10 px-8 py-10">
         <ScrapeInputCard
           urls={urls}
           setUrls={setUrls}
