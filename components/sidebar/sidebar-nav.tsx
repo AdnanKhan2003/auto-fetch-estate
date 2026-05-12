@@ -1,32 +1,52 @@
-import { Home, Search } from "lucide-react";
+"use client";
+
+import {
+  Home,
+  LayoutDashboard,
+  Search,
+  ShieldCheck,
+  UserPlus,
+  Users,
+} from "lucide-react";
 import { SidebarMenu, SidebarMenuButton, SidebarMenuItem } from "../ui/sidebar";
 import { usePathname } from "next/navigation";
+import { authClient } from "@/lib/auth/auth-client";
 
 function SidebarNav() {
+  const { data: session } = authClient.useSession();
+  const isAdmin = session?.user?.role === "admin";
   const pathname = usePathname();
+
+  const navItems = [
+    { title: "Dashboard", href: "/", icon: LayoutDashboard },
+    ...(isAdmin
+      ? [
+          {
+            title: "Create Makers",
+            href: "/admin/create-makers",
+            icon: UserPlus,
+          },
+          { title: "View Users", href: "/admin/view-users", icon: ShieldCheck },
+        ]
+      : []),
+  ];
 
   return (
     <SidebarMenu aria-label="Main Navigation">
-      <SidebarMenuItem>
-        <SidebarMenuButton
-          asChild
-          tooltip="Dashboard"
-          isActive={pathname === "/"}
-        >
-          <a href="/" aria-label="Go to Dashboard" title="Dashboard">
-            <Home />
-            <span>Dashboard</span>
-          </a>
-        </SidebarMenuButton>
-      </SidebarMenuItem>
-      <SidebarMenuItem>
-        <SidebarMenuButton asChild tooltip="History">
-          <a href="#" aria-label="View Scrape History" title="Scrape History">
-            <Search />
-            <span>Scrape History</span>
-          </a>
-        </SidebarMenuButton>
-      </SidebarMenuItem>
+      {navItems.map((item) => (
+        <SidebarMenuItem key={item.href}>
+          <SidebarMenuButton
+            asChild
+            tooltip={item.title}
+            isActive={pathname === item.href}
+          >
+            <a href={item.href} aria-label={item.title} title={item.title}>
+              <item.icon className="h-4 w-4" />
+              <span>{item.title}</span>
+            </a>
+          </SidebarMenuButton>
+        </SidebarMenuItem>
+      ))}
     </SidebarMenu>
   );
 }

@@ -1,4 +1,3 @@
-import ThemeToggle from "../theme/theme-toggle";
 import { SidebarTrigger } from "../ui/sidebar";
 
 interface EstateHeaderProps {
@@ -17,8 +16,7 @@ function EstateHeader({ onClear }: EstateHeaderProps) {
             V S Jadon Compare
           </h1>
         </div>
-        <div className="flex items-center gap-3">
-          <ThemeToggle />
+        <div className="flex items-center gap-3 pr-12">
           <button
             onClick={onClear}
             className="text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:text-red-500 transition-colors cursor-pointer"
