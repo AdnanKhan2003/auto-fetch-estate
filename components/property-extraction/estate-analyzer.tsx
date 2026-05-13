@@ -143,9 +143,9 @@ export default function EstateAnalyzer() {
   const discountedAverage = Math.max(averagePrice - discountAmount, 0);
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="space-y-10 px-6 pb-8 bg-background text-foreground">
       <EstateHeader onClear={clearHistory} />
-      <main className="w-full space-y-10 px-8 py-10">
+      <main className="flex-1 min-w-0 overflow-hidden space-y-10 px-8 py-10">
         <ScrapeInputCard
           urls={urls}
           setUrls={setUrls}

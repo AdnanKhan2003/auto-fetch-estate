@@ -27,8 +27,8 @@ function LayoutWrapper({ children }: { children: React.ReactNode }) {
       <SidebarProvider>
         <div className="flex min-h-screen w-full">
           <AppSidebar />
-          <main className="flex-1 w-full relative">
-            <div className="fixed top-4 right-4 z-100">
+          <main className="flex-1 min-w-0 relative">
+            <div className="fixed top-4 right-6 z-100">
               <ThemeToggle />
             </div>
             {children}
