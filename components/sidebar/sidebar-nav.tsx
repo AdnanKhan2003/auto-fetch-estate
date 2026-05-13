@@ -11,6 +11,7 @@ import {
 import { SidebarMenu, SidebarMenuButton, SidebarMenuItem } from "../ui/sidebar";
 import { usePathname } from "next/navigation";
 import { authClient } from "@/lib/auth/auth-client";
+import Link from "next/link";
 
 function SidebarNav() {
   const { data: session } = authClient.useSession();
@@ -40,10 +41,10 @@ function SidebarNav() {
             tooltip={item.title}
             isActive={pathname === item.href}
           >
-            <a href={item.href} aria-label={item.title} title={item.title}>
+            <Link href={item.href} aria-label={item.title} title={item.title}>
               <item.icon className="h-4 w-4" />
               <span>{item.title}</span>
-            </a>
+            </Link>
           </SidebarMenuButton>
         </SidebarMenuItem>
       ))}

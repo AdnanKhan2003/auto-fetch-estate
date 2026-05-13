@@ -55,7 +55,11 @@ function LoginForm() {
         onChange={(e) => setForm({ ...form, password: e.target.value })}
         required
       />
-      <Button type="submit" className="w-full font-semibold" disabled={loading}>
+      <Button
+        type="submit"
+        className="w-full font-semibold cursor-pointer"
+        disabled={loading}
+      >
         {loading ? "Loggin In..." : "Log In"}
       </Button>
     </form>

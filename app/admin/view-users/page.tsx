@@ -1,20 +1,46 @@
 import UsersList from "@/components/auth/users-list";
+import { auth } from "@/lib/auth/auth";
+import { headers } from "next/headers";
+import { redirect } from "next/navigation";
+import { SidebarTrigger } from "@/components/ui/sidebar";
 
-function ViewUsersPage() {
+async function AdminViewUsersPage() {
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
+
+  if (!session || session.user.role !== "admin") {
+    redirect("/");
+  }
+
   return (
-    <div className="p-8 space-y-8">
-      <div>
-        <h1 className="text-3xl font-bold">All Users</h1>
-        <p className="text-muted-foreground">
-          Manange and View All Registered Accounts
-        </p>
-      </div>
+    <div className="flex flex-col min-h-screen bg-background" style={{ fontFamily: "'Poppins', sans-serif" }}>
+      {/* 🏙️ PREMIUM ADMIN HEADER */}
+      <header className="sticky top-0 z-50 w-full border-b border-border bg-background/80 backdrop-blur-md">
+        <div className="flex h-[64px] items-center gap-4 px-8">
+          <SidebarTrigger className="cursor-pointer" />
+          <div className="flex flex-col">
+            <h1 className="text-lg font-bold tracking-tight text-foreground leading-none">
+              Registry Audit
+            </h1>
+            <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mt-1">
+              Monitor and Manage Active Team Credentials
+            </p>
+          </div>
+        </div>
+      </header>
 
-      <div className="bg-card border rounded-xl shadow-sm overflow-hidden">
-        <UsersList />
-      </div>
+      <main className="p-8 space-y-8">
+        <div className="max-w-4xl bg-card border border-border rounded-md overflow-hidden shadow-none">
+          <div className="p-6 border-b border-border bg-muted/20">
+            <h2 className="text-xl font-bold tracking-tight">Active Accounts</h2>
+            <p className="text-xs text-muted-foreground mt-1">Registry of all authorized system entities.</p>
+          </div>
+          <UsersList />
+        </div>
+      </main>
     </div>
   );
 }
 
-export default ViewUsersPage;
+export default AdminViewUsersPage;

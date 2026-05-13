@@ -3,8 +3,17 @@ import fs from "fs";
 import { chromium } from "playwright-core"; // system Chrome (swap to 'playwright' for Docker/CI)
 
 import { propertySchema, Property } from "./schema";
-import { normalizePrice, normalizePricePerSqft, normalizeArea } from "./normalizers";
-import { ERROR_PAGE_PHRASES, isBlocked, extractCleanContent, extractBySelectors } from "./page-utils";
+import {
+  normalizePrice,
+  normalizePricePerSqft,
+  normalizeArea,
+} from "./normalizers";
+import {
+  ERROR_PAGE_PHRASES,
+  isBlocked,
+  extractCleanContent,
+  extractBySelectors,
+} from "./page-utils";
 import { extractStructuredData, runVisionExtraction } from "./ai-extractor";
 
 // Re-export schema so existing consumers (e.g. route.ts) don't need changing
@@ -13,9 +22,7 @@ export type { Property };
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
-
 const CRITICAL_FIELDS = ["propertyTitle", "price", "location", "area"] as const;
-
 
 // ─── Browser helpers ─────────────────────────────────────────────────────────
 
@@ -55,15 +62,26 @@ async function navigatePage(page: any, url: string) {
   await page.goto(url, { waitUntil: "networkidle", timeout: 60000 });
   await page.waitForSelector("body", { timeout: 10000 });
   await page
-    .waitForSelector("h1, [class*='price'], [class*='title']", { timeout: 5000 })
-    .catch(() => console.log("[Scraper] Major markers not found, proceeding anyway..."));
+    .waitForSelector("h1, [class*='price'], [class*='title']", {
+      timeout: 5000,
+    })
+    .catch(() =>
+      console.log("[Scraper] Major markers not found, proceeding anyway..."),
+    );
   // Human-like random pause (3–5s)
   await page.waitForTimeout(Math.floor(Math.random() * 2000) + 3000);
 }
 
-async function takeScreenshot(page: any): Promise<{ screenshotName: string; screenshotPath: string }> {
+async function takeScreenshot(
+  page: any,
+): Promise<{ screenshotName: string; screenshotPath: string }> {
   const screenshotName = `screenshot-${Date.now()}.png`;
-  const screenshotPath = path.join(process.cwd(), "public", "screenshots", screenshotName);
+  const screenshotPath = path.join(
+    process.cwd(),
+    "public",
+    "screenshots",
+    screenshotName,
+  );
   fs.mkdirSync(path.dirname(screenshotPath), { recursive: true });
   await page.screenshot({ path: screenshotPath });
   return { screenshotName, screenshotPath };
@@ -73,21 +91,26 @@ async function takeScreenshot(page: any): Promise<{ screenshotName: string; scre
 
 /** Builds the zero-value default object (nulls + empty arrays) for the schema. */
 function buildDefaultData(): Record<string, any> {
-  return Object.keys(propertySchema.shape).reduce((acc, key) => {
-    acc[key] = null;
-    if (key === "nearbyLandmarks" || key === "amenities") acc[key] = [];
-    return acc;
-  }, {} as Record<string, any>);
+  return Object.keys(propertySchema.shape).reduce(
+    (acc, key) => {
+      acc[key] = null;
+      if (key === "nearbyLandmarks" || key === "amenities") acc[key] = [];
+      return acc;
+    },
+    {} as Record<string, any>,
+  );
 }
 
 /** Applies price, area, and carpetArea normalisations in-place. */
 function applyNormalizations(data: Record<string, any>): void {
-  if (data.price)        data.price        = normalizePrice(data.price)              ?? data.price;
-  if (data.pricePerSqft) data.pricePerSqft = normalizePricePerSqft(data.pricePerSqft) ?? data.pricePerSqft;
-  if (data.area)         data.area         = normalizeArea(data.area)                ?? data.area;
-  if (data.carpetArea)   data.carpetArea   = normalizeArea(data.carpetArea)          ?? data.carpetArea;
+  if (data.price) data.price = normalizePrice(data.price) ?? data.price;
+  if (data.pricePerSqft)
+    data.pricePerSqft =
+      normalizePricePerSqft(data.pricePerSqft) ?? data.pricePerSqft;
+  if (data.area) data.area = normalizeArea(data.area) ?? data.area;
+  if (data.carpetArea)
+    data.carpetArea = normalizeArea(data.carpetArea) ?? data.carpetArea;
 }
-
 
 // ─── Main export ─────────────────────────────────────────────────────────────
 
@@ -101,8 +124,9 @@ export async function processUrl(url: string) {
 
     // Step 2 — Bot detection
     const pageTitle = await page.title();
-    const pageHtml  = await page.content();
-    if (isBlocked(pageTitle, pageHtml)) throw new Error("Bot protection triggered");
+    const pageHtml = await page.content();
+    if (isBlocked(pageTitle, pageHtml))
+      throw new Error("Bot protection triggered");
 
     // Step 3 — Screenshot
     const { screenshotName, screenshotPath } = await takeScreenshot(page);
@@ -113,9 +137,11 @@ export async function processUrl(url: string) {
     console.log(`UNSTRUCTURED BODY DATA — ${url}`);
     console.log("=".repeat(60));
     console.log(`characters: ${cleanText.length}`);
-    console.log(cleanText.length === 0
-      ? "(EMPTY — bot wall, hydration not finished, or extractCleanContent removed all visible text)"
-      : cleanText);
+    console.log(
+      cleanText.length === 0
+        ? "(EMPTY — bot wall, hydration not finished, or extractCleanContent removed all visible text)"
+        : cleanText,
+    );
     console.log("=".repeat(60) + "\n");
 
     // Step 5 — 404 / removed listing detection
@@ -137,7 +163,12 @@ export async function processUrl(url: string) {
     console.log("=".repeat(60) + "\n");
 
     // Step 7 — AI text extraction (JSON-LD + page text)
-    const structuredData = await extractStructuredData(page, cleanText, selectorData, url);
+    const structuredData = await extractStructuredData(
+      page,
+      cleanText,
+      selectorData,
+      url,
+    );
 
     // Step 8 — Merge: defaults < selectors < AI text
     const merged: Record<string, any> = {
@@ -147,8 +178,10 @@ export async function processUrl(url: string) {
     };
 
     const missingCritical = CRITICAL_FIELDS.filter((f) => !merged[f]);
-    const filledFields    = Object.values(merged).filter((v) => v !== null && v !== "").length;
-    const cleanMerged     = Object.fromEntries(
+    const filledFields = Object.values(merged).filter(
+      (v) => v !== null && v !== "",
+    ).length;
+    const cleanMerged = Object.fromEntries(
       Object.entries(merged).filter(([_, v]) => v !== null && v !== ""),
     );
 
