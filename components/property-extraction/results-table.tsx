@@ -1,9 +1,7 @@
 "use client";
 
-import { Dispatch, SetStateAction, useMemo, useState } from "react";
+import { Dispatch, SetStateAction, useState } from "react";
 import { Card } from "../ui/card";
-import Image from "next/image";
-import { Checkbox } from "../ui/checkbox";
 import {
   Table,
   TableBody,
@@ -12,13 +10,20 @@ import {
   TableHeader,
   TableRow,
 } from "../ui/table";
-import { EmptyState } from "./results-table/empty-state";
 import { ResultsTableFooter } from "./results-table/results-table-footer";
 import { SkeletonRow } from "./results-table/skeleton-row";
-import { cn } from "@/lib/utils";
+import { columns } from "./results-table/columns";
+import {
+  flexRender,
+  getCoreRowModel,
+  getSortedRowModel,
+  SortingState,
+  useReactTable,
+} from "@tanstack/react-table";
+import { PropertyExtractionResult } from "@/features/property-extraction/scraper";
 
 interface ResultsTableProps {
-  results: any[];
+  results: PropertyExtractionResult[];
   pendingUrls: string[];
   onRowClick: (property: any) => void;
   averagePrice: number;
@@ -40,62 +45,22 @@ function ResultsTable({
   rowSelection,
   setRowSelection,
 }: ResultsTableProps) {
-  const isEmpty = results.length === 0 && pendingUrls.length === 0;
-  const [sortConfig, setSortConfig] = useState<{
-    key: string;
-    direction: "asc" | "desc";
-  } | null>(null);
-  const [filterQuery, setFilterQuery] = useState("");
-  const TABLE_HEADERS = [
-    { id: "select", label: "" },
-    { id: "image", label: "Image" },
-    { id: "propertyTitle", label: "Property" },
-    { id: "location", label: "Location" },
-    { id: "price", label: "Price" },
-    { id: "area", label: "Area" },
-    { id: "pricePerSqft", label: "Rate/Sqft" },
-  ];
-
-  const handleSort = (key: string) => {
-    let direction: "asc" | "desc" = "asc";
-    if (
-      sortConfig &&
-      sortConfig.key === key &&
-      sortConfig.direction === "asc"
-    ) {
-      direction = "desc";
-    }
-    setSortConfig({ key, direction });
-  };
-
-  const processedData = useMemo(() => {
-    let result = [...results];
-
-    if (filterQuery) {
-      result = result.filter(
-        (item) =>
-          item.data?.propertyTitle
-            ?.toLowerCase()
-            .includes(filterQuery.toLowerCase()) ||
-          item.data?.location
-            ?.toLowerCase()
-            .includes(filterQuery.toLowerCase()),
-      );
-    }
-
-    if (sortConfig) {
-      result.sort((a, b) => {
-        const aValue = a.data?.[sortConfig.key];
-        const bValue = b.data?.[sortConfig.key];
-
-        if (aValue < bValue) return sortConfig.direction == "asc" ? -1 : 1;
-        if (aValue > bValue) return sortConfig.direction == "asc" ? 1 : -1;
-        return 0;
-      });
-    }
-
-    return result;
-  }, [results, filterQuery, sortConfig]);
+  const [sorting, setSorting] = useState<SortingState>([]);
+  
+  const table = useReactTable({
+    data: results,
+    columns,
+    state: {
+      sorting,
+      rowSelection,
+    },
+    onSortingChange: setSorting,
+    onRowSelectionChange: setRowSelection,
+    getCoreRowModel: getCoreRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    getRowId: (row) => row.url,
+    enableSortingRemoval: false,
+  });
 
   return (
     <div className="space-y-4 animate-in fade-in duration-700">
@@ -106,109 +71,79 @@ function ResultsTable({
         <div className="overflow-x-auto">
           <Table>
             <TableHeader className="hover:bg-transparent border-none">
-              <TableRow className="hover:bg-transparent border-none">
-                {TABLE_HEADERS.map((header) => (
-                  <TableHead
-                    key={header.id}
-                    className={cn(
-                      "cursor-pointer text-[10px] font-black uppercase text-muted-foreground tracking-widest py-4",
-                      header.id === "select" ? "pl-6" : "px-4",
-                      header.id === "pricePerSqft" ? "text-right pr-6" : "",
-                    )}
-                    onClick={() => handleSort(header.id)}
-                  >
-                    {header.id === "select" ? (
-                      <div className="flex items-center h-full">
-                        <Checkbox
-                          checked={
-                            processedData.length > 0 &&
-                            Object.keys(rowSelection).length ===
-                              processedData.length
-                          }
-                          onCheckedChange={(checked) => {
-                            const newSelection: Record<string, boolean> = {};
-                            if (checked)
-                              processedData.forEach(
-                                (p) => (newSelection[p.url] = true),
-                              );
-                            setRowSelection(newSelection);
-                          }}
-                          onClick={(e) => e.stopPropagation()}
-                        />
-                      </div>
-                    ) : (
-                      header.label
-                    )}
-                  </TableHead>
-                ))}
-              </TableRow>
+              {table.getHeaderGroups().map((headerGroup) => (
+                <TableRow
+                  key={headerGroup.id}
+                  className="hover:bg-transparent border-none"
+                >
+                  {headerGroup.headers.map((header) => (
+                    <TableHead
+                      key={header.id}
+                      className={`
+                        h-10 text-[10px] font-black uppercase text-muted-foreground tracking-widest py-4 cursor-pointer
+                        ${header.id === "select" ? "pl-6 w-[50px]" : "px-4"}
+                        ${header.id === "data_pricePerSqft" ? "pr-6 text-right" : ""}
+                        `}
+                      onClick={
+                        header.column.getCanSort()
+                          ? header.column.getToggleSortingHandler()
+                          : undefined
+                      }
+                    >
+                      {flexRender(
+                        header.column.columnDef.header,
+                        header.getContext(),
+                      )}
+                    </TableHead>
+                  ))}
+                </TableRow>
+              ))}
             </TableHeader>
             <TableBody>
-              {isEmpty ? (
-                <EmptyState />
-              ) : (
+              {table.getRowModel().rows.length > 0 ? (
                 <>
-                  {processedData.map((property, index) => (
+                  {table.getRowModel().rows.map((row) => (
                     <TableRow
-                      key={property.url || index}
-                      onClick={() => onRowClick(property)}
+                      key={row.id}
+                      data-state={row.getIsSelected() && "selected"}
+                      className="border-b transition-colors hover:bg-muted/50 cursor-pointer"
+                      onClick={() => onRowClick(row.original)}
                     >
-                      <TableCell
-                        className="py-4 pl-6"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <Checkbox
-                          checked={!!rowSelection[property.url]}
-                          onCheckedChange={(checked) => {
-                            setRowSelection((prev) => ({
-                              ...prev,
-                              [property.url]: !!checked,
-                            }));
-                          }}
-                        />
-                      </TableCell>
-                      <TableCell className="py-4 px-4">
-                        <div className="h-10 w-14 relative overflow-hidden rounded border border-border bg-muted">
-                          {property.screenshotUrl ? (
-                            <Image
-                              src={property.screenshotUrl}
-                              fill
-                              className="object-cover"
-                              alt="Property"
-                            />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center text-[9px]">
-                              N/A
-                            </div>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell className="py-4 px-4 max-w-[250px]">
-                        <p
-                          className="truncate font-medium text-muted-foreground text-sm"
-                          title={property.data?.propertyTitle}
+                      {row.getVisibleCells().map((cell) => (
+                        <TableCell
+                          key={cell.id}
+                          className={`
+                            py-4 
+                            ${cell.column.id === "select" ? "pl-6 w-[50px]" : "px-4"}
+                            ${cell.column.id === "data_pricePerSqft" ? "pr-6 text-right font-black text-foreground" : ""}
+                          `}
                         >
-                          {property.data?.propertyTitle}
-                        </p>
-                      </TableCell>
-                      <TableCell className="py-4 px-4">
-                        {property.data?.location}
-                      </TableCell>
-                      <TableCell className="py-4 px-4">
-                        {property.data?.price}
-                      </TableCell>
-                      <TableCell className="py-4 px-4">
-                        {property.data?.area}
-                      </TableCell>
-                      <TableCell className="text-right pr-6 font-black text-foreground">
-                        {property.data?.pricePerSqft}
-                      </TableCell>
+                          {flexRender(
+                            cell.column.columnDef.cell,
+                            cell.getContext(),
+                          )}
+                        </TableCell>
+                      ))}
                     </TableRow>
                   ))}
-
                   {pendingUrls.map((url) => (
                     <SkeletonRow key={url} />
                   ))}
+                </>
+              ) : (
+                <>
+                  {pendingUrls.length > 0 ? (
+                    pendingUrls.map((url) => <SkeletonRow key={url} />)
+                  ) : (
+                    <TableRow>
+                      <TableCell
+                        colSpan={columns.length}
+                        className="h-24 text-center text-muted-foreground"
+                      >
+                        No properties extracted yet.
+                      </TableCell>
+                    </TableRow>
+                  )}
                 </>
               )}
             </TableBody>

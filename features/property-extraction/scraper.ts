@@ -223,3 +223,6 @@ export async function processUrl(url: string) {
     await browser.close();
   }
 }
+
+export type PropertyExtractionResult = Awaited<ReturnType<typeof processUrl>>;
+

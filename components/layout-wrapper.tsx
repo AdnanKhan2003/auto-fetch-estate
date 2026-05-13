@@ -22,15 +22,19 @@ function LayoutWrapper({ children }: { children: React.ReactNode }) {
     );
   }
 
+  const isComparePage = pathname === "/";
+
   return (
     <TooltipProvider delayDuration={0}>
       <SidebarProvider>
         <div className="flex min-h-screen w-full">
           <AppSidebar />
           <main className="flex-1 min-w-0 relative">
-            <div className="fixed top-4 right-6 z-100">
-              <ThemeToggle />
-            </div>
+            {!isComparePage && (
+              <div className="fixed top-4 right-6 z-100">
+                <ThemeToggle />
+              </div>
+            )}
             {children}
           </main>
         </div>

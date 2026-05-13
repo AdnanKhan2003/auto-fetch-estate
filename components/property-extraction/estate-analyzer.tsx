@@ -5,14 +5,7 @@ import EstateHeader from "./estate-header";
 import ScrapeInputCard from "./scrape-input-card";
 import ResultsTable from "./results-table";
 import PropertyDetailsModal from "./property-details-modal";
-
-interface ScrapeResult {
-  url: string;
-  screenshotUrl?: string;
-  data?: any;
-  status: "success" | "error" | "discarded";
-  reason?: string;
-}
+import { PropertyExtractionResult } from "@/features/property-extraction/scraper";
 
 function parsePricePerSqft(priceText?: string | null): number | null {
   if (!priceText) return null;
@@ -27,11 +20,12 @@ function parsePricePerSqft(priceText?: string | null): number | null {
 export default function EstateAnalyzer() {
   const [urls, setUrls] = useState<string[]>([""]);
   const [isLoading, setIsLoading] = useState(false);
-  const [results, setResults] = useState<ScrapeResult[]>([]);
+  const [results, setResults] = useState<PropertyExtractionResult[]>([]);
   const [discountPercentage, setDiscountPercentage] = useState<number>(0);
-  const [selectedProperty, setSelectedProperty] = useState<ScrapeResult | null>(
+  const [selectedProperty, setSelectedProperty] = useState<PropertyExtractionResult | null>(
     null,
   );
+
   const [pendingUrls, setPendingUrls] = useState<string[]>([]);
   const [rowSelection, setRowSelection] = useState<Record<string, boolean>>({});
 
@@ -143,9 +137,9 @@ export default function EstateAnalyzer() {
   const discountedAverage = Math.max(averagePrice - discountAmount, 0);
 
   return (
-    <div className="space-y-10 px-6 pb-8 bg-background text-foreground">
+    <div className="space-y-6 sm:space-y-10 px-0 sm:px-6 pb-8 bg-background text-foreground">
       <EstateHeader onClear={clearHistory} />
-      <main className="flex-1 min-w-0 overflow-hidden space-y-10 px-8 py-10">
+      <main className="flex-1 min-w-0 overflow-hidden space-y-10 px-4 sm:px-6 py-6 sm:py-10">
         <ScrapeInputCard
           urls={urls}
           setUrls={setUrls}
