@@ -12,6 +12,18 @@ import {
   DialogFooter,
 } from "../ui/dialog";
 import { Loader2, Copy, Check } from "lucide-react";
+import { useForm, Controller } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import z from "zod";
+import { Field, FieldError, FieldLabel } from "../ui/field";
+
+const makerSchema = z.object({
+  name: z.string().min(2, "Name must be atleast 2 characters"),
+  email: z.string().email("Please enter a valid email address"),
+  password: z.string().min(8, "Password must be at least 8 characters"),
+});
+
+type MakerFormValues = z.infer<typeof makerSchema>;
 
 function CreateMakersForm() {
   const [loading, setLoading] = useState(false);
@@ -21,23 +33,22 @@ function CreateMakersForm() {
     message: string;
     data?: { name: string; email: string; pass: string };
   } | null>(null);
+  const form = useForm<MakerFormValues>({
+    resolver: zodResolver(makerSchema),
+    defaultValues: {
+      name: "",
+      email: "",
+      password: "",
+    },
+  });
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
+  const onSubmit = async (values: MakerFormValues) => {
     setLoading(true);
 
-    const formData = new FormData(e.currentTarget);
-    const name = formData.get("name") as string;
-    const email = formData.get("email") as string;
-    const password = formData.get("password") as string;
-
     const { error } = await authClient.admin.createUser({
-      name,
-      email,
-      password,
+      ...values,
       role: "maker" as any,
     });
-
     setLoading(false);
 
     if (error) {
@@ -48,10 +59,10 @@ function CreateMakersForm() {
     } else {
       setStatus({
         type: "success",
-        message: "User created successfully",
-        data: { name, email, pass: password },
+        message: "User created Successfully",
+        data: { name: values.name, email: values.email, pass: values.password },
       });
-      (e.target as HTMLFormElement).reset();
+      form.reset();
     }
   };
 
@@ -69,42 +80,63 @@ function CreateMakersForm() {
 
   return (
     <div style={{ fontFamily: "'Poppins', sans-serif" }}>
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="space-y-1">
-          <label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground ml-1">
-            Full Name
-          </label>
-          <Input
-            name="name"
-            placeholder="Enter Maker's Name"
-            required
-            className="rounded-md h-11 border-border bg-background px-4 focus-visible:ring-1 focus-visible:ring-ring"
-          />
-        </div>
-        <div className="space-y-1">
-          <label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground ml-1">
-            Email Address
-          </label>
-          <Input
-            name="email"
-            placeholder="Enter Maker's Email Address"
-            type="email"
-            required
-            className="rounded-md h-11 border-border bg-background px-4 focus-visible:ring-1 focus-visible:ring-ring"
-          />
-        </div>
-        <div className="space-y-1">
-          <label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground ml-1">
-            Password
-          </label>
-          <Input
-            name="password"
-            type="password"
-            placeholder="••••••••"
-            required
-            className="rounded-md h-11 border-border bg-background px-4 focus-visible:ring-1 focus-visible:ring-ring"
-          />
-        </div>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        <Controller
+          name="name"
+          control={form.control}
+          render={({ field, fieldState }) => (
+            <Field data-invalid={fieldState.invalid}>
+              <FieldLabel htmlFor={field.name}>Full Name</FieldLabel>
+              <Input
+                {...field}
+                id={field.name}
+                type="text"
+                placeholder="Enter Maker's Email Address"
+                aria-invalid={fieldState.invalid}
+                className="rounded-md h-11"
+              />
+              <FieldError errors={fieldState.error ? [fieldState.error] : []} />
+            </Field>
+          )}
+        />
+
+        <Controller
+          name="email"
+          control={form.control}
+          render={({ field, fieldState }) => (
+            <Field data-invalid={fieldState.invalid}>
+              <FieldLabel htmlFor={field.name}>Email</FieldLabel>
+              <Input
+                {...field}
+                id={field.name}
+                type="email"
+                placeholder="Enter your email address"
+                aria-invalid={fieldState.invalid}
+                className="rounded-md h-11"
+              />
+              <FieldError errors={fieldState.error ? [fieldState.error] : []} />
+            </Field>
+          )}
+        />
+
+        <Controller
+          name="password"
+          control={form.control}
+          render={({ field, fieldState }) => (
+            <Field data-invalid={fieldState.invalid}>
+              <FieldLabel htmlFor={field.name}>Pasword</FieldLabel>
+              <Input
+                {...field}
+                id={field.name}
+                type="password"
+                placeholder="**********"
+                aria-invalid={fieldState.invalid}
+                className="rounded-md h-11"
+              />
+              <FieldError errors={fieldState.error ? [fieldState.error] : []} />
+            </Field>
+          )}
+        />
         <Button
           type="submit"
           className="w-full h-11 rounded-md font-semibold bg-primary text-primary-foreground hover:bg-primary/90 transition-colors mt-2 cursor-pointer"
