@@ -6,12 +6,15 @@ import ScrapeInputCard from "./scrape-input-card";
 import ResultsTable from "./results-table";
 import PropertyDetailsModal from "./property-details-modal";
 import { PropertyExtractionResult } from "@/features/property-extraction/scraper";
+import { COMMA_REGEX, NUMERIC_REGEX } from "@/lib/regex";
 
 function parsePricePerSqft(priceText?: string | null): number | null {
   if (!priceText) return null;
   // Handles: "₹24,286/sqft", "₹84,307 per sqft", "24286"
-  const cleaned = priceText.replace(/,/g, "");
-  const match = cleaned.match(/(\d+(?:\.\d+)?)/);
+
+  const cleaned = priceText.replace(COMMA_REGEX, "");
+  const match = cleaned.match(NUMERIC_REGEX);
+
   if (!match) return null;
   const value = Number(match[1]);
   return Number.isNaN(value) ? null : Math.round(value);
@@ -22,9 +25,8 @@ export default function EstateAnalyzer() {
   const [isLoading, setIsLoading] = useState(false);
   const [results, setResults] = useState<PropertyExtractionResult[]>([]);
   const [discountPercentage, setDiscountPercentage] = useState<number>(0);
-  const [selectedProperty, setSelectedProperty] = useState<PropertyExtractionResult | null>(
-    null,
-  );
+  const [selectedProperty, setSelectedProperty] =
+    useState<PropertyExtractionResult | null>(null);
 
   const [pendingUrls, setPendingUrls] = useState<string[]>([]);
   const [rowSelection, setRowSelection] = useState<Record<string, boolean>>({});

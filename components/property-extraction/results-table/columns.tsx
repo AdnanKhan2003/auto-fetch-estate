@@ -6,15 +6,18 @@ import Image from "next/image";
 import { PropertyExtractionResult } from "@/features/property-extraction/scraper";
 import { ArrowUpDown } from "lucide-react";
 
+import { COMMA_REGEX, NUMERIC_REGEX } from "@/lib/regex";
+
 // Smart helper to sort Indian currency and numeric strings
 const smartNumericSort = (rowA: any, rowB: any, columnId: string) => {
   const parseIndianPrice = (val: any) => {
     if (!val) return 0;
-    const str = String(val).toLowerCase().replace(/,/g, "");
+    const str = String(val).toLowerCase().replace(COMMA_REGEX, "");
     
     // Extract the number part
-    const match = str.match(/(\d+(?:\.\d+)?)/);
+    const match = str.match(NUMERIC_REGEX);
     if (!match) return 0;
+
     let num = Number(match[1]);
 
     // Multiply based on unit

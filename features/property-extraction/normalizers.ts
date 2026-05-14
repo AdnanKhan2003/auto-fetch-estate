@@ -1,32 +1,20 @@
-/**
- * Constants for unit conversion factors to Square Feet.
- */
-const SQM_TO_SQFT = 10.7639;
-const SQYD_TO_SQFT = 9;
-const ACRE_TO_SQFT = 43560;
+import {
+  NUMERIC_REGEX,
+  WHITESPACE_REGEX,
+  SQM_REGEX,
+  SQYD_REGEX,
+  ACRE_REGEX,
+  CARPET_REGEX,
+  SUPER_BUILT_REGEX,
+  BUILT_UP_REGEX,
+  SUPER_REGEX,
+  SQM_TO_SQFT,
+  SQYD_TO_SQFT,
+  ACRE_TO_SQFT,
+  DEFAULT_UNIT,
+  COMMA_REGEX,
+} from "@/lib/regex";
 
-const DEFAULT_UNIT = "sqft";
-
-/**
- * Reusable Regular Expressions for cleaning and extraction.
- */
-const NUMERIC_REGEX = /(\d+(?:\.\d+)?)/;
-const WHITESPACE_REGEX = /\s+/g;
-
-/**
- * Reusable Regular Expressions for unit detection.
- */
-const SQM_REGEX = /sq\.?m|square\s*meter/i;
-const SQYD_REGEX = /sq\.?yd|square\s*yard/i;
-const ACRE_REGEX = /acre/i;
-
-/**
- * Reusable Regular Expressions for area type detection.
- */
-const CARPET_REGEX = /carpet/i;
-const SUPER_BUILT_REGEX = /super\s*built[\s-]*up/i;
-const BUILT_UP_REGEX = /built[\s-]*up/i;
-const SUPER_REGEX = /super/i;
 
 const AREA_TYPE_MAP = [
   { regex: CARPET_REGEX, label: "Carpet Area" },
@@ -39,8 +27,9 @@ const AREA_TYPE_MAP = [
  * Helper: Extracts the first numeric value from a string (ignores commas).
  */
 function extractNumericValue(raw: string): number | null {
-  const match = raw.replace(/,/g, "").match(NUMERIC_REGEX);
+  const match = raw.replace(COMMA_REGEX, "").match(NUMERIC_REGEX);
   if (!match) return null;
+
   const num = Number(match[1]);
   return !num || Number.isNaN(num) ? null : num;
 }
