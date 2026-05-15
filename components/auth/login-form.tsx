@@ -12,6 +12,7 @@ import { Controller, useForm } from "react-hook-form";
 import { Field, FieldError, FieldGroup, FieldLabel } from "../ui/field";
 import { Input } from "../ui/input";
 import LoadingButton from "../button/loading-button";
+import PasswordInput from "./password-input";
 
 const loginSchema = z.object({
   email: z.string().email("Please enter a valid Email Address"),
@@ -86,26 +87,13 @@ function LoginForm() {
           render={({ field, fieldState }) => (
             <Field data-invalid={fieldState.invalid}>
               <FieldLabel htmlFor={field.name}>Password</FieldLabel>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  {...field}
-                  id={field.name}
-                  type={showPassword ? "text" : "password"}
-                  placeholder="************"
-                  className="pl-10 h-11"
-                  aria-invalid={fieldState.invalid}
-                />
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8 hover:bg-transparent text-muted-foreground cursor-pointer"
-                >
-                  {showPassword ? <EyeOff size={14} /> : <Eye size={14} />}
-                </Button>
-              </div>
+              <PasswordInput
+                {...field}
+                id={field.name}
+                placeholder="**********"
+                aria-invalid={fieldState.invalid}
+              />
+
               <FieldError errors={fieldState.error ? [fieldState.error] : []} />
             </Field>
           )}

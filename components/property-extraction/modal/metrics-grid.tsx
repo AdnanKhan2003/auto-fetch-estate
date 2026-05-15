@@ -1,4 +1,5 @@
 import MetricCard from "./metric-card";
+import { calculateRatePerSqft } from "@/lib/format-utils";
 
 interface MetricsGridProps {
   data?: any;
@@ -15,9 +16,13 @@ export function MetricsGrid({ data }: MetricsGridProps) {
         },
         {
           label: "Rate / Sqft",
-          value: data?.pricePerSqft,
+          value: calculateRatePerSqft(data?.price, data?.carpetArea, data?.area) || data?.pricePerSqft,
         },
-        { label: "Total Area", value: data?.area },
+        { 
+          label: "Total Area", 
+          value: data?.carpetArea || data?.area,
+          subtext: (!data?.carpetArea && data?.area) ? "*Carpet area unknown" : undefined
+        },
         {
           label: "Bldg Age",
           value: data?.ageOfBuilding,
@@ -27,6 +32,7 @@ export function MetricsGrid({ data }: MetricsGridProps) {
           key={i}
           label={stat.label}
           value={stat.value}
+          subtext={stat.subtext}
           highlight={stat.highlight}
         />
       ))}

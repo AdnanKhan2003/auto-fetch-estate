@@ -1,10 +1,11 @@
 interface MetricCardProps {
   label: string;
-  value: string | number | null | undefined;
+  value: React.ReactNode;
+  subtext?: React.ReactNode;
   highlight?: boolean;
 }
 
-function MetricCard({ label, value, highlight = false }: MetricCardProps) {
+function MetricCard({ label, value, subtext, highlight = false }: MetricCardProps) {
   return (
     <div
       className={`min-w-0 overflow-hidden rounded-xl border border-border p-6 
@@ -22,9 +23,16 @@ function MetricCard({ label, value, highlight = false }: MetricCardProps) {
       >
         {label}
       </p>
-      <p className="text-xl font-bold tracking-tight truncate">
-        {value || "N/A"}
-      </p>
+      <div className="flex flex-col">
+        <p className="text-xl font-bold tracking-tight truncate">
+          {value || "N/A"}
+        </p>
+        {subtext && (
+          <span className="text-[10px] text-amber-500/80 leading-tight mt-1 truncate">
+            {subtext}
+          </span>
+        )}
+      </div>
     </div>
   );
 }

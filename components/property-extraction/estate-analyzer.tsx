@@ -7,6 +7,7 @@ import ResultsTable from "./results-table";
 import PropertyDetailsModal from "./property-details-modal";
 import { PropertyExtractionResult } from "@/features/property-extraction/scraper";
 import { COMMA_REGEX, NUMERIC_REGEX } from "@/lib/regex";
+import { calculateRawRatePerSqft } from "@/lib/format-utils";
 
 function parsePricePerSqft(priceText?: string | null): number | null {
   if (!priceText) return null;
@@ -49,15 +50,17 @@ export default function EstateAnalyzer() {
     }
   }, []);
 
-  const handleScrape = async () => {
+  const handleScrape = async (submittedUrls: string[]) => {
     setIsLoading(true);
-    const activeUrls = urls.filter((u) => u.trim());
-    setPendingUrls(activeUrls); // show skeleton rows immediately
+    // Deduplicate URLs to prevent key collisions and redundant scrapes
+    const uniqueUrls = Array.from(new Set(submittedUrls));
+    
+    setPendingUrls(uniqueUrls); // show skeleton rows immediately
     try {
       const response = await fetch("/api/scrape", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ urls: activeUrls }),
+        body: JSON.stringify({ urls: uniqueUrls }),
       });
 
       if (!response.ok || !response.body) {
@@ -128,7 +131,11 @@ export default function EstateAnalyzer() {
   // Only count rows the user has checked in the avg calculation.
   const validPrices = results
     .filter((r) => rowSelection[r.url])
-    .map((r) => parsePricePerSqft(r.data?.pricePerSqft))
+    .map((r) => {
+      // Prioritize dynamically calculated raw rate, fallback to AI extracted rate
+      const calcRate = calculateRawRatePerSqft(r.data?.price, r.data?.carpetArea, r.data?.area);
+      return calcRate !== null ? calcRate : parsePricePerSqft(r.data?.pricePerSqft);
+    })
     .filter((p): p is number => p !== null && p > 0);
 
   const averagePrice =

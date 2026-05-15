@@ -37,6 +37,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import LoadingButton from "../button/loading-button";
 import StatusModal from "../modal/status-modal";
 import UserRow from "./user-row";
+import EmptyState from "../empty-state";
 
 const editUserSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
@@ -135,9 +136,10 @@ function UsersList() {
       style={{ fontFamily: "'Poppins', sans-serif" }}
     >
       {users.length === 0 ? (
-        <div className="p-8 text-center text-muted-foreground text-sm">
-          No records found.
-        </div>
+        <EmptyState
+          title="No Users Found"
+          description="There are currently no records to display"
+        />
       ) : (
         users.map((user) => (
           <UserRow

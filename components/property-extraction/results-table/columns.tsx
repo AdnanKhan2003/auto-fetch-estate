@@ -7,33 +7,12 @@ import { PropertyExtractionResult } from "@/features/property-extraction/scraper
 import { ArrowUpDown } from "lucide-react";
 
 import { COMMA_REGEX, NUMERIC_REGEX } from "@/lib/regex";
+import { parseIndianNumber, calculateRatePerSqft } from "@/lib/format-utils";
 
 // Smart helper to sort Indian currency and numeric strings
 const smartNumericSort = (rowA: any, rowB: any, columnId: string) => {
-  const parseIndianPrice = (val: any) => {
-    if (!val) return 0;
-    const str = String(val).toLowerCase().replace(COMMA_REGEX, "");
-    
-    // Extract the number part
-    const match = str.match(NUMERIC_REGEX);
-    if (!match) return 0;
-
-    let num = Number(match[1]);
-
-    // Multiply based on unit
-    if (str.includes("cr") || str.includes("crore")) {
-      num *= 10000000;
-    } else if (str.includes("lac") || str.includes("lakh") || str.includes(" l")) {
-      num *= 100000;
-    } else if (str.includes("k")) {
-      num *= 1000;
-    }
-    
-    return num;
-  };
-
-  const a = parseIndianPrice(rowA.getValue(columnId));
-  const b = parseIndianPrice(rowB.getValue(columnId));
+  const a = parseIndianNumber(rowA.getValue(columnId));
+  const b = parseIndianNumber(rowB.getValue(columnId));
   
   return a < b ? -1 : a > b ? 1 : 0;
 };
@@ -128,7 +107,8 @@ export const columns: ColumnDef<PropertyExtractionResult>[] = [
     cell: ({ row }) => <span>{row.original.data?.price || "N/A"}</span>,
   },
   {
-    accessorKey: "data.area",
+    id: "area",
+    accessorFn: (row) => row.data?.carpetArea || row.data?.area,
     header: ({ column }) => (
       <div className="flex items-center gap-1">
         Area
@@ -136,7 +116,31 @@ export const columns: ColumnDef<PropertyExtractionResult>[] = [
       </div>
     ),
     sortingFn: smartNumericSort,
-    cell: ({ row }) => <span>{row.original.data?.area || "N/A"}</span>,
+    cell: ({ row }) => {
+      const carpetArea = row.original.data?.carpetArea;
+      const generalArea = row.original.data?.area;
+
+      if (carpetArea) {
+        return (
+          <div className="flex flex-col">
+            <span className="font-medium">{carpetArea}</span>
+          </div>
+        );
+      }
+
+      if (generalArea) {
+        return (
+          <div className="flex flex-col">
+            <span>{generalArea}</span>
+            <span className="text-[10px] text-amber-500/80 leading-tight mt-0.5">
+              *Carpet area unknown
+            </span>
+          </div>
+        );
+      }
+
+      return <span className="text-muted-foreground">N/A</span>;
+    },
   },
   {
     accessorKey: "data.pricePerSqft",
@@ -148,10 +152,15 @@ export const columns: ColumnDef<PropertyExtractionResult>[] = [
     ),
     sortingFn: smartNumericSort,
     cell: ({ row }) => {
-      const rate = row.original.data?.pricePerSqft;
+      const data = row.original.data;
+      
+      // Calculate dynamic rate, fallback to AI-provided if calculation fails
+      const calculatedRate = calculateRatePerSqft(data?.price, data?.carpetArea, data?.area);
+      const rateToDisplay = calculatedRate || data?.pricePerSqft;
+
       return (
         <div className="text-right font-black text-foreground">
-          {rate || "N/A"}
+          {rateToDisplay || "N/A"}
         </div>
       );
     },
