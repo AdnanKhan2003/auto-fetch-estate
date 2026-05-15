@@ -11,7 +11,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from "../ui/dialog";
-import { Loader2, Copy, Check } from "lucide-react";
+import { Loader2, Copy, Check, EyeOff, Eye } from "lucide-react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import z from "zod";
@@ -26,6 +26,7 @@ const makerSchema = z.object({
 type MakerFormValues = z.infer<typeof makerSchema>;
 
 function CreateMakersForm() {
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [status, setStatus] = useState<{
@@ -125,14 +126,30 @@ function CreateMakersForm() {
           render={({ field, fieldState }) => (
             <Field data-invalid={fieldState.invalid}>
               <FieldLabel htmlFor={field.name}>Pasword</FieldLabel>
-              <Input
-                {...field}
-                id={field.name}
-                type="password"
-                placeholder="**********"
-                aria-invalid={fieldState.invalid}
-                className="rounded-md h-11"
-              />
+              <div className="relative">
+                <Input
+                  {...field}
+                  id={field.name}
+                  type={showPassword ? "text" : "password"}
+                  placeholder="**********"
+                  aria-invalid={fieldState.invalid}
+                  className="rounded-md h-11"
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-1 top-1/2 -translate-y-1/2 h-9 w-9 rounded-md hover:bg-muted cursor-pointer"
+                  onClick={() => setShowPassword(!showPassword)}
+                >
+                  {showPassword ? (
+                    <EyeOff className="h-4 w-4 text-muted-foreground" />
+                  ) : (
+                    <Eye className="h-4 w-4 text-muted-foreground" />
+                  )}
+                </Button>
+              </div>
+
               <FieldError errors={fieldState.error ? [fieldState.error] : []} />
             </Field>
           )}

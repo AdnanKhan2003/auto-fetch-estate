@@ -5,6 +5,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import { authClient } from "@/lib/auth/auth-client";
 import { Button } from "../ui/button";
 import { AlertCircle, Loader2, Trash2, Pencil } from "lucide-react";
+import * as z from "zod";
+import { Field, FieldError, FieldLabel, FieldGroup } from "../ui/field";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -30,15 +32,30 @@ import {
   SelectValue,
 } from "../ui/select";
 import { Input } from "../ui/input";
+import { Controller, useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+
+const editUserSchema = z.object({
+  name: z.string().min(2, "Name must be at least 2 characters"),
+  role: z.enum(["admin", "maker"]),
+});
+
+type EditUserValues = z.infer<typeof editUserSchema>;
 
 function UsersList() {
+  const form = useForm<EditUserValues>({
+    resolver: zodResolver(editUserSchema),
+  });
   const [users, setUsers] = useState<any[]>([]);
   const [userToDelete, setUserToDelete] = useState<any | null>(null);
   const [userToEdit, setUserToEdit] = useState<any | null>(null);
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
   const [isUpdating, setIsUpdating] = useState(false);
   const { data: session } = authClient.useSession();
-  const [status, setStatus] = useState<{ type: "success" | "error"; message: string } | null>(null);
+  const [status, setStatus] = useState<{
+    type: "success" | "error";
+    message: string;
+  } | null>(null);
 
   const fetchUsers = async () => {
     const { data } = await authClient.admin.listUsers({
@@ -55,6 +72,15 @@ function UsersList() {
     if (session) fetchUsers();
   }, [session]);
 
+  useEffect(() => {
+    if (userToEdit) {
+      form.reset({
+        name: userToEdit.name,
+        role: userToEdit.role,
+      });
+    }
+  }, [userToEdit, form]);
+
   const confirmDelete = async () => {
     if (!userToDelete) return;
 
@@ -64,7 +90,10 @@ function UsersList() {
     });
 
     if (error) {
-      setStatus({ type: "error", message: error.message || "Failed to delete user" });
+      setStatus({
+        type: "error",
+        message: error.message || "Failed to delete user",
+      });
     } else {
       await fetchUsers();
     }
@@ -72,19 +101,19 @@ function UsersList() {
     setUserToDelete(null);
   };
 
-  const handleUpdateUser = async () => {
+  const handleUpdateUser = async (values: EditUserValues) => {
     if (!userToEdit) return;
     setIsUpdating(true);
 
     try {
       await authClient.admin.updateUser({
         userId: userToEdit.id,
-        data: { name: userToEdit.name },
+        data: { name: values.name },
       });
 
       await authClient.admin.setRole({
         userId: userToEdit.id,
-        role: userToEdit.role,
+        role: values.role as any,
       });
 
       await fetchUsers();
@@ -97,7 +126,10 @@ function UsersList() {
   };
 
   return (
-    <div className="divide-y divide-border relative" style={{ fontFamily: "'Poppins', sans-serif" }}>
+    <div
+      className="divide-y divide-border relative"
+      style={{ fontFamily: "'Poppins', sans-serif" }}
+    >
       {users.length === 0 ? (
         <div className="p-8 text-center text-muted-foreground text-sm">
           No records found.
@@ -111,11 +143,15 @@ function UsersList() {
             <div className="flex items-center gap-3">
               <Avatar className="h-9 w-9 rounded-full border border-border">
                 <AvatarImage src={user.image || ""} />
-                <AvatarFallback className="rounded-full font-bold">{user.name?.charAt(0)}</AvatarFallback>
+                <AvatarFallback className="rounded-full font-bold">
+                  {user.name?.charAt(0)}
+                </AvatarFallback>
               </Avatar>
               <div>
                 <p className="font-semibold text-sm">{user.name}</p>
-                <p className="text-[11px] text-muted-foreground uppercase">{user.email}</p>
+                <p className="text-[11px] text-muted-foreground uppercase">
+                  {user.email}
+                </p>
               </div>
             </div>
 
@@ -148,45 +184,76 @@ function UsersList() {
           </div>
         ))
       )}
-
       {/* 🔵 PROFESSIONAL EDIT DIALOG */}
-      <Dialog open={!!userToEdit} onOpenChange={(open) => !open && setUserToEdit(null)}>
+      <Dialog
+        open={!!userToEdit}
+        onOpenChange={(open) => !open && setUserToEdit(null)}
+      >
         <DialogContent className="rounded-md border-border bg-card p-8 max-w-sm shadow-none">
           <DialogHeader className="mb-6">
-            <DialogTitle className="text-xl font-bold">Manage Account</DialogTitle>
+            <DialogTitle className="text-xl font-bold">
+              Manage Account
+            </DialogTitle>
           </DialogHeader>
 
-          <div className="space-y-4">
-            <div className="space-y-1.5">
-              <label className="text-[10px] font-bold uppercase text-muted-foreground ml-0.5">Account Name</label>
-              <Input
-                value={userToEdit?.name || ""}
-                onChange={(e) => setUserToEdit({ ...userToEdit, name: e.target.value })}
-                className="h-11 rounded-md border-border bg-background px-4 focus-visible:ring-1"
+          <form onSubmit={form.handleSubmit(handleUpdateUser)}>
+            <FieldGroup>
+              <Controller
+                name="name"
+                control={form.control}
+                render={({ field, fieldState }) => (
+                  <Field data-invalid={fieldState.invalid}>
+                    <FieldLabel>Account Name</FieldLabel>
+                    <Input
+                      {...field}
+                      placeholder="Full Name"
+                      className="h-11"
+                    />
+                    <FieldError
+                      errors={fieldState.error ? [fieldState.error] : []}
+                    ></FieldError>
+                  </Field>
+                )}
               />
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-[10px] font-bold uppercase text-muted-foreground ml-0.5">Assigned Role</label>
-              <Select
-                value={userToEdit?.role}
-                onValueChange={(val: string) => setUserToEdit({ ...userToEdit, role: val })}
-              >
-                <SelectTrigger className="h-11 rounded-md border-border bg-background px-4">
-                  <SelectValue placeholder="Select Role" />
-                </SelectTrigger>
-                <SelectContent className="rounded-md border-border bg-card shadow-lg">
-                  <SelectItem value="admin" className="rounded-md cursor-pointer">Admin</SelectItem>
-                  <SelectItem value="maker" className="rounded-md cursor-pointer">Maker</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
+              <Controller
+                name="role"
+                control={form.control}
+                render={({ field, fieldState }) => (
+                  <Field data-invalid={fieldState.invalid}>
+                    <FieldLabel>Assigned Role</FieldLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <SelectTrigger className="h-11">
+                        <SelectValue placeholder="Select Role" />
+                      </SelectTrigger>
+                      <SelectContent className="rounded-md border-border bg-card shadow-lg">
+                        <SelectItem
+                          value="admin"
+                          className="rounded-md cursor-pointer"
+                        >
+                          Admin
+                        </SelectItem>
+                        <SelectItem
+                          value="maker"
+                          className="rounded-md cursor-pointer"
+                        >
+                          Maker
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FieldError
+                      errors={fieldState.error ? [fieldState.error] : []}
+                    />
+                  </Field>
+                )}
+              />
+            </FieldGroup>
+          </form>
 
           <DialogFooter className="mt-8">
             <Button
-              onClick={handleUpdateUser}
-              disabled={isUpdating}
+              type="submit"
+              onClick={form.handleSubmit(handleUpdateUser)}
+              disabled={isUpdating || !form.formState.isDirty}
               className="w-full rounded-md font-semibold h-11 transition-all"
             >
               {isUpdating && <Loader2 className="animate-spin h-4 w-4 mr-2" />}
@@ -195,16 +262,24 @@ function UsersList() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
       {/* 🔴 PROFESSIONAL DELETE DIALOG */}
-      <AlertDialog open={!!userToDelete} onOpenChange={(open) => !open && setUserToDelete(null)}>
+      <AlertDialog
+        open={!!userToDelete}
+        onOpenChange={(open) => !open && setUserToDelete(null)}
+      >
         <AlertDialogContent className="rounded-md border-border bg-card p-8 max-w-sm shadow-none">
           <AlertDialogHeader className="mb-4">
-            <AlertDialogTitle className="text-xl font-bold">Confirm Removal</AlertDialogTitle>
+            <AlertDialogTitle className="text-xl font-bold">
+              Confirm Removal
+            </AlertDialogTitle>
           </AlertDialogHeader>
-          
+
           <AlertDialogDescription className="text-sm text-muted-foreground leading-relaxed">
-            This action will permanently delete <span className="font-bold text-foreground">{userToDelete?.name}</span> from the database.
+            This action will permanently delete{" "}
+            <span className="font-bold text-foreground">
+              {userToDelete?.name}
+            </span>{" "}
+            from the database.
           </AlertDialogDescription>
 
           <AlertDialogFooter className="mt-8 grid grid-cols-2 gap-3">
@@ -220,22 +295,25 @@ function UsersList() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-
       {/* 🟢 PROFESSIONAL STATUS DIALOG */}
       <Dialog open={!!status} onOpenChange={() => setStatus(null)}>
         <DialogContent className="rounded-md border-border bg-card p-8 max-w-sm shadow-none">
           <DialogHeader className="mb-4">
-            <DialogTitle className="text-xl font-bold">Notification</DialogTitle>
+            <DialogTitle className="text-xl font-bold">
+              Notification
+            </DialogTitle>
           </DialogHeader>
-           <div className="space-y-6">
-              <p className="text-sm font-medium text-muted-foreground leading-relaxed">{status?.message}</p>
-              <Button
-                onClick={() => setStatus(null)}
-                className="w-full h-10 rounded-md font-semibold"
-              >
-                Close
-              </Button>
-           </div>
+          <div className="space-y-6">
+            <p className="text-sm font-medium text-muted-foreground leading-relaxed">
+              {status?.message}
+            </p>
+            <Button
+              onClick={() => setStatus(null)}
+              className="w-full h-10 rounded-md font-semibold"
+            >
+              Close
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

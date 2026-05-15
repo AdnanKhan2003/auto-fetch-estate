@@ -144,7 +144,6 @@ export default function EstateAnalyzer() {
       <main className="flex-1 min-w-0 overflow-hidden space-y-10 px-4 sm:px-6 py-6 sm:py-10">
         <ScrapeInputCard
           urls={urls}
-          setUrls={setUrls}
           isLoading={isLoading}
           onScrape={handleScrape}
         />
