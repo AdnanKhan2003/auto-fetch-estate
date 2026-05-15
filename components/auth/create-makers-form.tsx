@@ -16,6 +16,8 @@ import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import z from "zod";
 import { Field, FieldError, FieldLabel } from "../ui/field";
+import LoadingButton from "../button/loading-button";
+import CopyableDataRow from "./copyable-data-row";
 
 const makerSchema = z.object({
   name: z.string().min(2, "Name must be atleast 2 characters"),
@@ -154,20 +156,13 @@ function CreateMakersForm() {
             </Field>
           )}
         />
-        <Button
+        <LoadingButton
           type="submit"
-          className="w-full h-11 rounded-md font-semibold bg-primary text-primary-foreground hover:bg-primary/90 transition-colors mt-2 cursor-pointer"
-          disabled={loading}
+          loading={loading}
+          className="w-full h-11 rounded-md font-semibold mt-2"
         >
-          {loading ? (
-            <>
-              <Loader2 className="animate-spin h-4 w-4 mr-2" />
-              Processing...
-            </>
-          ) : (
-            "Create Account"
-          )}
-        </Button>
+          Create Account
+        </LoadingButton>
       </form>
 
       {/* 🏙️ PROFESSIONAL SUCCESS MODAL */}
@@ -187,76 +182,32 @@ function CreateMakersForm() {
             {status?.data && (
               <div className="space-y-1 rounded-md border border-border bg-muted/30 overflow-hidden">
                 {/* Name Row */}
-                <div className="flex items-center justify-between p-3 border-b border-border/50">
-                  <div className="space-y-0.5">
-                    <p className="text-[9px] font-bold uppercase text-muted-foreground/70">
-                      Full Name
-                    </p>
-                    <p className="text-[13px] font-medium">
-                      {status.data.name}
-                    </p>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-7 w-7 rounded-md"
-                    onClick={() => copyToClipboard(status.data!.name, "name")}
-                  >
-                    {copiedField === "name" ? (
-                      <Check size={14} className="text-green-600" />
-                    ) : (
-                      <Copy size={14} />
-                    )}
-                  </Button>
-                </div>
+                <CopyableDataRow
+                  label="Full Name"
+                  value={status.data.name}
+                  fieldName="name"
+                  copiedField={copiedField}
+                  onCopy={copyToClipboard}
+                />
 
                 {/* Email Row */}
-                <div className="flex items-center justify-between p-3 border-b border-border/50">
-                  <div className="space-y-0.5">
-                    <p className="text-[9px] font-bold uppercase text-muted-foreground/70">
-                      Email Address
-                    </p>
-                    <p className="text-[13px] font-medium">
-                      {status.data.email}
-                    </p>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-7 w-7 rounded-md"
-                    onClick={() => copyToClipboard(status.data!.email, "email")}
-                  >
-                    {copiedField === "email" ? (
-                      <Check size={14} className="text-green-600" />
-                    ) : (
-                      <Copy size={14} />
-                    )}
-                  </Button>
-                </div>
+                <CopyableDataRow
+                  label="Email Address"
+                  value={status.data.email}
+                  fieldName="email"
+                  copiedField={copiedField}
+                  onCopy={copyToClipboard}
+                />
 
                 {/* Password Row */}
-                <div className="flex items-center justify-between p-3">
-                  <div className="space-y-0.5">
-                    <p className="text-[9px] font-bold uppercase text-muted-foreground/70">
-                      Password
-                    </p>
-                    <p className="text-[13px] font-medium">
-                      {status.data.pass}
-                    </p>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-7 w-7 rounded-md"
-                    onClick={() => copyToClipboard(status.data!.pass, "pass")}
-                  >
-                    {copiedField === "pass" ? (
-                      <Check size={14} className="text-green-600" />
-                    ) : (
-                      <Copy size={14} />
-                    )}
-                  </Button>
-                </div>
+                <CopyableDataRow
+                  label="Password"
+                  value={status.data.pass}
+                  fieldName="pass"
+                  copiedField={copiedField}
+                  onCopy={copyToClipboard}
+                  isLast
+                />
               </div>
             )}
 

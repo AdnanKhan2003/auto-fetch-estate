@@ -1,19 +1,20 @@
 import { ZoomIn, ExternalLink } from "lucide-react";
 import { Button } from "../../ui/button";
 import Image from "next/image";
-
+import SectionHeader from "./section-header";
 
 interface EvidenceSectionProps {
   property: any;
   onOpenLightbox: () => void;
 }
 
-export function EvidenceSection({ property, onOpenLightbox }: EvidenceSectionProps) {
+export function EvidenceSection({
+  property,
+  onOpenLightbox,
+}: EvidenceSectionProps) {
   return (
     <div className="space-y-6">
-      <h4 className="border-b border-border pb-3 text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground">
-        Evidence Verification
-      </h4>
+      <SectionHeader title="Evidence Verification" />
 
       <div
         className="group relative overflow-hidden rounded-xl border border-border bg-muted shadow-inner cursor-zoom-in"
@@ -25,8 +26,8 @@ export function EvidenceSection({ property, onOpenLightbox }: EvidenceSectionPro
             width={1280}
             height={800}
             className="w-full h-auto transition-all duration-1000 group-hover:scale-[1.02]"
-            alt={`Screenshot of ${property.data?.propertyTitle || 'property'}`}
-            title={`Screenshot of ${property.data?.propertyTitle || 'property'}`}
+            alt={`Screenshot of ${property.data?.propertyTitle || "property"}`}
+            title={`Screenshot of ${property.data?.propertyTitle || "property"}`}
           />
         )}
         <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-black/30">
@@ -42,11 +43,15 @@ export function EvidenceSection({ property, onOpenLightbox }: EvidenceSectionPro
         className="h-12 w-full cursor-pointer gap-3 rounded-xl border-border font-bold text-muted-foreground hover:text-foreground"
         asChild
       >
-        <a 
-          href={property?.url} 
-          target="_blank" 
+        <a
+          href={property?.url}
+          target="_blank"
           rel="noreferrer"
-          title={property?.data?.propertyTitle ? `Visit listing: ${property.data.propertyTitle}` : "Open original property listing source"}
+          title={
+            property?.data?.propertyTitle
+              ? `Visit listing: ${property.data.propertyTitle}`
+              : "Open original property listing source"
+          }
         >
           <ExternalLink size={16} /> Open Original Source
         </a>

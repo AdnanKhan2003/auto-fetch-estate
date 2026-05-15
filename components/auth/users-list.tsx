@@ -34,6 +34,9 @@ import {
 import { Input } from "../ui/input";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import LoadingButton from "../button/loading-button";
+import StatusModal from "../modal/status-modal";
+import UserRow from "./user-row";
 
 const editUserSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
@@ -45,6 +48,7 @@ type EditUserValues = z.infer<typeof editUserSchema>;
 function UsersList() {
   const form = useForm<EditUserValues>({
     resolver: zodResolver(editUserSchema),
+    mode: "onChange",
   });
   const [users, setUsers] = useState<any[]>([]);
   const [userToDelete, setUserToDelete] = useState<any | null>(null);
@@ -136,52 +140,13 @@ function UsersList() {
         </div>
       ) : (
         users.map((user) => (
-          <div
+          <UserRow
             key={user.id}
-            className="flex items-center justify-between p-4 hover:bg-muted/40 transition-colors"
-          >
-            <div className="flex items-center gap-3">
-              <Avatar className="h-9 w-9 rounded-full border border-border">
-                <AvatarImage src={user.image || ""} />
-                <AvatarFallback className="rounded-full font-bold">
-                  {user.name?.charAt(0)}
-                </AvatarFallback>
-              </Avatar>
-              <div>
-                <p className="font-semibold text-sm">{user.name}</p>
-                <p className="text-[11px] text-muted-foreground uppercase">
-                  {user.email}
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-4">
-              <span className="px-2 py-0.5 text-[10px] font-bold uppercase rounded border border-border bg-muted">
-                {user.role}
-              </span>
-
-              <div className="flex items-center gap-1">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 rounded-md hover:bg-accent cursor-pointer"
-                  onClick={() => setUserToEdit(user)}
-                >
-                  <Pencil className="h-4 w-4" />
-                </Button>
-
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 rounded-md hover:bg-red-50 hover:text-red-600 cursor-pointer"
-                  onClick={() => setUserToDelete(user)}
-                  disabled={isDeleting === user.id}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-          </div>
+            user={user}
+            isDeleting={isDeleting == user.id}
+            onEdit={() => setUserToEdit(user)}
+            onDelete={() => setUserToDelete(user)}
+          />
         ))
       )}
       {/* 🔵 PROFESSIONAL EDIT DIALOG */}
@@ -250,15 +215,14 @@ function UsersList() {
           </form>
 
           <DialogFooter className="mt-8">
-            <Button
+            <LoadingButton
               type="submit"
-              onClick={form.handleSubmit(handleUpdateUser)}
-              disabled={isUpdating || !form.formState.isDirty}
-              className="w-full rounded-md font-semibold h-11 transition-all"
+              loading={isUpdating}
+              disabled={!form.formState.isDirty || !form.formState.isValid}
+              className="w-full font-semibold h-11"
             >
-              {isUpdating && <Loader2 className="animate-spin h-4 w-4 mr-2" />}
               Save Changes
-            </Button>
+            </LoadingButton>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -295,27 +259,15 @@ function UsersList() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-      {/* 🟢 PROFESSIONAL STATUS DIALOG */}
-      <Dialog open={!!status} onOpenChange={() => setStatus(null)}>
-        <DialogContent className="rounded-md border-border bg-card p-8 max-w-sm shadow-none">
-          <DialogHeader className="mb-4">
-            <DialogTitle className="text-xl font-bold">
-              Notification
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-6">
-            <p className="text-sm font-medium text-muted-foreground leading-relaxed">
-              {status?.message}
-            </p>
-            <Button
-              onClick={() => setStatus(null)}
-              className="w-full h-10 rounded-md font-semibold"
-            >
-              Close
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+
+      <StatusModal
+        isOpen={!!status}
+        onClose={() => setStatus(null)}
+        type={status?.type || "success"}
+        title={status?.type == "success" ? "Success" : "Notification"}
+        message={status?.message || ""}
+        buttonText="Close"
+      />
     </div>
   );
 }

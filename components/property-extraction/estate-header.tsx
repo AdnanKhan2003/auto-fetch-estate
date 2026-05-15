@@ -1,6 +1,7 @@
 import { Trash2 } from "lucide-react";
 import { SidebarTrigger } from "../ui/sidebar";
 import ThemeToggle from "../theme/theme-toggle";
+import { Button } from "../ui/button";
 
 interface EstateHeaderProps {
   onClear: () => void;
@@ -17,13 +18,15 @@ function EstateHeader({ onClear }: EstateHeaderProps) {
           </h1>
         </div>
         <div className="flex items-center gap-3">
-          <button
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={onClear}
             className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:text-red-500 transition-colors cursor-pointer"
           >
             <span className="hidden sm:inline">Clear History</span>
             <Trash2 className="h-4 w-4 sm:h-3 sm:w-3" />
-          </button>
+          </Button>
           <div className="border-l border-border h-6 mx-1 hidden sm:block" />
           <ThemeToggle />
         </div>

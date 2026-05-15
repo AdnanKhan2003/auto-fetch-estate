@@ -1,4 +1,5 @@
 import { MapPin, Ruler, Home, ArrowRight, ShieldCheck } from "lucide-react";
+import SectionHeader from "./section-header";
 
 interface TechnicalMatrixProps {
   data?: any;
@@ -7,10 +8,12 @@ interface TechnicalMatrixProps {
 export function TechnicalMatrix({ data }: TechnicalMatrixProps) {
   const dynamicFeatures = Object.entries(data?.additionalFeatures || {}).map(
     ([key, value]) => ({
-      label: key.replace(/([A-Z])/g, " $1").replace(/^./, (str) => str.toUpperCase()),
+      label: key
+        .replace(/([A-Z])/g, " $1")
+        .replace(/^./, (str) => str.toUpperCase()),
       value: String(value),
       icon: <ArrowRight size={14} />,
-    })
+    }),
   );
 
   const rows = [
@@ -48,14 +51,16 @@ export function TechnicalMatrix({ data }: TechnicalMatrixProps) {
     },
     ...dynamicFeatures,
   ].filter(
-    (row) => row.value && row.value !== "Pending" && row.value !== "undefined" && row.value !== "null"
+    (row) =>
+      row.value &&
+      row.value !== "Pending" &&
+      row.value !== "undefined" &&
+      row.value !== "null",
   );
 
   return (
     <div className="space-y-6">
-      <h4 className="border-b border-border pb-3 text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground">
-        Technical Matrix
-      </h4>
+      <SectionHeader title="Technical Matrix" />
       <div className="space-y-4">
         {rows.map((row, i) => (
           <div

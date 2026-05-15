@@ -1,3 +1,5 @@
+import MetricCard from "./metric-card";
+
 interface MetricsGridProps {
   data?: any;
 }
@@ -21,19 +23,12 @@ export function MetricsGrid({ data }: MetricsGridProps) {
           value: data?.ageOfBuilding,
         },
       ].map((stat, i) => (
-        <div
+        <MetricCard
           key={i}
-          className={`min-w-0 overflow-hidden rounded-xl border border-border p-6 ${stat.highlight ? "bg-primary text-primary-foreground shadow-lg" : "bg-card text-card-foreground"}`}
-        >
-          <p
-            className={`mb-2 text-[10px] font-black uppercase tracking-widest ${stat.highlight ? "text-primary-foreground/70" : "text-muted-foreground"}`}
-          >
-            {stat.label}
-          </p>
-          <p className="text-xl font-bold tracking-tight truncate">
-            {stat.value || "N/A"}
-          </p>
-        </div>
+          label={stat.label}
+          value={stat.value}
+          highlight={stat.highlight}
+        />
       ))}
     </section>
   );

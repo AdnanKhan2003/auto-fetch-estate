@@ -11,6 +11,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Controller, useForm } from "react-hook-form";
 import { Field, FieldError, FieldGroup, FieldLabel } from "../ui/field";
 import { Input } from "../ui/input";
+import LoadingButton from "../button/loading-button";
 
 const loginSchema = z.object({
   email: z.string().email("Please enter a valid Email Address"),
@@ -116,13 +117,13 @@ function LoginForm() {
           </p>
         )}
 
-        <Button
+        <LoadingButton
           type="submit"
-          className="w-full font-semibold cursor-pointer"
-          disabled={loading}
+          className="w-full font-semibold"
+          loading={loading}
         >
-          {loading ? "Loggin In..." : "Log In"}
-        </Button>
+          Log In
+        </LoadingButton>
       </FieldGroup>
     </form>
   );

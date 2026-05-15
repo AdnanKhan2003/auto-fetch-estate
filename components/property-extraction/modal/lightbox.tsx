@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { X, Download } from "lucide-react";
 import Image from "next/image";
+import { Button } from "@/components/ui/button";
 
 interface LightboxProps {
   isOpen: boolean;
@@ -32,8 +33,10 @@ export function Lightbox({ isOpen, onClose, imageUrl, title }: LightboxProps) {
     >
       <div className="absolute top-4 right-4 flex gap-3">
         {imageUrl && (
-          <button
-            className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-full bg-white/10 text-white backdrop-blur-sm transition-colors hover:bg-white/20"
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-10 w-10 cursor-pointer items-center justify-center rounded-full bg-white/10 text-white backdrop-blur-sm transition-colors hover:bg-white/20"
             onClick={(e) => {
               e.stopPropagation();
               const link = document.createElement("a");
@@ -49,10 +52,12 @@ export function Lightbox({ isOpen, onClose, imageUrl, title }: LightboxProps) {
             title="Download screenshot"
           >
             <Download size={20} />
-          </button>
+          </Button>
         )}
 
-        <button
+        <Button
+          variant="ghost"
+          size="icon"
           className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-full bg-white/10 text-white backdrop-blur-sm transition-colors hover:bg-white/20"
           onClick={(e) => {
             e.stopPropagation();
@@ -62,7 +67,7 @@ export function Lightbox({ isOpen, onClose, imageUrl, title }: LightboxProps) {
           title="Close (Esc)"
         >
           <X size={20} />
-        </button>
+        </Button>
       </div>
 
       <span className="absolute bottom-4 left-1/2 -translate-x-1/2 text-xs text-white/40 select-none pointer-events-none">
