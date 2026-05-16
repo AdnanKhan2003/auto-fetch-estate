@@ -1,4 +1,4 @@
-import { Trash2 } from "lucide-react";
+import { MoveDownRight, Trash2 } from "lucide-react";
 import { Button } from "../../ui/button";
 import { Input } from "../../ui/input";
 import { Control, Controller } from "react-hook-form";
@@ -9,6 +9,7 @@ interface UrlInputRowProps {
   control: Control<any>;
   canDelete: boolean;
   onDelete: () => void;
+  onFocus?: () => void;
 }
 
 export function UrlInputRow({
@@ -16,6 +17,7 @@ export function UrlInputRow({
   control,
   canDelete,
   onDelete,
+  onFocus,
 }: UrlInputRowProps) {
   return (
     <Controller
@@ -24,6 +26,9 @@ export function UrlInputRow({
       render={({ field, fieldState }) => (
         <Field data-invalid={fieldState.invalid} className="w-full">
           <div className="flex gap-2 items-start">
+            <div className="flex h-6 w-6 shrink-0 mt-2.5 items-center justify-center rounded-md bg-muted/50 border border-border text-xs font-mono text-muted-foreground">
+              {index + 1}
+            </div>
             <div className="flex-1 space-y-1">
               <Input
                 {...field}
@@ -36,6 +41,20 @@ export function UrlInputRow({
               />
               <FieldError errors={fieldState.error ? [fieldState.error] : []} />
             </div>
+
+            <div className="flex gap-1">
+              <Button
+                variant="ghost"
+                size="icon"
+                type="button"
+                onClick={onFocus}
+                title="Locate in Table"
+                className="h-11 w-11 cursor-pointer text-muted-foreground hover:bg-primary/10 hover:text-primary"
+              >
+                <MoveDownRight size={18} />
+              </Button>
+            </div>
+
             {canDelete && (
               <Button
                 variant="ghost"

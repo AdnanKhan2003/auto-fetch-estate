@@ -22,6 +22,8 @@ function parsePricePerSqft(priceText?: string | null): number | null {
 }
 
 export default function EstateAnalyzer() {
+  const [isMounted, setIsMounted] = useState(false);
+  const [focusedUrl, setFocusedUrl] = useState<string | null>(null);
   const [urls, setUrls] = useState<string[]>([""]);
   const [isLoading, setIsLoading] = useState(false);
   const [results, setResults] = useState<PropertyExtractionResult[]>([]);
@@ -33,10 +35,20 @@ export default function EstateAnalyzer() {
   const [rowSelection, setRowSelection] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
-    const saved = localStorage.getItem("scrape_history");
-    if (saved) {
+    const savedUrls = localStorage.getItem("scrape_urls");
+    const savedResults = localStorage.getItem("scrape_history");
+
+    if (savedUrls) {
       try {
-        const parsed = JSON.parse(saved);
+        setUrls(JSON.parse(savedUrls));
+      } catch (e) {
+        console.log(e);
+      }
+    }
+
+    if (savedResults) {
+      try {
+        const parsed = JSON.parse(savedResults);
         setResults(parsed);
         // Auto-check rows that have carpet area
         const initSelection: Record<string, boolean> = {};
@@ -48,13 +60,15 @@ export default function EstateAnalyzer() {
         console.error("Failed to load history", e);
       }
     }
+    setIsMounted(true);
   }, []);
 
   const handleScrape = async (submittedUrls: string[]) => {
     setIsLoading(true);
     // Deduplicate URLs to prevent key collisions and redundant scrapes
     const uniqueUrls = Array.from(new Set(submittedUrls));
-    
+    localStorage.setItem("scrape_urls", JSON.stringify(uniqueUrls));
+
     setPendingUrls(uniqueUrls); // show skeleton rows immediately
     try {
       const response = await fetch("/api/scrape", {
@@ -133,8 +147,14 @@ export default function EstateAnalyzer() {
     .filter((r) => rowSelection[r.url])
     .map((r) => {
       // Prioritize dynamically calculated raw rate, fallback to AI extracted rate
-      const calcRate = calculateRawRatePerSqft(r.data?.price, r.data?.carpetArea, r.data?.area);
-      return calcRate !== null ? calcRate : parsePricePerSqft(r.data?.pricePerSqft);
+      const calcRate = calculateRawRatePerSqft(
+        r.data?.price,
+        r.data?.carpetArea,
+        r.data?.area,
+      );
+      return calcRate !== null
+        ? calcRate
+        : parsePricePerSqft(r.data?.pricePerSqft);
     })
     .filter((p): p is number => p !== null && p > 0);
 
@@ -145,6 +165,8 @@ export default function EstateAnalyzer() {
   const discountAmount = Math.round((averagePrice * discountPercentage) / 100);
   const discountedAverage = Math.max(averagePrice - discountAmount, 0);
 
+  if (!isMounted) return null;
+
   return (
     <div className="space-y-6 sm:space-y-10 px-0 sm:px-6 pb-8 bg-background text-foreground">
       <EstateHeader onClear={clearHistory} />
@@ -153,6 +175,7 @@ export default function EstateAnalyzer() {
           urls={urls}
           isLoading={isLoading}
           onScrape={handleScrape}
+          setFocusedUrl={setFocusedUrl}
         />
         <ResultsTable
           results={results}
@@ -164,6 +187,7 @@ export default function EstateAnalyzer() {
           discountedAverage={discountedAverage}
           rowSelection={rowSelection}
           setRowSelection={setRowSelection}
+          focusedUrl={focusedUrl}
         />
       </main>
       <PropertyDetailsModal

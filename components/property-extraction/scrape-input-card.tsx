@@ -12,6 +12,7 @@ interface ScrapeInputCardProps {
   urls: string[];
   isLoading: boolean;
   onScrape: (activeUrls: string[]) => void;
+  setFocusedUrl: (url: string | null) => void;
 }
 
 const schema = z.object({
@@ -33,6 +34,7 @@ function ScrapeInputCard({
   urls: initialUrls,
   isLoading,
   onScrape,
+  setFocusedUrl,
 }: ScrapeInputCardProps) {
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -69,6 +71,7 @@ function ScrapeInputCard({
                 control={form.control as any}
                 canDelete={fields.length > 1}
                 onDelete={() => remove(index)}
+                onFocus={() => setFocusedUrl(watchedUrls[index]?.value || null)}
               />
             ))}
           </div>

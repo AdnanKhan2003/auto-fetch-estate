@@ -18,7 +18,7 @@ export function ResultsTableFooter({
     <TableFooter className="border-t-0">
       <TableRow className="bg-secondary text-secondary-foreground hover:bg-secondary">
         <TableCell
-          colSpan={6}
+          colSpan={7}
           className="py-4 pl-6 text-right font-medium text-secondary-foreground/70"
         >
           Avg Price/sqft:
@@ -33,7 +33,7 @@ export function ResultsTableFooter({
       </TableRow>
       <TableRow className="bg-background text-foreground hover:bg-background">
         <TableCell
-          colSpan={6}
+          colSpan={7}
           className="py-4 pl-6 text-right font-medium text-muted-foreground"
         >
           Discount %
@@ -61,7 +61,7 @@ export function ResultsTableFooter({
       </TableRow>
       <TableRow className="bg-secondary text-secondary-foreground hover:bg-secondary">
         <TableCell
-          colSpan={6}
+          colSpan={7}
           className="py-4 pl-6 text-right font-medium text-secondary-foreground/70"
         >
           Discounted Avg Price/sqft:

@@ -1,6 +1,6 @@
 "use client";
 
-import { Dispatch, SetStateAction, useState } from "react";
+import { Dispatch, SetStateAction, useEffect, useState } from "react";
 import { Card } from "../ui/card";
 import {
   Table,
@@ -32,6 +32,7 @@ interface ResultsTableProps {
   discountedAverage: number;
   rowSelection: Record<string, boolean>;
   setRowSelection: Dispatch<SetStateAction<Record<string, boolean>>>;
+  focusedUrl: string | null;
 }
 
 function ResultsTable({
@@ -44,9 +45,10 @@ function ResultsTable({
   discountedAverage,
   rowSelection,
   setRowSelection,
+  focusedUrl,
 }: ResultsTableProps) {
   const [sorting, setSorting] = useState<SortingState>([]);
-  
+
   const table = useReactTable({
     data: results,
     columns,
@@ -61,6 +63,20 @@ function ResultsTable({
     getRowId: (row) => row.url,
     enableSortingRemoval: false,
   });
+
+  useEffect(() => {
+    if (focusedUrl) {
+      const rowId = `row-${btoa(focusedUrl).replaceAll("=", "")}`;
+      const element = document.getElementById(rowId);
+
+      if (element) {
+        element.scrollIntoView({
+          behavior: "smooth",
+          block: "center",
+        });
+      }
+    }
+  }, [focusedUrl]);
 
   return (
     <div className="space-y-4 animate-in fade-in duration-700">
@@ -102,30 +118,49 @@ function ResultsTable({
             <TableBody>
               {table.getRowModel().rows.length > 0 ? (
                 <>
-                  {table.getRowModel().rows.map((row) => (
-                    <TableRow
-                      key={row.id}
-                      data-state={row.getIsSelected() && "selected"}
-                      className="border-b transition-colors hover:bg-muted/50 cursor-pointer"
-                      onClick={() => onRowClick(row.original)}
-                    >
-                      {row.getVisibleCells().map((cell) => (
-                        <TableCell
-                          key={cell.id}
-                          className={`
-                            py-4 
+                  {table.getRowModel().rows.map((row) => {
+                    const rowId = `row-${btoa(row.original.url).replaceAll("=", "")}`;
+                    const isFocused = focusedUrl === row.original.url;
+                    return (
+                      <TableRow
+                        key={row.id}
+                        id={rowId}
+                        data-state={row.getIsSelected() && "selected"}
+                        // className={`border-b transition-all duration-300 hover:bg-muted/50 cursor-pointer
+                        //    ${isFocused ? "bg-black/20! dark:bg-white/15! border-1-foreground" : "border-1-transparent"}
+                        //   `}
+                        className={`border-b transition-all duration-300 cursor-pointer hover:bg-black/10 dark:hover:bg-muted/50 data-[state=selected]:hover:bg-black/10 dark:data-[state=selected]:hover:bg-muted/80
+ 
+${isFocused ? "!bg-black/10 dark:!bg-white/15" : ""}
+
+
+
+
+                          `}
+                        onClick={() => onRowClick(row.original)}
+                      >
+                        {row.getVisibleCells().map((cell) => (
+                          <TableCell
+                            key={cell.id}
+                            className={`
+                            py-4 relative 
                             ${cell.column.id === "select" ? "pl-6 w-[50px]" : "px-4"}
                             ${cell.column.id === "data_pricePerSqft" ? "pr-6 text-right font-black text-foreground" : ""}
+                     ${isFocused ? "first:before:absolute first:before:left-0 first:before:top-0 first:before:bottom-0 first:before:w-1 first:before:bg-foreground first:before:rounded-full" : ""}
+
+
+
                           `}
-                        >
-                          {flexRender(
-                            cell.column.columnDef.cell,
-                            cell.getContext(),
-                          )}
-                        </TableCell>
-                      ))}
-                    </TableRow>
-                  ))}
+                          >
+                            {flexRender(
+                              cell.column.columnDef.cell,
+                              cell.getContext(),
+                            )}
+                          </TableCell>
+                        ))}
+                      </TableRow>
+                    );
+                  })}
                   {pendingUrls.map((url) => (
                     <SkeletonRow key={url} />
                   ))}
