@@ -120,7 +120,8 @@ export default function EstateAnalyzer() {
               return unique;
             });
             // Auto-check this URL if it has carpet area
-            if (result.data?.carpetArea) {
+            const areaValue = parseInt(result.data?.carpetArea || "0");
+            if (areaValue > 100) {
               setRowSelection((prev) => ({ ...prev, [result.url]: true }));
             }
           } catch (e) {
