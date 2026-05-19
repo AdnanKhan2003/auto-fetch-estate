@@ -11,6 +11,10 @@ export const ERROR_PAGE_PHRASES = [
   "this listing has been removed",
   "listing not available",
   "property not found",
+  // Housing.com / Akamai block page markers
+  "request blocked",
+  "suspicious activity",
+  "your request was temporarily blocked",
 ] as const;
 
 /**
@@ -18,6 +22,7 @@ export const ERROR_PAGE_PHRASES = [
  */
 export function isBlocked(pageTitle: string, html: string): boolean {
   const lowTitle = pageTitle.toLowerCase();
+  const lowHtml = html.toLowerCase();
 
   // Check the page title first — most reliable indicator of a real block
   if (
@@ -29,7 +34,25 @@ export function isBlocked(pageTitle: string, html: string): boolean {
   }
 
   // Only flag "blocked" if the body is tiny — avoids false positives on normal pages
-  if (html.length < 500 && html.toLowerCase().includes("blocked")) {
+  if (html.length < 500 && lowHtml.includes("blocked")) {
+    return true;
+  }
+
+  // Housing.com / Akamai Bot Manager block page:
+  // The page title is just "Housing.com" so title checks miss it.
+  // Instead, detect their specific block-page body fingerprint.
+  if (
+    lowHtml.includes("request blocked") &&
+    lowHtml.includes("suspicious activity")
+  ) {
+    return true;
+  }
+
+  // Generic WAF block patterns used by Akamai / Cloudflare
+  if (
+    lowHtml.includes("block reference id") ||
+    lowHtml.includes("real client ip")
+  ) {
     return true;
   }
 

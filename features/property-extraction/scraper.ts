@@ -27,39 +27,105 @@ const CRITICAL_FIELDS = ["propertyTitle", "price", "location", "area"] as const;
 // ─── Browser helpers ─────────────────────────────────────────────────────────
 
 async function launchBrowser() {
-  const browser = await chromium.launch({ channel: "chrome", headless: true });
+  const browser = await chromium.launch({
+    channel: "chrome",
+    headless: true,
+    args: [
+      // Use the new headless implementation — reduces DevTools Protocol exposure
+      "--headless=new",
+      // Suppress automation flags that Akamai/Cloudflare fingerprint
+      "--disable-blink-features=AutomationControlled",
+      // Standard flags to reduce resource usage and flakiness
+      "--no-sandbox",
+      "--disable-dev-shm-usage",
+      "--disable-gpu",
+      // Helps pass canvas-based fingerprint checks
+      "--use-gl=swiftshader",
+      // Language matching — must align with accept-language header
+      "--lang=en-IN",
+    ],
+  });
+
+  // Pick a realistic, non-randomised Chrome version UA
+  const userAgent =
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36";
+
   const context = await browser.newContext({
     viewport: { width: 1280, height: 800 },
-    userAgent:
-      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/12" +
-      Math.floor(Math.random() * 9) +
-      ".0.0.0 Safari/537.36",
+    userAgent,
     deviceScaleFactor: 1,
     hasTouch: false,
     locale: "en-IN",
     timezoneId: "Asia/Kolkata",
+    // Client-Hint headers — real Chrome sends these; headless scrapers typically omit them
+    extraHTTPHeaders: {
+      "accept-language": "en-IN,en;q=0.9,en-US;q=0.8",
+      "sec-ch-ua": '"Chromium";v="136", "Google Chrome";v="136", "Not-A.Brand";v="99"',
+      "sec-ch-ua-mobile": "?0",
+      "sec-ch-ua-platform": '"Windows"',
+      "sec-fetch-dest": "document",
+      "sec-fetch-mode": "navigate",
+      "sec-fetch-site": "none",
+      "sec-fetch-user": "?1",
+      "upgrade-insecure-requests": "1",
+    },
   });
 
   // Anti-bot fingerprint overrides
   await context.addInitScript(() => {
+    // 1. Remove the webdriver flag
     Object.defineProperty(navigator, "webdriver", { get: () => undefined });
-    (window.navigator as any).chrome = { runtime: {} };
+
+    // 2. Make chrome runtime object look like a real browser
+    (window.navigator as any).chrome = {
+      runtime: {
+        connect: () => {},
+        sendMessage: () => {},
+      },
+    };
+
+    // 3. Language and plugins
     Object.defineProperty(navigator, "languages", {
       get: () => ["en-IN", "en-US", "en"],
     });
-    Object.defineProperty(navigator, "plugins", { get: () => [1, 2, 3, 4, 5] });
+    Object.defineProperty(navigator, "plugins", {
+      get: () => {
+        // Return a PluginArray-like object with 3 common plugins
+        const arr = [1, 2, 3];
+        (arr as any).namedItem = () => null;
+        (arr as any).refresh = () => {};
+        return arr;
+      },
+    });
+
+    // 4. Notification permissions — common Akamai probe
     const originalQuery = window.navigator.permissions.query;
     (window.navigator.permissions as any).query = (parameters: any) =>
       parameters.name === "notifications"
         ? Promise.resolve({ state: Notification.permission })
         : originalQuery(parameters);
+
+    // 5. Platform and hardware concurrency — must match UA (Windows)
+    Object.defineProperty(navigator, "platform", { get: () => "Win32" });
+    Object.defineProperty(navigator, "hardwareConcurrency", { get: () => 8 });
+    Object.defineProperty(navigator, "deviceMemory", { get: () => 8 });
+
+    // 6. Screen dimensions — should match the viewport
+    Object.defineProperty(screen, "width", { get: () => 1280 });
+    Object.defineProperty(screen, "height", { get: () => 800 });
+    Object.defineProperty(screen, "colorDepth", { get: () => 24 });
   });
 
   return { browser, context };
 }
 
 async function navigatePage(page: any, url: string) {
-  await page.goto(url, { waitUntil: "networkidle", timeout: 60000 });
+  // Use "domcontentloaded" for sites with Akamai/Cloudflare WAF.
+  // "networkidle" holds the connection open longer, which raises
+  // suspicious-activity scores and can stall on JS challenges.
+  const waitStrategy = url.includes("housing.com") ? "domcontentloaded" : "networkidle";
+
+  await page.goto(url, { waitUntil: waitStrategy, timeout: 60000 });
   await page.waitForSelector("body", { timeout: 10000 });
   await page
     .waitForSelector("h1, [class*='price'], [class*='title']", {
