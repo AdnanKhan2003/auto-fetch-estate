@@ -131,7 +131,7 @@ function ResultsTable({
                         //   `}
                         className={`border-b transition-all duration-300 cursor-pointer hover:bg-black/10 dark:hover:bg-muted/50 data-[state=selected]:hover:bg-black/10 dark:data-[state=selected]:hover:bg-muted/80
  
-${isFocused ? "!bg-black/10 dark:!bg-white/15" : ""}
+${isFocused ? "bg-black/10! dark:bg-white/15!" : ""}
 
 
 
