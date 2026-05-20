@@ -15,7 +15,6 @@ import {
   COMMA_REGEX,
 } from "@/lib/regex";
 
-
 const AREA_TYPE_MAP = [
   { regex: CARPET_REGEX, label: "Carpet Area" },
   { regex: SUPER_BUILT_REGEX, label: "Super Built-up Area" },
@@ -38,7 +37,11 @@ function extractNumericValue(raw: string): number | null {
  * Helper: Converts a numeric value to SqFt based on unit detected in the raw string.
  * Note: Area is multiplied by the factor, while Price-per-unit is divided by it.
  */
-function convertToSqFt(value: number, raw: string, mode: "area" | "price"): number {
+function convertToSqFt(
+  value: number,
+  raw: string,
+  mode: "area" | "price",
+): number {
   let factor = 1;
   if (SQM_REGEX.test(raw)) factor = SQM_TO_SQFT;
   else if (SQYD_REGEX.test(raw)) factor = SQYD_TO_SQFT;
@@ -62,7 +65,7 @@ export function normalizePrice(raw?: string | null): string | null {
  */
 export function normalizePricePerSqft(raw?: string | null): string | null {
   if (!raw) return null;
-  
+
   const num = extractNumericValue(raw);
   if (num === null) return null;
 
@@ -81,6 +84,8 @@ export function normalizeArea(raw?: string | null): string | null {
   if (num === null) return null;
 
   const normalizedValue = Math.round(convertToSqFt(num, raw, "area"));
+
+  if (normalizedValue < 100) return null;
 
   // Detect Area Type using the map
   const detected = AREA_TYPE_MAP.find((item) => item.regex.test(raw));

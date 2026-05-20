@@ -187,7 +187,7 @@ export default function CalculatorsPage() {
         </div>
       </header>
 
-      <main className="p-8 max-w-5xl w-full mx-auto space-y-8">
+      <main className="p-8 w-full space-y-8">
         <Tabs defaultValue="area" className="w-full">
           <TabsList className="mb-6 h-11! bg-muted/60 p-1 rounded-xl">
             <TabsTrigger
@@ -414,7 +414,7 @@ export default function CalculatorsPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="pt-6 space-y-6">
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
                   <div className="space-y-2">
                     <Label
                       htmlFor="genArea"

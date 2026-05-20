@@ -24,6 +24,15 @@ function PropertyDetailsModal({
     setLightboxOpen(false);
   }, [property]);
 
+  let domain = "Unknown Website";
+  if (property?.url) {
+    try {
+      domain = new URL(property.url).hostname.replace("www.", "");
+    } catch (e) {
+      console.log(e);
+    }
+  }
+
   return (
     <>
       <Dialog open={!!property} onOpenChange={onClose}>
@@ -38,16 +47,24 @@ function PropertyDetailsModal({
           }}
         >
           <DialogHeader className="flex-row items-center justify-between space-y-0 overflow-x-hidden border-b border-border bg-card p-6 sm:p-8">
-            <div className="min-w-0 flex-1 space-y-1 text-card-foreground">
-              <DialogTitle className="text-xl sm:text-2xl font-bold tracking-tight truncate">
-                {property?.data?.propertyTitle || "Property Overview"}
+            <div className="min-w-0 flex-1 flex flex-col gap-1 text-card-foreground">
+              <DialogTitle asChild>
+                <a
+                  href={property?.url || "#"}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="group flex items-center gap-2 w-fit max-w-full text-xl sm:text-2xl font-bold tracking-tight"
+                  title={property?.data?.propertyTitle || "Property Overview"}
+                >
+                  <span className="truncate text-blue-600 dark:text-blue-400 group-hover:underline">
+                    {property?.data?.propertyTitle || "Property Overview"}
+                  </span>
+                  <ExternalLink className="h-5 w-5 shrink-0 text-muted-foreground group-hover:text-blue-500 transition-colors" />
+                </a>
               </DialogTitle>
-              <div className="flex w-fit max-w-full items-center gap-2 rounded border border-border bg-muted px-2 py-0.5 font-mono text-[10px] italic text-muted-foreground sm:text-xs">
-                <ExternalLink size={10} className="shrink-0" />
-                <span className="truncate max-w-[200px] sm:max-w-sm">
-                  {property?.url}
-                </span>
-              </div>
+              <span className="text-sm text-muted-foreground/80 font-medium">
+                {domain}
+              </span>
             </div>
           </DialogHeader>
 
