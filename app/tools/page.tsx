@@ -155,7 +155,8 @@ export default function CalculatorsPage() {
   const estRateFactor = estRateUnitObj ? estRateUnitObj.factor : 1;
 
   const totalCost =
-    !Number.isNaN(parseFloat(generalArea)) && !Number.isNaN(parseFloat(estimatorRate))
+    !Number.isNaN(parseFloat(generalArea)) &&
+    !Number.isNaN(parseFloat(estimatorRate))
       ? (parseFloat(generalArea) / estRateFactor) * parseFloat(estimatorRate)
       : 0;
 
@@ -187,33 +188,33 @@ export default function CalculatorsPage() {
         </div>
       </header>
 
-      <main className="p-8 w-full space-y-8">
+      <main className="p-8 w-full max-w-screen-2xl space-y-8">
         <Tabs defaultValue="area" className="w-full">
-          <TabsList className="mb-6 h-11! bg-muted/60 p-1 rounded-xl">
+          <TabsList className="mb-6 h-11! bg-muted/60 p-1 rounded-xl flex overflow-x-auto justify-start w-full max-w-full">
             <TabsTrigger
               value="area"
-              className="gap-2 cursor-pointer px-4 rounded-lg font-semibold text-xs h-full"
+              className="gap-2 cursor-pointer px-4 rounded-lg font-semibold text-xs h-full shrink-0"
             >
               <Ruler className="h-4 w-4" />
               Area Converter
             </TabsTrigger>
             <TabsTrigger
               value="rate"
-              className="gap-2 cursor-pointer px-4 rounded-lg font-semibold text-xs h-full"
+              className="gap-2 cursor-pointer px-4 rounded-lg font-semibold text-xs h-full shrink-0"
             >
               <ArrowRightLeft className="h-4 w-4" />
               Rate Converter
             </TabsTrigger>
             <TabsTrigger
               value="carpet"
-              className="gap-2 cursor-pointer px-4 rounded-lg font-semibold text-xs h-full"
+              className="gap-2 cursor-pointer px-4 rounded-lg font-semibold text-xs h-full shrink-0"
             >
               <Compass className="h-4 w-4" />
               Carpet Estimator
             </TabsTrigger>
             <TabsTrigger
               value="emi"
-              className="gap-2 cursor-pointer px-4 rounded-lg font-semibold text-xs h-full"
+              className="gap-2 cursor-pointer px-4 rounded-lg font-semibold text-xs h-full shrink-0"
             >
               <Calculator className="h-4 w-4" />
               Loan EMI
