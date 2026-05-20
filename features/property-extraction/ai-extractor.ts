@@ -31,9 +31,13 @@ export async function extractStructuredData(
   console.log("\n" + "=".repeat(60));
   console.log(`JSON-LD DATA — ${urlLabel}`);
   console.log("=".repeat(60));
-  console.log(`script blocks joined length (chars): ${jsonLdData?.length ?? 0}`);
   console.log(
-    jsonLdData?.trim() ? jsonLdData : "(empty — no application/ld+json or blank)",
+    `script blocks joined length (chars): ${jsonLdData?.length ?? 0}`,
+  );
+  console.log(
+    jsonLdData?.trim()
+      ? jsonLdData
+      : "(empty — no application/ld+json or blank)",
   );
   console.log("=".repeat(60) + "\n");
 
@@ -44,7 +48,9 @@ export async function extractStructuredData(
   const modelName = process.env.GOOGLE_MODEL || DEFAULT_GOOGLE_MODEL;
 
   if (!apiKey) {
-    console.error("❌ [AI Error] GOOGLE_GENERATIVE_AI_API_KEY is missing from .env!");
+    console.error(
+      "❌ [AI Error] GOOGLE_GENERATIVE_AI_API_KEY is missing from .env!",
+    );
     return {};
   }
 
@@ -65,6 +71,8 @@ export async function extractStructuredData(
             - Property Name (propertyTitle)
             - Price & Market Price
             - Carpet Area / Internal Floor Area (IMPORTANT: Include the unit, e.g. "sqm", "sqyd", "sqft")
+            - Built-up Area (IMPORTANT: Include the unit, e.g. "sqm", "sqyd", "sqft")
+            - Super Built-up Area (IMPORTANT: Include the unit, e.g. "sqm", "sqyd", "sqft")
             - Total Area (IMPORTANT: Include the unit, e.g. "sqm", "sqyd", "sqft")
             - Rate per Area (pricePerSqft) (IMPORTANT: Include the unit, e.g. "/sqm", "/sqyd", "/sqft")
             - Building Age (ageOfBuilding)

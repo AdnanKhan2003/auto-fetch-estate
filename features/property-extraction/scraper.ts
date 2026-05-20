@@ -60,7 +60,8 @@ async function launchBrowser() {
     // Client-Hint headers — real Chrome sends these; headless scrapers typically omit them
     extraHTTPHeaders: {
       "accept-language": "en-IN,en;q=0.9,en-US;q=0.8",
-      "sec-ch-ua": '"Chromium";v="136", "Google Chrome";v="136", "Not-A.Brand";v="99"',
+      "sec-ch-ua":
+        '"Chromium";v="136", "Google Chrome";v="136", "Not-A.Brand";v="99"',
       "sec-ch-ua-mobile": "?0",
       "sec-ch-ua-platform": '"Windows"',
       "sec-fetch-dest": "document",
@@ -123,7 +124,9 @@ async function navigatePage(page: any, url: string) {
   // Use "domcontentloaded" for sites with Akamai/Cloudflare WAF.
   // "networkidle" holds the connection open longer, which raises
   // suspicious-activity scores and can stall on JS challenges.
-  const waitStrategy = url.includes("housing.com") ? "domcontentloaded" : "networkidle";
+  const waitStrategy = url.includes("housing.com")
+    ? "domcontentloaded"
+    : "networkidle";
 
   await page.goto(url, { waitUntil: waitStrategy, timeout: 60000 });
   await page.waitForSelector("body", { timeout: 10000 });
@@ -176,6 +179,10 @@ function applyNormalizations(data: Record<string, any>): void {
   if (data.area) data.area = normalizeArea(data.area) ?? data.area;
   if (data.carpetArea)
     data.carpetArea = normalizeArea(data.carpetArea) ?? data.carpetArea;
+  if (data.builtupArea)
+    data.builtupArea = normalizeArea(data.builtupArea) ?? data.builtupArea;
+  if (data.superBuiltupArea)
+    data.superBuiltupArea = normalizeArea(data.superBuiltupArea) ?? data.superBuiltupArea;
 }
 
 // ─── Main export ─────────────────────────────────────────────────────────────
@@ -291,4 +298,3 @@ export async function processUrl(url: string) {
 }
 
 export type PropertyExtractionResult = Awaited<ReturnType<typeof processUrl>>;
-

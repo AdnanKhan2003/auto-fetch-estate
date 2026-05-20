@@ -7,6 +7,7 @@ import {
   ShieldCheck,
   UserPlus,
   Users,
+  Calculator,
 } from "lucide-react";
 import { SidebarMenu, SidebarMenuButton, SidebarMenuItem } from "../ui/sidebar";
 import { usePathname } from "next/navigation";
@@ -20,6 +21,7 @@ function SidebarNav() {
 
   const navItems = [
     { title: "Dashboard", href: "/", icon: LayoutDashboard },
+    { title: "Tools", href: "/tools", icon: Calculator },
     ...(isAdmin
       ? [
           {

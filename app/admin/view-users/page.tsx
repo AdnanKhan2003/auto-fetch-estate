@@ -30,14 +30,8 @@ async function AdminViewUsersPage() {
         </div>
       </header>
 
-      <main className="p-8 space-y-8">
-        <div className="max-w-4xl bg-card border border-border rounded-md overflow-hidden shadow-none">
-          <div className="p-6 border-b border-border bg-muted/20">
-            <h2 className="text-xl font-bold tracking-tight">Active Accounts</h2>
-            <p className="text-xs text-muted-foreground mt-1">Registry of all authorized system entities.</p>
-          </div>
-          <UsersList />
-        </div>
+      <main className="p-8">
+        <UsersList />
       </main>
     </div>
   );

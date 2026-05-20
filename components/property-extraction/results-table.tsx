@@ -33,6 +33,13 @@ interface ResultsTableProps {
   rowSelection: Record<string, boolean>;
   setRowSelection: Dispatch<SetStateAction<Record<string, boolean>>>;
   focusedUrl: string | null;
+  globalConversionFactor: number;
+  rowFactors: Record<string, number>;
+  setRowFactors: Dispatch<SetStateAction<Record<string, number>>>;
+  showTotalArea: boolean;
+  setShowTotalArea: (val: boolean) => void;
+  totalCarpetArea: number;
+  estimatedCount: number;
 }
 
 function ResultsTable({
@@ -46,6 +53,13 @@ function ResultsTable({
   rowSelection,
   setRowSelection,
   focusedUrl,
+  globalConversionFactor,
+  rowFactors,
+  setRowFactors,
+  showTotalArea,
+  setShowTotalArea,
+  totalCarpetArea,
+  estimatedCount,
 }: ResultsTableProps) {
   const [sorting, setSorting] = useState<SortingState>([]);
 
@@ -55,6 +69,8 @@ function ResultsTable({
     state: {
       sorting,
       rowSelection,
+      // Show the "Calc. Carpet Area" column only when the Σ Total Area toggle is ON
+      columnVisibility: { calculatedCarpetArea: showTotalArea },
     },
     onSortingChange: setSorting,
     onRowSelectionChange: setRowSelection,
@@ -62,6 +78,7 @@ function ResultsTable({
     getSortedRowModel: getSortedRowModel(),
     getRowId: (row) => row.url,
     enableSortingRemoval: false,
+    meta: { globalConversionFactor, rowFactors, setRowFactors },
   });
 
   useEffect(() => {
@@ -80,9 +97,41 @@ function ResultsTable({
 
   return (
     <div className="space-y-4 animate-in fade-in duration-700">
-      <h2 className="px-1 text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">
-        Compare Prices
-      </h2>
+      <div className="px-1 flex items-center justify-between">
+        <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">
+          Compare Prices
+        </h2>
+        <button
+          onClick={() => {
+            const turningOn = !showTotalArea;
+            setShowTotalArea(turningOn);
+            if (turningOn) {
+              // Select ALL rows so user sees every row is counted
+              setRowSelection(
+                Object.fromEntries(results.map((r) => [r.url, true])),
+              );
+            } else {
+              // Restore to only rows that have actual carpet area
+              setRowSelection(
+                Object.fromEntries(
+                  results
+                    .filter((r) => r.data?.carpetArea)
+                    .map((r) => [r.url, true]),
+                ),
+              );
+            }
+          }}
+          aria-pressed={showTotalArea}
+          aria-label="Toggle total carpet area"
+          className={`flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest px-2.5 py-1.5 rounded-md border transition-all duration-200 cursor-pointer ${
+            showTotalArea
+              ? "bg-foreground text-background border-foreground"
+              : "text-muted-foreground border-border hover:text-foreground hover:border-foreground/40"
+          }`}
+        >
+          Σ Calculate Missing Carpet Area
+        </button>
+      </div>
       <Card className="overflow-hidden rounded-xl border-border bg-card shadow-none">
         <div className="overflow-x-auto">
           <Table>
@@ -187,6 +236,9 @@ ${isFocused ? "bg-black/10! dark:bg-white/15!" : ""}
               discountPercentage={discountPercentage}
               setDiscountPercentage={setDiscountPercentage}
               discountedAverage={discountedAverage}
+              showTotalArea={showTotalArea}
+              totalCarpetArea={totalCarpetArea}
+              estimatedCount={estimatedCount}
             />
           </Table>
         </div>

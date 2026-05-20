@@ -146,7 +146,7 @@ export const columns: ColumnDef<PropertyExtractionResult>[] = [
   },
   {
     id: "area",
-    accessorFn: (row) => row.data?.carpetArea || row.data?.area,
+    accessorFn: (row) => row.data?.carpetArea || row.data?.builtupArea || row.data?.superBuiltupArea || row.data?.area,
     header: ({ column }) => (
       <div className="flex items-center gap-1">
         Area
@@ -154,9 +154,31 @@ export const columns: ColumnDef<PropertyExtractionResult>[] = [
       </div>
     ),
     sortingFn: smartNumericSort,
-    cell: ({ row }) => {
-      const carpetArea = row.original.data?.carpetArea;
-      const generalArea = row.original.data?.area;
+    cell: ({ row, table }) => {
+      const meta = table.options.meta as any;
+      const data = row.original.data;
+      const carpetArea = data?.carpetArea;
+      const builtupArea = data?.builtupArea;
+      const superBuiltupArea = data?.superBuiltupArea;
+      const generalArea = data?.area;
+      const url = row.original.url;
+      
+      let factor = meta?.rowFactors?.[url];
+      let defaultFactor = meta?.globalConversionFactor ?? 0.72;
+      let areaToDisplay = generalArea;
+      let areaLabel = "*Carpet area unknown";
+
+      if (builtupArea) {
+        areaToDisplay = builtupArea;
+        defaultFactor = 0.85;
+        areaLabel = "*Built-up area";
+      } else if (superBuiltupArea) {
+        areaToDisplay = superBuiltupArea;
+        defaultFactor = 0.72;
+        areaLabel = "*Super built-up area";
+      }
+
+      factor = factor ?? defaultFactor;
 
       if (carpetArea) {
         return (
@@ -166,12 +188,90 @@ export const columns: ColumnDef<PropertyExtractionResult>[] = [
         );
       }
 
-      if (generalArea) {
+      if (areaToDisplay) {
         return (
-          <div className="flex flex-col">
-            <span>{generalArea}</span>
-            <span className="text-[10px] text-amber-500/80 leading-tight mt-0.5">
-              *Carpet area unknown
+          <div className="flex flex-col gap-1">
+            <span>{areaToDisplay}</span>
+            <span className="text-[10px] text-amber-500/80 leading-tight">
+              {areaLabel}
+            </span>
+            {/* Per-row conversion factor — click/change stops propagation so modal doesn't open */}
+            <div
+              className="flex items-center gap-1"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <span className="text-[10px] text-muted-foreground/60 shrink-0">
+                Factor:
+              </span>
+              <input
+                type="number"
+                min={0.5}
+                max={1}
+                step={0.01}
+                value={factor}
+                aria-label="Conversion factor for this row"
+                onChange={(e) => {
+                  e.stopPropagation();
+                  const val = Number(e.target.value);
+                  if (!Number.isNaN(val)) {
+                    meta?.setRowFactors?.((prev: Record<string, number>) => ({
+                      ...prev,
+                      [url]: Math.min(1, Math.max(0.5, val)),
+                    }));
+                  }
+                }}
+                className="w-14 h-5 text-[11px] text-right border border-border/60 rounded px-1 bg-background text-foreground font-mono focus:outline-none focus:ring-1 focus:ring-ring"
+              />
+            </div>
+          </div>
+        );
+      }
+
+      return <span className="text-muted-foreground">N/A</span>;
+    },
+  },
+  {
+    id: "calculatedCarpetArea",
+    header: "Calc. Carpet Area",
+    enableSorting: false,
+    cell: ({ row, table }) => {
+      const meta = table.options.meta as any;
+      const data = row.original.data;
+      const carpetArea = data?.carpetArea;
+      const builtupArea = data?.builtupArea;
+      const superBuiltupArea = data?.superBuiltupArea;
+      const generalArea = data?.area;
+      const url = row.original.url;
+
+      // Row already has real carpet area — no estimation needed
+      if (carpetArea) {
+        return <span className="text-muted-foreground/40">—</span>;
+      }
+
+      let areaToCalc = generalArea;
+      let factor = meta?.rowFactors?.[url];
+      let defaultFactor = meta?.globalConversionFactor ?? 0.72;
+
+      if (builtupArea) {
+        areaToCalc = builtupArea;
+        defaultFactor = 0.85;
+      } else if (superBuiltupArea) {
+        areaToCalc = superBuiltupArea;
+        defaultFactor = 0.72;
+      }
+
+      factor = factor ?? defaultFactor;
+
+      if (areaToCalc) {
+        const rawArea = parseIndianNumber(areaToCalc);
+        const calculated = Math.round(rawArea * factor);
+        return (
+          <div className="flex flex-col gap-0.5">
+            <span className="font-medium">
+              {calculated.toLocaleString("en-IN")} sqft
+            </span>
+            <span className="text-[10px] text-amber-500/70">
+              est. via ×{factor}
             </span>
           </div>
         );
@@ -189,14 +289,27 @@ export const columns: ColumnDef<PropertyExtractionResult>[] = [
       </div>
     ),
     sortingFn: smartNumericSort,
-    cell: ({ row }) => {
+    cell: ({ row, table }) => {
+      const meta = table.options.meta as any;
       const data = row.original.data;
+      const url = row.original.url;
+      let effectiveArea: number | null = null;
+      let factor = meta?.rowFactors?.[url];
 
-      // Calculate dynamic rate, fallback to AI-provided if calculation fails
+      if (data?.carpetArea) {
+        effectiveArea = parseIndianNumber(data.carpetArea);
+      } else if (data?.builtupArea) {
+        effectiveArea = parseIndianNumber(data.builtupArea) * (factor ?? 0.85);
+      } else if (data?.superBuiltupArea) {
+        effectiveArea = parseIndianNumber(data.superBuiltupArea) * (factor ?? 0.72);
+      } else if (data?.area) {
+        effectiveArea = parseIndianNumber(data.area) * (factor ?? (meta?.globalConversionFactor ?? 0.72));
+      }
+
+      // Calculate dynamic rate using per-row factor, fallback to AI-provided
       const calculatedRate = calculateRatePerSqft(
         data?.price,
-        data?.carpetArea,
-        data?.area,
+        effectiveArea
       );
       const rateToDisplay = calculatedRate || data?.pricePerSqft;
 

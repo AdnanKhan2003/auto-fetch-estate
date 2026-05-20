@@ -3,7 +3,7 @@ import Image from "next/image";
 function SidebarHeaderBrand() {
   return (
     <div className="flex items-center gap-3 px-4 group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:justify-center">
-      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-background text-foreground shadow-sm overflow-hidden border border-border/50">
+      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white text-foreground shadow-sm overflow-hidden border border-zinc-200/50 dark:border-zinc-800/30">
         <Image
           src="/favicon.ico"
           alt="EstateScraper Logo"

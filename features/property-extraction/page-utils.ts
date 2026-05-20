@@ -66,11 +66,22 @@ export function isBlocked(pageTitle: string, html: string): boolean {
 export async function extractCleanContent(page: any): Promise<string> {
   return page.evaluate(() => {
     const junkSelectors = [
-      "script", "style", "iframe", "noscript",
-      "footer", "nav", "header",
-      ".footer", ".header", ".sidebar",
-      ".seo-section", ".faq-section", ".about-portal",
-      "[class*='disclaimer']", "[class*='advertisement']", "[class*='ad-unit']",
+      "script",
+      "style",
+      "iframe",
+      "noscript",
+      "footer",
+      "nav",
+      "header",
+      ".footer",
+      ".header",
+      ".sidebar",
+      ".seo-section",
+      ".faq-section",
+      ".about-portal",
+      "[class*='disclaimer']",
+      "[class*='advertisement']",
+      "[class*='ad-unit']",
     ];
 
     junkSelectors.forEach((selector) => {
@@ -79,11 +90,14 @@ export async function extractCleanContent(page: any): Promise<string> {
 
     const main =
       document.querySelector(
-        "main, article, #main, .main, [class*='detail-container']"
+        "main, article, #main, .main, [class*='detail-container']",
       ) || document.body;
 
     const text = (main as HTMLElement).innerText || "";
-    const clean = text.replace(/\n{3,}/g, "\n\n").replace(/\s\s+/g, " ").trim();
+    const clean = text
+      .replace(/\n{3,}/g, "\n\n")
+      .replace(/\s\s+/g, " ")
+      .trim();
 
     // If the entire remaining content is a security wall, return empty
     if (
@@ -108,7 +122,9 @@ export async function extractCleanContent(page: any): Promise<string> {
  *
  * and implement the site-specific helper below this function.
  */
-export async function extractBySelectors(page: any): Promise<Record<string, any>> {
+export async function extractBySelectors(
+  page: any,
+): Promise<Record<string, any>> {
   // Generic text helper — tries each selector in order, returns first match < 200 chars
   const get = async (...selectors: string[]) => {
     for (const sel of selectors) {
@@ -138,7 +154,9 @@ export async function extractBySelectors(page: any): Promise<Record<string, any>
       // Grab the first number + unit only — avoids pulling in the unit-conversion list
       const cleaned = value
         ?.trim()
-        .match(/^\d+\s*(sq-ft|sqft|sq\s*ft|sq\s*m|sq\s*yd|acre|bigha|katha)/i)?.[0];
+        .match(
+          /^\d+\s*(sq-ft|sqft|sq\s*ft|sq\s*m|sq\s*yd|acre|bigha|katha)/i,
+        )?.[0];
       return cleaned || value?.trim().split("\n")[0] || null;
     } catch {
       return null;
@@ -150,7 +168,7 @@ export async function extractBySelectors(page: any): Promise<Record<string, any>
     price: await get(
       ".mb-ldp__dtls__price",
       '[class*="propAmount"]',
-      '[class*="price"]'
+      '[class*="price"]',
     ),
     carpetArea: await getByLabel("Carpet Area"),
 
@@ -161,42 +179,40 @@ export async function extractBySelectors(page: any): Promise<Record<string, any>
       (await get(".mb-ldp__dtls__body__list--value")),
 
     pricePerSqft:
-      (
-        await page
-          .locator(".mb-ldp__dtls__body__list--value")
-          .allInnerTexts()
-          .then((texts: string[]) => {
-            for (const val of texts) {
-              if (!val) continue;
-              const lines = val.split("\n");
-              const priceLine = lines.find((line) => {
-                const lower = line.toLowerCase();
-                return (
-                  (lower.includes("₹") || lower.includes("rs")) &&
-                  (lower.includes("sqft") ||
-                    lower.includes("sq.ft") ||
-                    lower.includes("sq ft") ||
-                    lower.includes("sqm") ||
-                    lower.includes("sq.m") ||
-                    lower.includes("sq m") ||
-                    lower.includes("sqyd") ||
-                    lower.includes("sq.yd") ||
-                    lower.includes("sq yd") ||
-                    lower.includes("acre") ||
-                    lower.includes("bigha"))
-                );
-              });
-              if (priceLine) return priceLine.trim();
-            }
-            return null;
-          })
-          .catch(() => null)
-      ) || null,
+      (await page
+        .locator(".mb-ldp__dtls__body__list--value")
+        .allInnerTexts()
+        .then((texts: string[]) => {
+          for (const val of texts) {
+            if (!val) continue;
+            const lines = val.split("\n");
+            const priceLine = lines.find((line) => {
+              const lower = line.toLowerCase();
+              return (
+                (lower.includes("₹") || lower.includes("rs")) &&
+                (lower.includes("sqft") ||
+                  lower.includes("sq.ft") ||
+                  lower.includes("sq ft") ||
+                  lower.includes("sqm") ||
+                  lower.includes("sq.m") ||
+                  lower.includes("sq m") ||
+                  lower.includes("sqyd") ||
+                  lower.includes("sq.yd") ||
+                  lower.includes("sq yd") ||
+                  lower.includes("acre") ||
+                  lower.includes("bigha"))
+              );
+            });
+            if (priceLine) return priceLine.trim();
+          }
+          return null;
+        })
+        .catch(() => null)) || null,
 
     location: await get(
       ".mb-ldp__dtls__title--link",
       '[class*="localityName"]',
-      '[class*="location"]'
+      '[class*="location"]',
     ),
 
     floorNo: await getByLabel("Floor"),
@@ -208,11 +224,10 @@ export async function extractBySelectors(page: any): Promise<Record<string, any>
     ageOfBuilding: await getByLabel("Age of Construction"),
     constructionStatus:
       (await getByLabel("Status")) || (await getByLabel("Possession")),
-    legalStatus:
-      (await getByLabel("RERA ID")) || (await getByLabel("Status")),
+    legalStatus: (await getByLabel("RERA ID")) || (await getByLabel("Status")),
     ownerName: await get(
       ".mb-ldp__dtls__contact-name",
-      ".mb-ldp__dtls__seller-name"
+      ".mb-ldp__dtls__seller-name",
     ),
     internalFloorArea: await getByLabel("Carpet Area"),
   };

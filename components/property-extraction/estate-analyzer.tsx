@@ -7,7 +7,7 @@ import ResultsTable from "./results-table";
 import PropertyDetailsModal from "./property-details-modal";
 import { PropertyExtractionResult } from "@/features/property-extraction/scraper";
 import { COMMA_REGEX, NUMERIC_REGEX } from "@/lib/regex";
-import { calculateRawRatePerSqft } from "@/lib/format-utils";
+import { calculateRawRatePerSqft, parseIndianNumber } from "@/lib/format-utils";
 
 function parsePricePerSqft(priceText?: string | null): number | null {
   if (!priceText) return null;
@@ -33,6 +33,9 @@ export default function EstateAnalyzer() {
 
   const [pendingUrls, setPendingUrls] = useState<string[]>([]);
   const [rowSelection, setRowSelection] = useState<Record<string, boolean>>({});
+  const [conversionFactor, setConversionFactor] = useState<number>(0.72);
+  const [rowFactors, setRowFactors] = useState<Record<string, number>>({});
+  const [showTotalArea, setShowTotalArea] = useState(false);
 
   useEffect(() => {
     const savedUrls = localStorage.getItem("scrape_urls");
@@ -143,16 +146,32 @@ export default function EstateAnalyzer() {
     localStorage.removeItem("scrape_history");
   };
 
-  // Only count rows the user has checked in the avg calculation.
-  const validPrices = results
-    .filter((r) => rowSelection[r.url])
+  // When showTotalArea is ON: include every row that has price + any area
+  // (factor converts built-up → carpet for rows missing carpet area).
+  // When OFF: only manually checked rows are counted (existing behaviour).
+  const rowsForAvg = results.filter((r) =>
+    showTotalArea
+      ? r.data?.price && (r.data?.carpetArea || r.data?.builtupArea || r.data?.superBuiltupArea || r.data?.area)
+      : rowSelection[r.url],
+  );
+
+  const validPrices = rowsForAvg
     .map((r) => {
-      // Prioritize dynamically calculated raw rate, fallback to AI extracted rate
-      const calcRate = calculateRawRatePerSqft(
-        r.data?.price,
-        r.data?.carpetArea,
-        r.data?.area,
-      );
+      let effectiveArea: number | null = null;
+      if (r.data?.carpetArea) {
+        effectiveArea = parseIndianNumber(r.data.carpetArea);
+      } else {
+        const factor = rowFactors[r.url];
+        if (r.data?.builtupArea) {
+          effectiveArea = parseIndianNumber(r.data.builtupArea) * (factor ?? 0.85); // default builtup to carpet
+        } else if (r.data?.superBuiltupArea) {
+          effectiveArea = parseIndianNumber(r.data.superBuiltupArea) * (factor ?? 0.72); // default super builtup to carpet
+        } else if (r.data?.area) {
+          effectiveArea = parseIndianNumber(r.data.area) * (factor ?? conversionFactor);
+        }
+      }
+
+      const calcRate = calculateRawRatePerSqft(r.data?.price, effectiveArea);
       return calcRate !== null
         ? calcRate
         : parsePricePerSqft(r.data?.pricePerSqft);
@@ -165,6 +184,27 @@ export default function EstateAnalyzer() {
       : 0;
   const discountAmount = Math.round((averagePrice * discountPercentage) / 100);
   const discountedAverage = Math.max(averagePrice - discountAmount, 0);
+
+  // Sum of effective carpet areas — uses same row set as the avg calculation.
+  const { totalCarpetArea, estimatedCount } = rowsForAvg.reduce(
+    (acc, r) => {
+      let factor = rowFactors[r.url];
+      if (r.data?.carpetArea) {
+        acc.totalCarpetArea += parseIndianNumber(r.data.carpetArea);
+      } else if (r.data?.builtupArea) {
+        acc.totalCarpetArea += Math.round(parseIndianNumber(r.data.builtupArea) * (factor ?? 0.85));
+        acc.estimatedCount++;
+      } else if (r.data?.superBuiltupArea) {
+        acc.totalCarpetArea += Math.round(parseIndianNumber(r.data.superBuiltupArea) * (factor ?? 0.72));
+        acc.estimatedCount++;
+      } else if (r.data?.area) {
+        acc.totalCarpetArea += Math.round(parseIndianNumber(r.data.area) * (factor ?? conversionFactor));
+        acc.estimatedCount++;
+      }
+      return acc;
+    },
+    { totalCarpetArea: 0, estimatedCount: 0 },
+  );
 
   if (!isMounted) return null;
 
@@ -189,6 +229,13 @@ export default function EstateAnalyzer() {
           rowSelection={rowSelection}
           setRowSelection={setRowSelection}
           focusedUrl={focusedUrl}
+          globalConversionFactor={conversionFactor}
+          rowFactors={rowFactors}
+          setRowFactors={setRowFactors}
+          showTotalArea={showTotalArea}
+          setShowTotalArea={setShowTotalArea}
+          totalCarpetArea={totalCarpetArea}
+          estimatedCount={estimatedCount}
         />
       </main>
       <PropertyDetailsModal

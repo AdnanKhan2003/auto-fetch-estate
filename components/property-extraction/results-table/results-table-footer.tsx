@@ -6,6 +6,9 @@ interface ResultsTableFooterProps {
   discountPercentage: number;
   setDiscountPercentage: (val: number) => void;
   discountedAverage: number;
+  showTotalArea: boolean;
+  totalCarpetArea: number;
+  estimatedCount: number;
 }
 
 export function ResultsTableFooter({
@@ -13,12 +16,49 @@ export function ResultsTableFooter({
   discountPercentage,
   setDiscountPercentage,
   discountedAverage,
+  showTotalArea,
+  totalCarpetArea,
+  estimatedCount,
 }: ResultsTableFooterProps) {
+  // When "Calc. Carpet Area" column is visible (showTotalArea ON) there are 9
+  // columns total, so the label cell must span 8; otherwise 7.
+  const labelSpan = showTotalArea ? 8 : 7;
+
   return (
     <TableFooter className="border-t-0">
+      {/* ── Total Carpet Area (shown when toggle is ON) ── */}
+      {showTotalArea && (
+        <TableRow className="bg-muted/40 text-foreground hover:bg-muted/40 border-b border-border/50">
+          {/* Label spans cols 1-7 (up to and including Area col) */}
+          <TableCell
+            colSpan={7}
+            className="py-3 pl-6 text-right font-medium text-muted-foreground"
+          >
+            <span>Total Carpet Area</span>
+            {estimatedCount > 0 && (
+              <span className="ml-2 text-[10px] font-normal text-amber-500/80">
+                ({estimatedCount} row{estimatedCount > 1 ? "s" : ""} estimated via factor)
+              </span>
+            )}
+          </TableCell>
+          {/* Value lands under the "Calc. Carpet Area" column (col 8) */}
+          <TableCell colSpan={1} className="py-3 px-4 text-left">
+            <span className="text-xl font-black text-foreground">
+              {totalCarpetArea > 0
+                ? `${totalCarpetArea.toLocaleString("en-IN")} sqft`
+                : "—"}
+            </span>
+          </TableCell>
+          {/* Empty cell for Rate/Sqft column (col 9) */}
+          <TableCell colSpan={1} className="py-3 pr-6" />
+        </TableRow>
+      )}
+
+
+      {/* ── Avg Price/sqft ── */}
       <TableRow className="bg-secondary text-secondary-foreground hover:bg-secondary">
         <TableCell
-          colSpan={7}
+          colSpan={labelSpan}
           className="py-4 pl-6 text-right font-medium text-secondary-foreground/70"
         >
           Avg Price/sqft:
@@ -31,9 +71,11 @@ export function ResultsTableFooter({
           </span>
         </TableCell>
       </TableRow>
+
+      {/* ── Discount % ── */}
       <TableRow className="bg-background text-foreground hover:bg-background">
         <TableCell
-          colSpan={7}
+          colSpan={labelSpan}
           className="py-4 pl-6 text-right font-medium text-muted-foreground"
         >
           Discount %
@@ -59,9 +101,11 @@ export function ResultsTableFooter({
           </div>
         </TableCell>
       </TableRow>
+
+      {/* ── Discounted Avg Price/sqft ── */}
       <TableRow className="bg-secondary text-secondary-foreground hover:bg-secondary">
         <TableCell
-          colSpan={7}
+          colSpan={labelSpan}
           className="py-4 pl-6 text-right font-medium text-secondary-foreground/70"
         >
           Discounted Avg Price/sqft:
