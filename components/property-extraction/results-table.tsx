@@ -40,6 +40,7 @@ interface ResultsTableProps {
   setShowTotalArea: (val: boolean) => void;
   totalCarpetArea: number;
   estimatedCount: number;
+  originalUrls: string[];
 }
 
 function ResultsTable({
@@ -60,6 +61,7 @@ function ResultsTable({
   setShowTotalArea,
   totalCarpetArea,
   estimatedCount,
+  originalUrls,
 }: ResultsTableProps) {
   const [sorting, setSorting] = useState<SortingState>([]);
 
@@ -77,8 +79,8 @@ function ResultsTable({
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getRowId: (row) => row.url,
-    enableSortingRemoval: false,
-    meta: { globalConversionFactor, rowFactors, setRowFactors },
+    enableSortingRemoval: true,
+    meta: { globalConversionFactor, rowFactors, setRowFactors, originalUrls },
   });
 
   useEffect(() => {

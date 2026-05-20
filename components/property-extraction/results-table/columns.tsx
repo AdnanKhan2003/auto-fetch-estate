@@ -22,13 +22,22 @@ export const columns: ColumnDef<PropertyExtractionResult>[] = [
   {
     id: "index",
     header: () => <div className="text-center"></div>,
-    cell: ({ row }) => (
-      <div className="flex items-center justify-center">
-        <div className="flex h-6 w-6 items-center justify-center rounded-md bg-muted/30 border border-border/50 text-xs font-mono text-muted-foreground">
-          {row.index + 1}
+    cell: ({ row, table }) => {
+      const meta = table.options.meta as any;
+      const originalUrls = meta?.originalUrls || [];
+
+      const originalIndex = originalUrls.indexOf(row.original.url);
+      const displayIndex =
+        originalIndex !== -1 ? originalIndex + 1 : row.index + 1;
+
+      return (
+        <div className="flex items-center justify-center">
+          <div className="flex h-6 w-6 items-center justify-center rounded-md bg-muted/30 border border-border/50 text-xs font-mono text-muted-foreground">
+            {displayIndex}
+          </div>
         </div>
-      </div>
-    ),
+      );
+    },
   },
   {
     id: "select",
@@ -146,7 +155,11 @@ export const columns: ColumnDef<PropertyExtractionResult>[] = [
   },
   {
     id: "area",
-    accessorFn: (row) => row.data?.carpetArea || row.data?.builtupArea || row.data?.superBuiltupArea || row.data?.area,
+    accessorFn: (row) =>
+      row.data?.carpetArea ||
+      row.data?.builtupArea ||
+      row.data?.superBuiltupArea ||
+      row.data?.area,
     header: ({ column }) => (
       <div className="flex items-center gap-1">
         Area
@@ -162,7 +175,7 @@ export const columns: ColumnDef<PropertyExtractionResult>[] = [
       const superBuiltupArea = data?.superBuiltupArea;
       const generalArea = data?.area;
       const url = row.original.url;
-      
+
       let factor = meta?.rowFactors?.[url];
       let defaultFactor = meta?.globalConversionFactor ?? 0.72;
       let areaToDisplay = generalArea;
@@ -301,16 +314,16 @@ export const columns: ColumnDef<PropertyExtractionResult>[] = [
       } else if (data?.builtupArea) {
         effectiveArea = parseIndianNumber(data.builtupArea) * (factor ?? 0.85);
       } else if (data?.superBuiltupArea) {
-        effectiveArea = parseIndianNumber(data.superBuiltupArea) * (factor ?? 0.72);
+        effectiveArea =
+          parseIndianNumber(data.superBuiltupArea) * (factor ?? 0.72);
       } else if (data?.area) {
-        effectiveArea = parseIndianNumber(data.area) * (factor ?? (meta?.globalConversionFactor ?? 0.72));
+        effectiveArea =
+          parseIndianNumber(data.area) *
+          (factor ?? meta?.globalConversionFactor ?? 0.72);
       }
 
       // Calculate dynamic rate using per-row factor, fallback to AI-provided
-      const calculatedRate = calculateRatePerSqft(
-        data?.price,
-        effectiveArea
-      );
+      const calculatedRate = calculateRatePerSqft(data?.price, effectiveArea);
       const rateToDisplay = calculatedRate || data?.pricePerSqft;
 
       return (

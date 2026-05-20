@@ -56,7 +56,8 @@ export default function EstateAnalyzer() {
         // Auto-check rows that have carpet area
         const initSelection: Record<string, boolean> = {};
         parsed.forEach((r: any) => {
-          if (r.data?.carpetArea) initSelection[r.url] = true;
+          const areaValue = parseIndianNumber(r.data?.carpetArea || "0");
+          if (areaValue > 100) initSelection[r.url] = true;
         });
         setRowSelection(initSelection);
       } catch (e) {
@@ -123,7 +124,7 @@ export default function EstateAnalyzer() {
               return unique;
             });
             // Auto-check this URL if it has carpet area
-            const areaValue = parseInt(result.data?.carpetArea || "0");
+            const areaValue = parseIndianNumber(result.data?.carpetArea || "0");
             if (areaValue > 100) {
               setRowSelection((prev) => ({ ...prev, [result.url]: true }));
             }
@@ -149,10 +150,19 @@ export default function EstateAnalyzer() {
   // When showTotalArea is ON: include every row that has price + any area
   // (factor converts built-up → carpet for rows missing carpet area).
   // When OFF: only manually checked rows are counted (existing behaviour).
+  const hasValidArea = (r: any) => {
+    const areas = [
+      r.data?.carpetArea,
+      r.data?.builtupArea,
+      r.data?.superBuiltupArea,
+      r.data?.area,
+    ];
+
+    return areas.some((a) => a && parseIndianNumber(a) > 50);
+  };
+
   const rowsForAvg = results.filter((r) =>
-    showTotalArea
-      ? r.data?.price && (r.data?.carpetArea || r.data?.builtupArea || r.data?.superBuiltupArea || r.data?.area)
-      : rowSelection[r.url],
+    showTotalArea ? r.data?.price && hasValidArea(r) : rowSelection[r.url],
   );
 
   const validPrices = rowsForAvg
@@ -163,11 +173,14 @@ export default function EstateAnalyzer() {
       } else {
         const factor = rowFactors[r.url];
         if (r.data?.builtupArea) {
-          effectiveArea = parseIndianNumber(r.data.builtupArea) * (factor ?? 0.85); // default builtup to carpet
+          effectiveArea =
+            parseIndianNumber(r.data.builtupArea) * (factor ?? 0.85); // default builtup to carpet
         } else if (r.data?.superBuiltupArea) {
-          effectiveArea = parseIndianNumber(r.data.superBuiltupArea) * (factor ?? 0.72); // default super builtup to carpet
+          effectiveArea =
+            parseIndianNumber(r.data.superBuiltupArea) * (factor ?? 0.72); // default super builtup to carpet
         } else if (r.data?.area) {
-          effectiveArea = parseIndianNumber(r.data.area) * (factor ?? conversionFactor);
+          effectiveArea =
+            parseIndianNumber(r.data.area) * (factor ?? conversionFactor);
         }
       }
 
@@ -192,19 +205,36 @@ export default function EstateAnalyzer() {
       if (r.data?.carpetArea) {
         acc.totalCarpetArea += parseIndianNumber(r.data.carpetArea);
       } else if (r.data?.builtupArea) {
-        acc.totalCarpetArea += Math.round(parseIndianNumber(r.data.builtupArea) * (factor ?? 0.85));
+        acc.totalCarpetArea += Math.round(
+          parseIndianNumber(r.data.builtupArea) * (factor ?? 0.85),
+        );
         acc.estimatedCount++;
       } else if (r.data?.superBuiltupArea) {
-        acc.totalCarpetArea += Math.round(parseIndianNumber(r.data.superBuiltupArea) * (factor ?? 0.72));
+        acc.totalCarpetArea += Math.round(
+          parseIndianNumber(r.data.superBuiltupArea) * (factor ?? 0.72),
+        );
         acc.estimatedCount++;
       } else if (r.data?.area) {
-        acc.totalCarpetArea += Math.round(parseIndianNumber(r.data.area) * (factor ?? conversionFactor));
+        acc.totalCarpetArea += Math.round(
+          parseIndianNumber(r.data.area) * (factor ?? conversionFactor),
+        );
         acc.estimatedCount++;
       }
       return acc;
     },
     { totalCarpetArea: 0, estimatedCount: 0 },
   );
+
+  const orderedResults = [...results].sort((a, b) => {
+    const indexA = urls.indexOf(a.url);
+    const indexB = urls.indexOf(b.url);
+
+    if (indexA === -1 && indexB === -1) return 0;
+    if (indexA === -1) return 1;
+    if (indexB === -1) return -2;
+
+    return indexA - indexB;
+  });
 
   if (!isMounted) return null;
 
@@ -219,7 +249,7 @@ export default function EstateAnalyzer() {
           setFocusedUrl={setFocusedUrl}
         />
         <ResultsTable
-          results={results}
+          results={orderedResults}
           pendingUrls={pendingUrls}
           onRowClick={setSelectedProperty}
           averagePrice={averagePrice}
@@ -235,6 +265,7 @@ export default function EstateAnalyzer() {
           showTotalArea={showTotalArea}
           setShowTotalArea={setShowTotalArea}
           totalCarpetArea={totalCarpetArea}
+          originalUrls={urls}
           estimatedCount={estimatedCount}
         />
       </main>
