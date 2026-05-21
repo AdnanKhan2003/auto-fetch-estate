@@ -25,7 +25,7 @@ const AREA_TYPE_MAP = [
 /**
  * Helper: Extracts the first numeric value from a string (ignores commas).
  */
-function extractNumericValue(raw: string): number | null {
+export function extractNumericValue(raw: string): number | null {
   const match = raw.replace(COMMA_REGEX, "").match(NUMERIC_REGEX);
   if (!match) return null;
 

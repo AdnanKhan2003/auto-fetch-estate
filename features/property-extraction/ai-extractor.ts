@@ -2,6 +2,7 @@ import fs from "fs";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { generateObject } from "ai";
 import { propertySchema, Property } from "./schema";
+import { checkQuotaAndConsume } from "@/lib/ai-rate-limiter";
 
 const DEFAULT_GOOGLE_MODEL = "gemini-2.5-flash";
 
@@ -18,7 +19,7 @@ export async function extractStructuredData(
   cleanText: string,
   knownData: Partial<Property> = {},
   scrapeUrl?: string,
-): Promise<Partial<Property>> {
+): Promise<{ data: Partial<Property>; tokens: number }> {
   // Pull all JSON-LD script blocks from the page
   const jsonLdData = await page.evaluate(() => {
     const scripts = Array.from(
@@ -42,7 +43,8 @@ export async function extractStructuredData(
   console.log("=".repeat(60) + "\n");
 
   // Nothing to work with — skip the API call
-  if ((!jsonLdData || jsonLdData.length < 50) && !cleanText) return {};
+  if ((!jsonLdData || jsonLdData.length < 50) && !cleanText)
+    return { data: {}, tokens: 0 };
 
   const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
   const modelName = process.env.GOOGLE_MODEL || DEFAULT_GOOGLE_MODEL;
@@ -51,7 +53,7 @@ export async function extractStructuredData(
     console.error(
       "❌ [AI Error] GOOGLE_GENERATIVE_AI_API_KEY is missing from .env!",
     );
-    return {};
+    return { data: {}, tokens: 0 };
   }
 
   console.log(`[AI] Using API Key: ${apiKey.slice(0, 5)}...`);
@@ -70,9 +72,9 @@ export async function extractStructuredData(
          3. **PRIORITY FIELDS**: Ensure you extract the following if present:
             - Property Name (propertyTitle)
             - Price & Market Price
-            - Carpet Area / Internal Floor Area (IMPORTANT: Include the unit, e.g. "sqm", "sqyd", "sqft")
+            - Carpet Area / Internal Floor Area (IMPORTANT: DO NOT copy Built-up or Super Built-up area here. If Carpet Area is not explicitly stated, leave it blank/null. Include the unit if found.)
             - Built-up Area (IMPORTANT: Include the unit, e.g. "sqm", "sqyd", "sqft")
-            - Super Built-up Area (IMPORTANT: Include the unit, e.g. "sqm", "sqyd", "sqft")
+            - Super Built-up Area (IMPORTANT: Include the unit, e.g. "sqm", "sqyd", "sqft". **CRITICAL**: If the property specifies an area but does not explicitly state whether it is Carpet, Built-up or Super Built-up, you MUST default to putting it here in superBuiltupArea.)
             - Total Area (IMPORTANT: Include the unit, e.g. "sqm", "sqyd", "sqft")
             - Rate per Area (pricePerSqft) (IMPORTANT: Include the unit, e.g. "/sqm", "/sqyd", "/sqft")
             - Building Age (ageOfBuilding)
@@ -96,30 +98,29 @@ export async function extractStructuredData(
          ${JSON.stringify(knownData, null, 2)}
       `;
 
-    console.log("--- LOG 2: AI PROMPT & CONTEXT ---");
-    console.log(prompt);
-    console.log("----------------------------------");
 
-    const { object } = await generateObject({
+
+    checkQuotaAndConsume();
+
+    const { object, usage } = await generateObject({
       model: googleProvider(modelName),
       schema: propertySchema,
       prompt,
+      maxRetries: 0,
     });
 
     if (object && Object.keys(object).length > 0) {
       console.log("✅ [AI] Extraction successful!");
     }
 
-    console.log("--- LOG 3: AI RESULT ---");
-    console.log(JSON.stringify(object, null, 2));
-    console.log("------------------------");
 
-    return object;
+
+    return { data: object, tokens: usage?.totalTokens ?? 0 };
   } catch (err: any) {
     console.error("\n❌ [AI Error] Extraction failed!");
     console.error(`Reason: ${err.message}`);
     if (err.stack) console.error(err.stack);
-    return {};
+    return { data: {}, tokens: 0 };
   }
 }
 
@@ -138,6 +139,7 @@ interface VisionParams {
 interface VisionResult {
   aiData: Partial<Property>;
   visionUsed: boolean;
+  tokens: number;
 }
 
 /**
@@ -156,7 +158,7 @@ export async function runVisionExtraction({
 
   if (!visionApiKey) {
     console.log("[AI] Vision skipped: GOOGLE_GENERATIVE_AI_API_KEY not set");
-    return { aiData: {}, visionUsed: false };
+    return { aiData: {}, visionUsed: false, tokens: 0 };
   }
 
   try {
@@ -166,7 +168,9 @@ export async function runVisionExtraction({
     const screenshotBuffer = fs.readFileSync(screenshotPath);
     const visionGoogle = createGoogleGenerativeAI({ apiKey: visionApiKey });
 
-    const { object } = await generateObject({
+    checkQuotaAndConsume();
+
+    const { object, usage } = await generateObject({
       model: visionGoogle(visionModelName),
       schema: propertySchema,
       messages: [
@@ -190,6 +194,7 @@ export async function runVisionExtraction({
           ],
         },
       ],
+      maxRetries: 0,
     });
 
     console.log("\n--- LOG 3.5: AI VISION RESULT (From Screenshot) ---");
@@ -197,9 +202,13 @@ export async function runVisionExtraction({
     console.log("--------------------------------------------------\n");
     console.log("✅ [AI] Vision extraction successful!");
 
-    return { aiData: object, visionUsed: true };
+    return {
+      aiData: object,
+      visionUsed: true,
+      tokens: usage?.totalTokens ?? 0,
+    };
   } catch (aiError: any) {
     console.error("❌ [AI Vision Error]:", aiError.message);
-    return { aiData: {}, visionUsed: false };
+    return { aiData: {}, visionUsed: false, tokens: 0 };
   }
 }

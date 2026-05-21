@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { processUrl } from "@/features/property-extraction/scraper";
+import { getQuotaMetrics } from "@/lib/ai-rate-limiter";
 
 let batchCounter = 0;
 
@@ -28,16 +29,57 @@ export async function POST(request: Request) {
 
     const stream = new ReadableStream({
       async start(controller) {
-        // Fire all scrapes in parallel; flush each result the moment it resolves
-        await Promise.allSettled(
-          activeUrls.map(async (url: string) => {
-            console.log(`[Batch] Scraping: ${url}`);
-            const result = await processUrl(url.trim());
-            console.log(`[Batch] Done: ${url}`);
-            // NDJSON — one JSON object per line, pushed immediately
-            controller.enqueue(encoder.encode(JSON.stringify(result) + "\n"));
-          })
-        );
+        const CONCURRENCY_LIMIT = 3;
+
+        for (let i = 0; i < activeUrls.length; i += CONCURRENCY_LIMIT) {
+          const chunk = activeUrls.slice(i, i + CONCURRENCY_LIMIT);
+          // Fire all scrapes in parallel; flush each result the moment it resolves
+          await Promise.allSettled(
+            chunk.map(async (url: string) => {
+              try {
+                console.log(`[Batch] Scraping: ${url}`);
+                const result = await processUrl(url.trim());
+                console.log(`[Batch] Done: ${url}`);
+
+                const metrics = getQuotaMetrics();
+
+                const enrichedResult = {
+                  ...result,
+                  rpdRemaining: metrics.rpdRemaining,
+                  rpmRemaining: metrics.rpmRemaining,
+                };
+
+                // NDJSON — one JSON object per line, pushed immediately
+                controller.enqueue(
+                  encoder.encode(JSON.stringify(enrichedResult) + "\n"),
+                );
+              } catch (e: any) {
+                console.log(`[Batch] Error on ${url}: ${e.message}`);
+
+                const metrics = getQuotaMetrics();
+                const errorResult = {
+                  url: url.trim(),
+                  status: "error",
+                  error: e.message,
+                  rpdRemaining: metrics.rpdRemaining,
+                  rpmRemaining: metrics.rpmRemaining,
+                  tokensUsed: 0,
+                };
+
+                controller.enqueue(
+                  encoder.encode(JSON.stringify(errorResult) + "\n"),
+                );
+              }
+            }),
+          );
+
+          if (i + CONCURRENCY_LIMIT < activeUrls.length) {
+            console.log(
+              `[Batch] Cooldown: Waiting 3 seconds before next chunk...`,
+            );
+            await new Promise((resolve) => setTimeout(resolve, 3000));
+          }
+        }
         controller.close();
       },
     });

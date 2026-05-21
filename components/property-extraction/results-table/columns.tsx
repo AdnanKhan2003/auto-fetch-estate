@@ -50,12 +50,15 @@ export const columns: ColumnDef<PropertyExtractionResult>[] = [
           }
           onCheckedChange={(value) => table.toggleAllRowsSelected(!!value)}
           aria-label="Select all"
-          className="translate-y-[2px]"
+          className="translate-y-[2px] cursor-pointer"
         />
       </div>
     ),
     cell: ({ row }) => (
-      <div className="flex items-center justify-center">
+      <div
+        className="flex items-center justify-center"
+        onClick={(e) => e.stopPropagation()}
+      >
         <Checkbox
           checked={row.getIsSelected()}
           onCheckedChange={(value) => row.toggleSelected(!!value)}
@@ -158,8 +161,7 @@ export const columns: ColumnDef<PropertyExtractionResult>[] = [
     accessorFn: (row) =>
       row.data?.carpetArea ||
       row.data?.builtupArea ||
-      row.data?.superBuiltupArea ||
-      row.data?.area,
+      row.data?.superBuiltupArea,
     header: ({ column }) => (
       <div className="flex items-center gap-1">
         Area
@@ -173,13 +175,12 @@ export const columns: ColumnDef<PropertyExtractionResult>[] = [
       const carpetArea = data?.carpetArea;
       const builtupArea = data?.builtupArea;
       const superBuiltupArea = data?.superBuiltupArea;
-      const generalArea = data?.area;
       const url = row.original.url;
 
       let factor = meta?.rowFactors?.[url];
       let defaultFactor = meta?.globalConversionFactor ?? 0.72;
-      let areaToDisplay = generalArea;
-      let areaLabel = "*Carpet area unknown";
+      let areaToDisplay = null;
+      let areaLabel = "";
 
       if (builtupArea) {
         areaToDisplay = builtupArea;
@@ -253,7 +254,6 @@ export const columns: ColumnDef<PropertyExtractionResult>[] = [
       const carpetArea = data?.carpetArea;
       const builtupArea = data?.builtupArea;
       const superBuiltupArea = data?.superBuiltupArea;
-      const generalArea = data?.area;
       const url = row.original.url;
 
       // Row already has real carpet area — no estimation needed
@@ -261,7 +261,7 @@ export const columns: ColumnDef<PropertyExtractionResult>[] = [
         return <span className="text-muted-foreground/40">—</span>;
       }
 
-      let areaToCalc = generalArea;
+      let areaToCalc = null;
       let factor = meta?.rowFactors?.[url];
       let defaultFactor = meta?.globalConversionFactor ?? 0.72;
 
@@ -316,10 +316,6 @@ export const columns: ColumnDef<PropertyExtractionResult>[] = [
       } else if (data?.superBuiltupArea) {
         effectiveArea =
           parseIndianNumber(data.superBuiltupArea) * (factor ?? 0.72);
-      } else if (data?.area) {
-        effectiveArea =
-          parseIndianNumber(data.area) *
-          (factor ?? meta?.globalConversionFactor ?? 0.72);
       }
 
       // Calculate dynamic rate using per-row factor, fallback to AI-provided

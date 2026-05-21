@@ -62,12 +62,12 @@ export const propertySchema = z.object({
     .describe("Monthly maintenance charges."),
 
   // Property Specifications
-  area: z
-    .string()
-    .nullable()
-    .describe(
-      "The size/area of the property, e.g., 1200 sqft. Can be Carpet Area, Built-up Area, or Super Area.",
-    ),
+  // area: z
+  //   .string()
+  //   .nullable()
+  //   .describe(
+  //     "The size/area of the property, e.g., 1200 sqft. Can be Carpet Area, Built-up Area, or Super Area.",
+  //   ),
   floorNo: z
     .string()
     .nullable()

@@ -7,6 +7,7 @@ import {
   normalizePrice,
   normalizePricePerSqft,
   normalizeArea,
+  extractNumericValue,
 } from "./normalizers";
 import {
   ERROR_PAGE_PHRASES,
@@ -22,7 +23,7 @@ export type { Property };
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
-const CRITICAL_FIELDS = ["propertyTitle", "price", "location", "area"] as const;
+const CRITICAL_FIELDS = ["propertyTitle", "price", "location"] as const;
 
 // ─── Browser helpers ─────────────────────────────────────────────────────────
 
@@ -176,13 +177,30 @@ function applyNormalizations(data: Record<string, any>): void {
   if (data.pricePerSqft)
     data.pricePerSqft =
       normalizePricePerSqft(data.pricePerSqft) ?? data.pricePerSqft;
-  if (data.area) data.area = normalizeArea(data.area) ?? data.area;
   if (data.carpetArea)
     data.carpetArea = normalizeArea(data.carpetArea) ?? data.carpetArea;
   if (data.builtupArea)
     data.builtupArea = normalizeArea(data.builtupArea) ?? data.builtupArea;
   if (data.superBuiltupArea)
-    data.superBuiltupArea = normalizeArea(data.superBuiltupArea) ?? data.superBuiltupArea;
+    data.superBuiltupArea =
+      normalizeArea(data.superBuiltupArea) ?? data.superBuiltupArea;
+
+  // Sanitize AI hallucinations: Carpet Area must be strictly less than Built-up/Super Built-up
+  const cArea = data.carpetArea ? extractNumericValue(data.carpetArea) : null;
+  const sbArea = data.superBuiltupArea
+    ? extractNumericValue(data.superBuiltupArea)
+    : null;
+  const bArea = data.builtupArea ? extractNumericValue(data.builtupArea) : null;
+
+  if (cArea !== null) {
+    if (sbArea !== null && cArea >= sbArea) {
+      data.carpetArea = null; // Hallucinated copy of Super Built-up
+    } else if (bArea !== null && cArea >= bArea) {
+      data.carpetArea = null; // Hallucinated copy of Built-up
+    } else if (cArea <= 100) {
+      data.carpetArea = null; // Broker entered junk data (e.g. "1 Sq.Ft")
+    }
+  }
 }
 
 // ─── Main export ─────────────────────────────────────────────────────────────
@@ -206,16 +224,7 @@ export async function processUrl(url: string) {
 
     // Step 4 — Clean text
     const cleanText = await extractCleanContent(page);
-    console.log("\n" + "=".repeat(60));
-    console.log(`UNSTRUCTURED BODY DATA — ${url}`);
-    console.log("=".repeat(60));
-    console.log(`characters: ${cleanText.length}`);
-    console.log(
-      cleanText.length === 0
-        ? "(EMPTY — bot wall, hydration not finished, or extractCleanContent removed all visible text)"
-        : cleanText,
-    );
-    console.log("=".repeat(60) + "\n");
+
 
     // Step 5 — 404 / removed listing detection
     const lowerClean = cleanText.toLowerCase();
@@ -229,19 +238,11 @@ export async function processUrl(url: string) {
 
     // Step 6 — Deterministic selector extraction
     const selectorData = await extractBySelectors(page);
-    console.log("\n" + "=".repeat(60));
-    console.log(`SELECTORS DATA — ${url}`);
-    console.log("=".repeat(60));
-    console.log(JSON.stringify(selectorData, null, 2));
-    console.log("=".repeat(60) + "\n");
+
 
     // Step 7 — AI text extraction (JSON-LD + page text)
-    const structuredData = await extractStructuredData(
-      page,
-      cleanText,
-      selectorData,
-      url,
-    );
+    const { data: structuredData, tokens: textTokens } =
+      await extractStructuredData(page, cleanText, selectorData, url);
 
     // Step 8 — Merge: defaults < selectors < AI text
     const merged: Record<string, any> = {
@@ -251,6 +252,8 @@ export async function processUrl(url: string) {
     };
 
     const missingCritical = CRITICAL_FIELDS.filter((f) => !merged[f]);
+    const hasAnyArea =
+      merged.carpetArea || merged.builtupArea || merged.superBuiltupArea;
     const filledFields = Object.values(merged).filter(
       (v) => v !== null && v !== "",
     ).length;
@@ -261,16 +264,23 @@ export async function processUrl(url: string) {
     // Step 9 — Vision fallback (only when critical fields are still missing)
     let aiData: Partial<Property> = {};
     let visionUsed = false;
+    let visionTokens = 0;
 
-    if (missingCritical.length > 0 || filledFields < 15) {
-      ({ aiData, visionUsed } = await runVisionExtraction({
-        url,
-        screenshotPath,
-        missingCritical,
-        cleanDeterministic: cleanMerged,
-        cleanText,
-      }));
-    }
+    // if (missingCritical.length > 0 || !hasAnyArea || filledFields < 15) {
+    //   ({
+    //     aiData,
+    //     visionUsed,
+    //     tokens: visionTokens,
+    //   } = await runVisionExtraction({
+    //     url,
+    //     screenshotPath,
+    //     missingCritical: !hasAnyArea
+    //       ? [...missingCritical, "Area"]
+    //       : missingCritical,
+    //     cleanDeterministic: cleanMerged,
+    //     cleanText,
+    //   }));
+    // }
 
     // Step 10 — Final merge, normalise, sanity-check
     const finalData: Record<string, any> = { ...cleanMerged, ...aiData };
@@ -288,6 +298,7 @@ export async function processUrl(url: string) {
       visionUsed,
       missingFields: missingCritical,
       cleanText,
+      tokensUsed: textTokens + visionTokens,
     };
   } catch (error: any) {
     console.error(`Failed to process ${url}:`, error);

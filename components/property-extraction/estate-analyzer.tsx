@@ -155,7 +155,6 @@ export default function EstateAnalyzer() {
       r.data?.carpetArea,
       r.data?.builtupArea,
       r.data?.superBuiltupArea,
-      r.data?.area,
     ];
 
     return areas.some((a) => a && parseIndianNumber(a) > 50);
@@ -178,9 +177,6 @@ export default function EstateAnalyzer() {
         } else if (r.data?.superBuiltupArea) {
           effectiveArea =
             parseIndianNumber(r.data.superBuiltupArea) * (factor ?? 0.72); // default super builtup to carpet
-        } else if (r.data?.area) {
-          effectiveArea =
-            parseIndianNumber(r.data.area) * (factor ?? conversionFactor);
         }
       }
 
@@ -212,11 +208,6 @@ export default function EstateAnalyzer() {
       } else if (r.data?.superBuiltupArea) {
         acc.totalCarpetArea += Math.round(
           parseIndianNumber(r.data.superBuiltupArea) * (factor ?? 0.72),
-        );
-        acc.estimatedCount++;
-      } else if (r.data?.area) {
-        acc.totalCarpetArea += Math.round(
-          parseIndianNumber(r.data.area) * (factor ?? conversionFactor),
         );
         acc.estimatedCount++;
       }
