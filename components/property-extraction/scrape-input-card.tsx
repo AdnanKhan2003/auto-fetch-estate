@@ -81,7 +81,11 @@ function ScrapeInputCard({
             isExecuteDisabled={
               isLoading || watchedUrls.every((u) => !u.value.trim())
             }
-            onAddTarget={() => append({ value: "" })}
+            onAddTarget={() => {
+              append({ value: "" });
+              const newIndex = fields.length;
+              setTimeout(() => form.clearErrors(`urls.${newIndex}.value`), 0);
+            }}
             onExecute={form.handleSubmit(handleSubmit)}
           />
         </form>

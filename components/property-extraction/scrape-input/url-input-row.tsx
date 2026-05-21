@@ -50,6 +50,7 @@ export function UrlInputRow({
                 type="button"
                 onClick={onFocus}
                 title="Locate in Table"
+                disabled={!field.value}
                 className="h-11 w-11 cursor-pointer text-muted-foreground hover:bg-primary/10 hover:text-primary"
               >
                 <MoveDownRight size={18} />
