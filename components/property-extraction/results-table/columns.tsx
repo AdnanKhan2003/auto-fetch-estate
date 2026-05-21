@@ -63,6 +63,7 @@ export const columns: ColumnDef<PropertyExtractionResult>[] = [
           checked={row.getIsSelected()}
           onCheckedChange={(value) => row.toggleSelected(!!value)}
           aria-label="Select row"
+          className="cursor-pointer"
         />
       </div>
     ),
@@ -84,6 +85,10 @@ export const columns: ColumnDef<PropertyExtractionResult>[] = [
               alt="Property"
               fill
               className="object-cover"
+              onError={(e) => {
+                ((e.currentTarget.src = "/fallback-image.png"),
+                  (e.currentTarget.srcset = ""));
+              }}
             />
           ) : (
             <div className="flex h-full w-full items-center justify-center text-[10px] text-muted-foreground">

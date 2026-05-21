@@ -83,6 +83,10 @@ export function Lightbox({ isOpen, onClose, imageUrl, title }: LightboxProps) {
           alt={`Fullscreen screenshot of ${title || "property"}`}
           title={`Fullscreen screenshot of ${title || "property"}`}
           onClick={(e) => e.stopPropagation()}
+          onError={(e) => {
+            ((e.currentTarget.src = "fallback-image.png"),
+              (e.currentTarget.srcset = ""));
+          }}
         />
       )}
     </div>

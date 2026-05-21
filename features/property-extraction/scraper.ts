@@ -144,8 +144,27 @@ async function navigatePage(page: any, url: string) {
 
 async function takeScreenshot(
   page: any,
+  url: string
 ): Promise<{ screenshotName: string; screenshotPath: string }> {
-  const screenshotName = `screenshot-${Date.now()}.png`;
+  let slug = "property";
+  try {
+    const urlObj = new URL(url);
+    const domain = urlObj.hostname.replace("www.", "").split(".")[0];
+    const segments = urlObj.pathname.split("/").filter(Boolean);
+    let longest = segments.reduce(
+      (max, cur) => (cur.length > max.length ? cur : max),
+      ""
+    );
+    // Clean to alphanumeric/hyphens, max 40 chars to avoid absurdly long names
+    longest = longest
+      .replace(/[^a-z0-9-]/gi, "-")
+      .replace(/-+/g, "-")
+      .replace(/^-|-$/g, "")
+      .substring(0, 40);
+    slug = `${domain}-${longest || "listing"}`;
+  } catch (e) {}
+
+  const screenshotName = `${slug}-${Date.now()}.png`;
   const screenshotPath = path.join(
     process.cwd(),
     "public",
@@ -220,7 +239,7 @@ export async function processUrl(url: string) {
       throw new Error("Bot protection triggered");
 
     // Step 3 — Screenshot
-    const { screenshotName, screenshotPath } = await takeScreenshot(page);
+    const { screenshotName, screenshotPath } = await takeScreenshot(page, url);
 
     // Step 4 — Clean text
     const cleanText = await extractCleanContent(page);

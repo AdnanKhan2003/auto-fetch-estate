@@ -28,6 +28,10 @@ export function EvidenceSection({
             className="w-full h-auto transition-all duration-1000 group-hover:scale-[1.02]"
             alt={`Screenshot of ${property.data?.propertyTitle || "property"}`}
             title={`Screenshot of ${property.data?.propertyTitle || "property"}`}
+            onError={(e) => {
+              ((e.currentTarget.src = "/fallback-image.png"),
+                (e.currentTarget.srcset = ""));
+            }}
           />
         )}
         <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-black/30">
