@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
-import { authClient } from "@/lib/auth/auth-client";
+import { authClient } from "@/auth/auth-client";
 import { Button } from "../ui/button";
 import { AlertCircle, Loader2, Trash2, Pencil, Search } from "lucide-react";
 import * as z from "zod";
@@ -138,11 +138,14 @@ function UsersList() {
     const date = new Date(u.createdAt);
     const now = new Date();
     return (
-      date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear()
+      date.getMonth() === now.getMonth() &&
+      date.getFullYear() === now.getFullYear()
     );
   }).length;
 
-  const suspendedMakers = users.filter((u) => u.role === "maker" && u.banned).length;
+  const suspendedMakers = users.filter(
+    (u) => u.role === "maker" && u.banned,
+  ).length;
 
   return (
     <div
@@ -186,7 +189,9 @@ function UsersList() {
       <div className="bg-card border border-border rounded-xl overflow-hidden shadow-none">
         <div className="p-6 border-b border-border bg-muted/20 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="space-y-1">
-            <h2 className="text-xl font-bold tracking-tight">Active Accounts</h2>
+            <h2 className="text-xl font-bold tracking-tight">
+              Active Accounts
+            </h2>
             <p className="text-xs text-muted-foreground">
               Registry of all authorized system entities.
             </p>
@@ -216,7 +221,9 @@ function UsersList() {
             if (filteredUsers.length === 0) {
               return (
                 <EmptyState
-                  title={searchQuery ? "No matching accounts" : "No Users Found"}
+                  title={
+                    searchQuery ? "No matching accounts" : "No Users Found"
+                  }
                   description={
                     searchQuery
                       ? `We couldn't find any account matching "${searchQuery}"`

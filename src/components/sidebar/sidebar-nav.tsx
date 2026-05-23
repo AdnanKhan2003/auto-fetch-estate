@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import { SidebarMenu, SidebarMenuButton, SidebarMenuItem } from "../ui/sidebar";
 import { usePathname } from "next/navigation";
-import { authClient } from "@/lib/auth/auth-client";
+import { authClient } from "@/auth/auth-client";
 import Link from "next/link";
 
 function SidebarNav() {

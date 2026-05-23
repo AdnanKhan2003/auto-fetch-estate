@@ -10,7 +10,7 @@ import {
 } from "../ui/dropdown-menu";
 import { SidebarMenu, SidebarMenuButton, SidebarMenuItem } from "../ui/sidebar";
 import { useRouter } from "next/navigation";
-import { authClient } from "@/lib/auth/auth-client";
+import { authClient } from "@/auth/auth-client";
 
 function SidebarProfile() {
   const router = useRouter();

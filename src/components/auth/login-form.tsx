@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { signIn } from "@/lib/auth/auth-client";
+import { signIn } from "@/auth/auth-client";
 import AuthInput from "./auth-input";
 import { Eye, EyeOff, Lock, Mail } from "lucide-react";
 import { Button } from "../ui/button";

@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
-import { authClient } from "@/lib/auth/auth-client";
+import { authClient } from "@/auth/auth-client";
 import {
   Dialog,
   DialogContent,
