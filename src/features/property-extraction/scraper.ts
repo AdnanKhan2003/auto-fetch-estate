@@ -86,9 +86,10 @@ async function navigatePage(page: any, url: string) {
   // Use "domcontentloaded" for sites with Akamai/Cloudflare WAF.
   // "networkidle" holds the connection open longer, which raises
   // suspicious-activity scores and can stall on JS challenges.
-  const waitStrategy = url.includes("housing.com") || url.includes("99acres.com")
-    ? "domcontentloaded"
-    : "domcontentloaded"; // Actually, networkidle is too flaky for all real estate sites. Let's use domcontentloaded for all.
+  const waitStrategy =
+    url.includes("housing.com") || url.includes("99acres.com")
+      ? "domcontentloaded"
+      : "domcontentloaded"; // Actually, networkidle is too flaky for all real estate sites. Let's use domcontentloaded for all.
 
   await page.goto(url, { waitUntil: waitStrategy, timeout: 60000 });
   await page.waitForSelector("body", { timeout: 10000 });
@@ -105,7 +106,7 @@ async function navigatePage(page: any, url: string) {
 
 async function takeScreenshot(
   page: any,
-  url: string
+  url: string,
 ): Promise<{ screenshotName: string; screenshotPath: string }> {
   let slug = "property";
   try {
@@ -114,7 +115,7 @@ async function takeScreenshot(
     const segments = urlObj.pathname.split("/").filter(Boolean);
     let longest = segments.reduce(
       (max, cur) => (cur.length > max.length ? cur : max),
-      ""
+      "",
     );
     // Clean to alphanumeric/hyphens, max 40 chars to avoid absurdly long names
     longest = longest
@@ -205,7 +206,6 @@ async function processUrl(url: string) {
     // Step 4 — Clean text
     const cleanText = await extractCleanContent(page);
 
-
     // Step 5 — 404 / removed listing detection
     const lowerClean = cleanText.toLowerCase();
     const is404 =
@@ -218,7 +218,6 @@ async function processUrl(url: string) {
 
     // Step 6 — Deterministic selector extraction
     const selectorData = await extractBySelectors(page);
-
 
     // Step 7 — AI text extraction (JSON-LD + page text)
     const { data: structuredData, tokens: textTokens } =
@@ -284,6 +283,7 @@ async function processUrl(url: string) {
     console.error(`Failed to process ${url}:`, error);
     return { url, status: "error" as const, error: error.message };
   } finally {
+    await context.close();
     await browser.close();
   }
 }

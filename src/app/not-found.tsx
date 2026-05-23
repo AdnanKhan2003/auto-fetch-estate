@@ -8,9 +8,6 @@ import ThemeToggle from "@/components/theme/theme-toggle";
 export default function NotFound() {
   return (
     <div className="flex min-h-screen flex-col items-center justify-center overflow-hidden bg-background text-foreground selection:bg-primary/30 font-mono relative">
-      <div className="absolute right-4 top-4 z-50">
-        <ThemeToggle />
-      </div>
       {/* 1. The Blueprint Grid (Static) - Reduced opacity for light mode */}
       <div className="absolute inset-0 z-0 opacity-10 dark:opacity-20 bg-[linear-gradient(to_right,#1e3a8a_1px,transparent_1px),linear-gradient(to_bottom,#1e3a8a_1px,transparent_1px)] bg-size-[50px_50px]" />
       {/* 2. Drifting Structural Lines (Animated) */}
@@ -70,7 +67,7 @@ export default function NotFound() {
             Warning: Invalid Coordinate
           </div>
           <h1 className="text-4xl font-black tracking-tighter sm:text-6xl uppercase">
-            Error <span className="text-primary">404</span>
+            Not Found <span className="text-primary">404</span>
           </h1>
           <h2 className="text-xl font-medium text-foreground/80">
             Structural failure in the URL.

@@ -1,4 +1,13 @@
-import { pgTable, text, timestamp, boolean } from "drizzle-orm/pg-core";
+import { Property } from "@/features/property-extraction/schema";
+import {
+  pgTable,
+  text,
+  timestamp,
+  boolean,
+  jsonb,
+  integer,
+  numeric,
+} from "drizzle-orm/pg-core";
 
 const user = pgTable("user", {
   id: text("id").primaryKey(),
@@ -69,4 +78,37 @@ const verification = pgTable("verification", {
   }).notNull(),
 });
 
-export { user, session, account, verification };
+const propertyListing = pgTable("property_listing", {
+  id: text("id").primaryKey(),
+  userId: text("user_id")
+    .notNull()
+    .references(() => user.id, { onDelete: "cascade" }),
+  url: text("url").notNull(),
+  title: text("title"),
+  propertyType: text("property_type"),
+  city: text("city"),
+  location: text("location"),
+  price: text("price"),
+  carpetArea: text("carpet_area"),
+  extractedData: jsonb("extracted_data").$type<Property>(),
+
+  status: text("status").notNull(),
+  errorMessage: text("error_message"),
+  tokensUsed: integer("tokens_used"),
+
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+const apiQuota = pgTable("api_quota", {
+  id: text("id").primaryKey(),
+  requestsToday: integer("requests_today").notNull().default(0),
+  tokensUsedToday: integer("tokens_used_today").notNull().default(0),
+
+  lastResetDate: text("last_reset_date").notNull(),
+
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export { user, session, account, verification, propertyListing, apiQuota };

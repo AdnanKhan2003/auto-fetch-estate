@@ -19,9 +19,6 @@ export default function Error({
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-background text-foreground p-6 font-mono relative">
-      <div className="absolute right-4 top-4 z-50">
-        <ThemeToggle />
-      </div>
       {/* Background Glow */}
       <div className="absolute inset-0 z-0 bg-[radial-gradient(circle_at_center,#ef444408_0%,transparent_70%)] dark:bg-[radial-gradient(circle_at_center,#ef444410_0%,transparent_70%)]" />
 

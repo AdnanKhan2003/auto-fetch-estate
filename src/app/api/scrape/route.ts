@@ -1,11 +1,21 @@
 import { NextResponse } from "next/server";
 import { processUrl } from "@/features/property-extraction/scraper";
 import { getQuotaMetrics } from "@/lib/ai-rate-limiter";
+import { auth } from "@/auth/auth";
+import { headers } from "next/headers";
+import { propertyListing, session } from "@/db/schema";
+import { db } from "@/db";
 
 let batchCounter = 0;
 
 export async function POST(request: Request) {
   try {
+    const sessionData = await auth.api.getSession({ headers: await headers() });
+    if (!sessionData) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const userId = sessionData.user.id;
+
     batchCounter++;
     const runId = `${Date.now()}-${Math.floor(Math.random() * 10000)}`;
     const { urls } = await request.json();
@@ -41,12 +51,26 @@ export async function POST(request: Request) {
                 const result = await processUrl(url.trim());
                 console.log(`[Batch] Done: ${url}`);
 
-                const metrics = getQuotaMetrics();
+                await db.insert(propertyListing).values({
+                  id: crypto.randomUUID(),
+                  userId,
+                  url: url.trim(),
+                  title: result.data?.propertyTitle || null,
+                  propertyType: result.data?.propertyType || null,
+                  city: result.data?.city || null,
+                  location: result.data?.location || null,
+                  price: result.data?.price || null,
+                  carpetArea: result.data?.carpetArea || null,
+                  extractedData: result.data as any,
+                  status: "success",
+                  tokensUsed: result.tokensUsed,
+                });
+
+                const metrics = await getQuotaMetrics();
 
                 const enrichedResult = {
                   ...result,
                   rpdRemaining: metrics.rpdRemaining,
-                  rpmRemaining: metrics.rpmRemaining,
                 };
 
                 // NDJSON — one JSON object per line, pushed immediately
@@ -56,13 +80,21 @@ export async function POST(request: Request) {
               } catch (e: any) {
                 console.log(`[Batch] Error on ${url}: ${e.message}`);
 
-                const metrics = getQuotaMetrics();
+                await db.insert(propertyListing).values({
+                  id: crypto.randomUUID(),
+                  userId: userId,
+                  url: url.trim(),
+                  status: "error",
+                  errorMessage: e.message,
+                  tokensUsed: 0,
+                });
+
+                const metrics = await getQuotaMetrics();
                 const errorResult = {
                   url: url.trim(),
                   status: "error",
                   error: e.message,
                   rpdRemaining: metrics.rpdRemaining,
-                  rpmRemaining: metrics.rpmRemaining,
                   tokensUsed: 0,
                 };
 
@@ -77,7 +109,7 @@ export async function POST(request: Request) {
             console.log(
               `[Batch] Cooldown: Waiting 11 seconds before next chunk...`,
             );
-            await new Promise((resolve) => setTimeout(resolve, 11000));
+            await new Promise((resolve) => setTimeout(resolve, 13000));
           }
         }
         controller.close();

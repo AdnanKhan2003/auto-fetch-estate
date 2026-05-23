@@ -8,6 +8,10 @@ import PropertyDetailsModal from "./property-details-modal";
 import { PropertyExtractionResult } from "@/features/property-extraction/scraper";
 import { COMMA_REGEX, NUMERIC_REGEX } from "@/lib/regex";
 import { calculateRawRatePerSqft, parseIndianNumber } from "@/lib/format-utils";
+import {
+  deleteAllPropertyListings,
+  getPropertyListings,
+} from "@/features/property-extraction/actions";
 
 function parsePricePerSqft(priceText?: string | null): number | null {
   if (!priceText) return null;
@@ -62,39 +66,41 @@ export default function EstateAnalyzer() {
     useState<PropertyExtractionResult | null>(null);
 
   useEffect(() => {
-    const savedUrls = localStorage.getItem("scrape_urls");
-    const savedResults = localStorage.getItem("scrape_history");
-
-    if (savedUrls) {
+    async function loadData() {
       try {
-        setUrls(JSON.parse(savedUrls));
-      } catch (e) {
-        console.log(e);
+        const properties = await getPropertyListings();
+
+        if (properties && properties.length > 0) {
+          const formattedResults = properties.map((p) => ({
+            url: p.url,
+            status: p.status,
+            data: p.extractedData,
+            tokens: p.tokensUsed,
+          }));
+
+          setResults(formattedResults as any);
+
+          const initSelection: Record<string, boolean> = {};
+          formattedResults.forEach((r: any) => {
+            if (r.data?.carpetArea) initSelection[r.url] = true;
+          });
+          setRowSelection(initSelection);
+        }
+      } catch (error) {
+        console.error("Failed to load from DB", error);
+      } finally {
+        setIsMounted(true);
       }
     }
 
-    if (savedResults) {
-      try {
-        const parsed = JSON.parse(savedResults);
-        setResults(parsed);
-        // Auto-check rows that have ANY valid area
-        const initSelection: Record<string, boolean> = {};
-        parsed.forEach((r: any) => {
-          if (hasValidArea(r)) initSelection[r.url] = true;
-        });
-        setRowSelection(initSelection);
-      } catch (e) {
-        console.error("Failed to load history", e);
-      }
-    }
-    setIsMounted(true);
+    loadData();
   }, []);
 
   const handleScrape = async (submittedUrls: string[]) => {
     setIsLoading(true);
     // Deduplicate URLs to prevent key collisions and redundant scrapes
+    setUrls(submittedUrls);
     const uniqueUrls = Array.from(new Set(submittedUrls));
-    localStorage.setItem("scrape_urls", JSON.stringify(uniqueUrls));
 
     setPendingUrls(uniqueUrls); // show skeleton rows immediately
     try {
@@ -143,11 +149,10 @@ export default function EstateAnalyzer() {
               const unique = Array.from(
                 new Map(merged.map((item) => [item.url, item])).values(),
               );
-              localStorage.setItem("scrape_history", JSON.stringify(unique));
               return unique;
             });
             // Auto-check this URL if it has ANY valid area
-            if (hasValidArea(result)) {
+            if (result.data?.carpetArea) {
               setRowSelection((prev) => ({ ...prev, [result.url]: true }));
             }
           } catch (e) {
@@ -163,10 +168,14 @@ export default function EstateAnalyzer() {
     }
   };
 
-  const clearHistory = () => {
+  const clearHistory = async () => {
     setResults([]);
     setRowSelection({});
-    localStorage.removeItem("scrape_history");
+    try {
+      await deleteAllPropertyListings();
+    } catch (e) {
+      console.error("Failed to clear DB", e);
+    }
   };
 
   // When showTotalArea is ON: include every row that has price + any area

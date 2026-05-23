@@ -98,9 +98,7 @@ async function extractStructuredData(
          ${JSON.stringify(knownData, null, 2)}
       `;
 
-
-
-    checkQuotaAndConsume();
+    await checkQuotaAndConsume();
 
     const { object, usage } = await generateObject({
       model: googleProvider(modelName),
@@ -112,8 +110,6 @@ async function extractStructuredData(
     if (object && Object.keys(object).length > 0) {
       console.log("✅ [AI] Extraction successful!");
     }
-
-
 
     return { data: object, tokens: usage?.totalTokens ?? 0 };
   } catch (err: any) {
@@ -168,7 +164,7 @@ async function runVisionExtraction({
     const screenshotBuffer = fs.readFileSync(screenshotPath);
     const visionGoogle = createGoogleGenerativeAI({ apiKey: visionApiKey });
 
-    checkQuotaAndConsume();
+    await checkQuotaAndConsume();
 
     const { object, usage } = await generateObject({
       model: visionGoogle(visionModelName),
@@ -213,7 +209,4 @@ async function runVisionExtraction({
   }
 }
 
-export {
-  extractStructuredData,
-  runVisionExtraction
-};
+export { extractStructuredData, runVisionExtraction };

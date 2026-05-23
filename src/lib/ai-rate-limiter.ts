@@ -1,53 +1,88 @@
+import { db } from "@/db";
+import { apiQuota } from "@/db/schema";
+import { eq } from "drizzle-orm";
+
 const REQUEST_PER_DAY = 20;
-const REQUEST_PER_MINUTE = 5;
 
-const globalState = global as unknown as {
-  dailyCount?: number;
-  lastResetDay?: number;
-  rpmTimestamps?: number[];
-};
+async function checkQuotaAndConsume() {
+  const currentPacificDate = new Date().toLocaleDateString("en-US", {
+    timeZone: "America/Los_Angeles",
+    dateStyle: "short",
+  });
 
-if (typeof globalState.dailyCount === "undefined") {
-  globalState.dailyCount = 0;
-  globalState.lastResetDay = new Date().getDate();
-  globalState.rpmTimestamps = [];
+  let quotaRecord = await db.query.apiQuota.findFirst({
+    where: eq(apiQuota.id, "global"),
+  });
+
+  if (!quotaRecord) {
+    const [newRecord] = await db
+      .insert(apiQuota)
+      .values({
+        id: "global",
+        requestsToday: 0,
+        tokensUsedToday: 0,
+        lastResetDate: currentPacificDate,
+      })
+      .returning();
+
+    quotaRecord = newRecord;
+  }
+
+  let { requestsToday, tokensUsedToday, lastResetDate } = quotaRecord;
+
+  if (lastResetDate !== currentPacificDate) {
+    requestsToday = 0;
+    tokensUsedToday = 0;
+    lastResetDate = currentPacificDate;
+  }
+
+  if (requestsToday >= REQUEST_PER_DAY) {
+    throw new Error(
+      `Google AI Daily Limit (${REQUEST_PER_DAY} RPD) reached. Try tomorrow.`,
+    );
+  }
+
+  await db
+    .update(apiQuota)
+    .set({
+      requestsToday: requestsToday + 1,
+      tokensUsedToday,
+      lastResetDate,
+      updatedAt: new Date(),
+    })
+    .where(eq(apiQuota.id, "global"));
 }
 
-function checkQuotaAndConsume() {
-  const now = Date.now();
-  const currentDay = new Date(now).getDate();
+async function logTokensUsed(tokens: number) {
+  const quotaRecord = await db.query.apiQuota.findFirst({
+    where: eq(apiQuota.id, "global"),
+  });
 
-  if (currentDay !== globalState.lastResetDay) {
-    globalState.dailyCount = 0;
-    globalState.lastResetDay = currentDay;
+  if (quotaRecord) {
+    await db
+      .update(apiQuota)
+      .set({
+        tokensUsedToday: quotaRecord.tokensUsedToday + tokens,
+      })
+      .where(eq(apiQuota.id, "global"));
   }
-
-  if (globalState.dailyCount! >= REQUEST_PER_DAY) {
-    throw new Error(`Google AI Daily Limit (${REQUEST_PER_DAY} RPD) reached. Try Tomorrow.`);
-  }
-
-  const sixtySecondsAgo = now - 60000;
-
-  while (
-    globalState.rpmTimestamps!.length > 0 &&
-    globalState.rpmTimestamps![0] < sixtySecondsAgo
-  ) {
-    globalState.rpmTimestamps!.shift();
-  }
-
-  if (globalState.rpmTimestamps!.length >= REQUEST_PER_MINUTE) {
-    throw new Error(`Rate limit (${REQUEST_PER_MINUTE} RPM) reached. Please wait 60 seconds.`);
-  }
-
-  globalState.dailyCount!++;
-  globalState.rpmTimestamps!.push(now);
 }
 
-function getQuotaMetrics() {
+async function getQuotaMetrics() {
+  const quotaRecord = await db.query.apiQuota.findFirst({
+    where: eq(apiQuota.id, "global"),
+  });
+
+  const used = quotaRecord?.requestsToday || 0;
+
   return {
-    rpdRemaining: REQUEST_PER_DAY - (globalState.dailyCount || 0),
-    rpmRemaining: REQUEST_PER_MINUTE - (globalState.rpmTimestamps?.length || 0),
+    rpdRemaining: Math.max(REQUEST_PER_DAY - used),
   };
 }
 
-export { checkQuotaAndConsume, getQuotaMetrics, REQUEST_PER_DAY, REQUEST_PER_MINUTE };
+export {
+  checkQuotaAndConsume,
+  logTokensUsed,
+  getQuotaMetrics,
+  REQUEST_PER_DAY,
+};
