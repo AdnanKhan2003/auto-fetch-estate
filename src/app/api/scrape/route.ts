@@ -61,6 +61,7 @@ export async function POST(request: Request) {
                   location: result.data?.location || null,
                   price: result.data?.price || null,
                   carpetArea: result.data?.carpetArea || null,
+                  screenshotUrl: result.screenshotUrl || null,
                   extractedData: result.data as any,
                   status: "success",
                   tokensUsed: result.tokensUsed,

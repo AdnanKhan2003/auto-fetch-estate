@@ -36,7 +36,7 @@ function PropertyDetailsModal({
   return (
     <>
       <Dialog open={!!property} onOpenChange={onClose}>
-        <DialogContent 
+        <DialogContent
           className="flex max-h-[90vh] w-[95vw] flex-col overflow-hidden rounded-2xl border-border bg-card p-0 shadow-2xl sm:max-w-5xl"
           onInteractOutside={(e) => {
             // Prevent Radix from closing the modal if the lightbox is open
@@ -73,19 +73,19 @@ function PropertyDetailsModal({
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
               <TechnicalMatrix data={property?.data} />
-              <EvidenceSection 
-                property={property} 
-                onOpenLightbox={() => setLightboxOpen(true)} 
+              <EvidenceSection
+                property={property}
+                onOpenLightbox={() => setLightboxOpen(true)}
               />
             </div>
           </div>
         </DialogContent>
       </Dialog>
 
-      <Lightbox 
-        isOpen={lightboxOpen} 
-        onClose={() => setLightboxOpen(false)} 
-        imageUrl={property?.screenshotUrl} 
+      <Lightbox
+        isOpen={lightboxOpen}
+        onClose={() => setLightboxOpen(false)}
+        imageUrl={property?.screenshotUrl || "/fallback-image.png"}
         title={property?.data?.propertyTitle}
       />
     </>

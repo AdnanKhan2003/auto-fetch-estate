@@ -167,70 +167,65 @@ function ResultsTable({
               ))}
             </TableHeader>
             <TableBody>
-              {table.getRowModel().rows.length > 0 ? (
+              {table.getRowModel().rows.length > 0 || pendingUrls.length > 0 ? (
                 <>
-                  {table.getRowModel().rows.map((row) => {
-                    const rowId = `row-${btoa(row.original.url).replaceAll("=", "")}`;
-                    const isFocused = focusedUrl === row.original.url;
-                    return (
-                      <TableRow
-                        key={row.id}
-                        id={rowId}
-                        data-state={row.getIsSelected() && "selected"}
-                        // className={`border-b transition-all duration-300 hover:bg-muted/50 cursor-pointer
-                        //    ${isFocused ? "bg-black/20! dark:bg-white/15! border-1-foreground" : "border-1-transparent"}
-                        //   `}
-                        className={`border-b transition-all duration-300 cursor-pointer hover:bg-black/10 dark:hover:bg-muted/50 data-[state=selected]:hover:bg-black/10 dark:data-[state=selected]:hover:bg-muted/80
- 
-${isFocused ? "bg-black/10! dark:bg-white/15!" : ""}
+                  {(() => {
+                    const renderedUrls = new Set<string>();
 
+                    const renderRow = (row: any) => {
+                      const rowId = `row-${btoa(row.original.url).replaceAll("=", "")}`;
+                      const isFocused = focusedUrl === row.original.url;
+                      return (
+                        <TableRow
+                          key={row.id}
+                          id={rowId}
+                          data-state={row.getIsSelected() && "selected"}
+                          className={`border-b transition-all duration-300 cursor-pointer hover:bg-black/10 dark:hover:bg-muted/50 data-[state=selected]:hover:bg-black/10 dark:data-[state=selected]:hover:bg-muted/80 ${isFocused ? "bg-black/10! dark:bg-white/15!" : ""}`}
+                          onClick={() => onRowClick(row.original)}
+                        >
+                          {row.getVisibleCells().map((cell: any) => (
+                            <TableCell
+                              key={cell.id}
+                              className={`py-4 relative 
+                              ${cell.column.id === "select" ? "pl-6 w-[50px]" : "px-4"}
+                              ${cell.column.id === "data_pricePerSqft" ? "pr-6 text-right font-black text-foreground" : ""}
+                              ${isFocused ? "first:before:absolute first:before:left-0 first:before:top-0 first:before:bottom-0 first:before:w-1 first:before:bg-foreground first:before:rounded-full" : ""}`}
+                            >
+                              {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                            </TableCell>
+                          ))}
+                        </TableRow>
+                      );
+                    };
 
+                    const currentSessionNodes = originalUrls.map((url) => {
+                      renderedUrls.add(url);
+                      const completedRow = table.getRowModel().rows.find((r) => r.original.url === url);
+                      if (completedRow) return renderRow(completedRow);
+                      if (pendingUrls.includes(url)) return <SkeletonRow key={`skel-${url}`} />;
+                      return null;
+                    });
 
+                    const historyNodes = table.getRowModel().rows
+                      .filter((row) => !renderedUrls.has(row.original.url))
+                      .map((row) => renderRow(row));
 
-                          `}
-                        onClick={() => onRowClick(row.original)}
-                      >
-                        {row.getVisibleCells().map((cell) => (
-                          <TableCell
-                            key={cell.id}
-                            className={`
-                            py-4 relative 
-                            ${cell.column.id === "select" ? "pl-6 w-[50px]" : "px-4"}
-                            ${cell.column.id === "data_pricePerSqft" ? "pr-6 text-right font-black text-foreground" : ""}
-                     ${isFocused ? "first:before:absolute first:before:left-0 first:before:top-0 first:before:bottom-0 first:before:w-1 first:before:bg-foreground first:before:rounded-full" : ""}
+                    const extraSkeletons = pendingUrls
+                      .filter((url) => !renderedUrls.has(url))
+                      .map((url) => <SkeletonRow key={`skel-extra-${url}`} />);
 
-
-
-                          `}
-                          >
-                            {flexRender(
-                              cell.column.columnDef.cell,
-                              cell.getContext(),
-                            )}
-                          </TableCell>
-                        ))}
-                      </TableRow>
-                    );
-                  })}
-                  {pendingUrls.map((url) => (
-                    <SkeletonRow key={url} />
-                  ))}
+                    return [...currentSessionNodes, ...historyNodes, ...extraSkeletons];
+                  })()}
                 </>
               ) : (
-                <>
-                  {pendingUrls.length > 0 ? (
-                    pendingUrls.map((url) => <SkeletonRow key={url} />)
-                  ) : (
-                    <TableRow>
-                      <TableCell
-                        colSpan={columns.length}
-                        className="h-24 text-center text-muted-foreground"
-                      >
-                        No properties extracted yet.
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </>
+                <TableRow>
+                  <TableCell
+                    colSpan={columns.length}
+                    className="h-24 text-center text-muted-foreground"
+                  >
+                    No properties extracted yet.
+                  </TableCell>
+                </TableRow>
               )}
             </TableBody>
             <ResultsTableFooter

@@ -79,22 +79,16 @@ export const columns: ColumnDef<PropertyExtractionResult>[] = [
       const screenshot = row.original.screenshotUrl;
       return (
         <div className="h-10 w-14 relative overflow-hidden rounded border border-border bg-muted">
-          {screenshot ? (
-            <Image
-              src={screenshot}
-              alt="Property"
-              fill
-              className="object-cover"
-              onError={(e) => {
-                ((e.currentTarget.src = "/fallback-image.png"),
-                  (e.currentTarget.srcset = ""));
-              }}
-            />
-          ) : (
-            <div className="flex h-full w-full items-center justify-center text-[10px] text-muted-foreground">
-              N/A
-            </div>
-          )}
+          <Image
+            src={screenshot || "/fallback-image.png"}
+            alt="Property"
+            fill
+            className="object-cover"
+            onError={(e) => {
+              ((e.currentTarget.src = "/fallback-image.png"),
+                (e.currentTarget.srcset = ""));
+            }}
+          />
         </div>
       );
     },

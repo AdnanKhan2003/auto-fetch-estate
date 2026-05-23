@@ -12,6 +12,15 @@ import {
   deleteAllPropertyListings,
   getPropertyListings,
 } from "@/features/property-extraction/actions";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "../ui/alert-dialog";
 
 function parsePricePerSqft(priceText?: string | null): number | null {
   if (!priceText) return null;
@@ -36,6 +45,7 @@ function hasValidArea(r: any): boolean {
 
 export default function EstateAnalyzer() {
   // Core Input Url state
+  const [duplicateUrls, setDuplicateUrls] = useState<string[]>([]);
   const [urls, setUrls] = useState<string[]>([""]);
   const [isLoading, setIsLoading] = useState(false);
   const [pendingUrls, setPendingUrls] = useState<string[]>([]);
@@ -76,6 +86,7 @@ export default function EstateAnalyzer() {
             status: p.status,
             data: p.extractedData,
             tokens: p.tokensUsed,
+            screenshotUrl: p.screenshotUrl,
           }));
 
           setResults(formattedResults as any);
@@ -98,6 +109,16 @@ export default function EstateAnalyzer() {
 
   const handleScrape = async (submittedUrls: string[]) => {
     setIsLoading(true);
+
+    const existingUrls = submittedUrls.filter((url) =>
+      results.some((r) => r.url === url),
+    );
+
+    if (existingUrls.length > 0) {
+      setDuplicateUrls(existingUrls);
+      setIsLoading(false);
+      return;
+    }
     // Deduplicate URLs to prevent key collisions and redundant scrapes
     setUrls(submittedUrls);
     const uniqueUrls = Array.from(new Set(submittedUrls));
@@ -287,6 +308,44 @@ export default function EstateAnalyzer() {
         property={selectedProperty}
         onClose={() => setSelectedProperty(null)}
       />
+
+      <AlertDialog
+        open={duplicateUrls.length > 0}
+        onOpenChange={(open) => {
+          if (!open) setDuplicateUrls([]);
+        }}
+      >
+        <AlertDialogContent className="border-border bg-card shadow-2xl rounded-2xl max-w-lg">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-red-500 text-lg font-black tracking-widest uppercase flex items-center gap-2">
+              This Property's Data Already Exists!
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-muted-foreground text-sm leading-relaxed pt-2">
+              You have already scraped the following url or urls. To protect
+              your strict Gemini API limits, we instantly canceled the scrape.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="p-4 rounded-xl bg-black/5 dark:bg-black/40 border border-border/50 shadow-inner overflow-hidden">
+            <ul className="text-[11px] font-mono text-muted-foreground break-all space-y-2 max-h-[200px] overflow-y-auto">
+              {duplicateUrls.map((u) => (
+                <li key={u} className="flex items-start gap-2">
+                  <span className="text-red-500 font-bold mt-0.5">✕</span>
+                  <span className="leading-snug">{u}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <AlertDialogFooter>
+            <AlertDialogAction
+              onClick={() => setDuplicateUrls([])}
+              className="font-bold cursor-pointer"
+            >
+              Okay
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

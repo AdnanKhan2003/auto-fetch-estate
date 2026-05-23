@@ -90,6 +90,7 @@ const propertyListing = pgTable("property_listing", {
   location: text("location"),
   price: text("price"),
   carpetArea: text("carpet_area"),
+  screenshotUrl: text("screenshot_url"),
   extractedData: jsonb("extracted_data").$type<Property>(),
 
   status: text("status").notNull(),

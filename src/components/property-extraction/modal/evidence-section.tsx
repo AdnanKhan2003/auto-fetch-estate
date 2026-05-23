@@ -18,11 +18,11 @@ export function EvidenceSection({
 
       <div
         className="group relative overflow-hidden rounded-xl border border-border bg-muted shadow-inner cursor-zoom-in"
-        onClick={() => property?.screenshotUrl && onOpenLightbox()}
+        onClick={() => property && onOpenLightbox()}
       >
-        {property && property.screenshotUrl && (
+        {property && (
           <Image
-            src={property.screenshotUrl}
+            src={property.screenshotUrl || "/fallback-image.png"}
             width={1280}
             height={800}
             className="w-full h-auto transition-all duration-1000 group-hover:scale-[1.02]"
