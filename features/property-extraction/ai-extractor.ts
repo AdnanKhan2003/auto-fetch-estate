@@ -14,7 +14,7 @@ const DEFAULT_GOOGLE_MODEL = "gemini-2.5-flash";
  * Uses a Gemini text model to fill schema fields from JSON-LD blocks and
  * raw page text. Returns whatever the model can extract; returns {} on failure.
  */
-export async function extractStructuredData(
+async function extractStructuredData(
   page: any,
   cleanText: string,
   knownData: Partial<Property> = {},
@@ -146,7 +146,7 @@ interface VisionResult {
  * Uses Gemini Vision (screenshot image) to recover fields that text extraction
  * missed. Only called when critical fields are still absent after text AI.
  */
-export async function runVisionExtraction({
+async function runVisionExtraction({
   url,
   screenshotPath,
   missingCritical,
@@ -212,3 +212,8 @@ export async function runVisionExtraction({
     return { aiData: {}, visionUsed: false, tokens: 0 };
   }
 }
+
+export {
+  extractStructuredData,
+  runVisionExtraction
+};

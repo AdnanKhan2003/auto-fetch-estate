@@ -18,7 +18,7 @@ async function AdminViewUsersPage() {
       {/* 🏙️ PREMIUM ADMIN HEADER */}
       <header className="sticky top-0 z-50 w-full border-b border-border bg-background/80 backdrop-blur-md">
         <div className="flex h-[64px] items-center gap-4 px-8">
-          <SidebarTrigger className="cursor-pointer" />
+          <SidebarTrigger className="cursor-pointer md:hidden" />
           <div className="flex flex-col">
             <h1 className="text-lg font-bold tracking-tight text-foreground leading-none">
               Registry Audit

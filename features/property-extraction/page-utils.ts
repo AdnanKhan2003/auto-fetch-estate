@@ -2,7 +2,7 @@
  * Phrases that indicate a 404 or removed-listing page.
  * Checked against cleanText (case-insensitive) + length guard to avoid false positives.
  */
-export const ERROR_PAGE_PHRASES = [
+const ERROR_PAGE_PHRASES = [
   "something is missing",
   "page not found",
   "404 not found",
@@ -20,7 +20,7 @@ export const ERROR_PAGE_PHRASES = [
 /**
  * Returns true if the page title or HTML body signals a bot-protection block.
  */
-export function isBlocked(pageTitle: string, html: string): boolean {
+function isBlocked(pageTitle: string, html: string): boolean {
   const lowTitle = pageTitle.toLowerCase();
   const lowHtml = html.toLowerCase();
 
@@ -63,7 +63,7 @@ export function isBlocked(pageTitle: string, html: string): boolean {
  * Strips nav, footer, ads, and scripts from the page then returns the
  * remaining visible body text — ready to feed to the AI extractor.
  */
-export async function extractCleanContent(page: any): Promise<string> {
+async function extractCleanContent(page: any): Promise<string> {
   return page.evaluate(() => {
     const junkSelectors = [
       "script",
@@ -122,7 +122,7 @@ export async function extractCleanContent(page: any): Promise<string> {
  *
  * and implement the site-specific helper below this function.
  */
-export async function extractBySelectors(
+async function extractBySelectors(
   page: any,
 ): Promise<Record<string, any>> {
   // Generic text helper — tries each selector in order, returns first match < 200 chars
@@ -232,3 +232,10 @@ export async function extractBySelectors(
     internalFloorArea: await getByLabel("Carpet Area"),
   };
 }
+
+export {
+  ERROR_PAGE_PHRASES,
+  isBlocked,
+  extractCleanContent,
+  extractBySelectors
+};

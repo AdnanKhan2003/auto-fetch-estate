@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  serverExternalPackages: ["puppeteer-extra-plugin-stealth", "playwright-extra"],
 };
 
 export default nextConfig;

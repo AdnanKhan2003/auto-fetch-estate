@@ -21,21 +21,45 @@ function parsePricePerSqft(priceText?: string | null): number | null {
   return Number.isNaN(value) ? null : Math.round(value);
 }
 
+function hasValidArea(r: any): boolean {
+  const areas = [
+    r.data?.carpetArea,
+    r.data?.builtupArea,
+    r.data?.superBuiltupArea,
+  ];
+  return areas.some((a) => a && parseIndianNumber(a) > 50);
+}
+
 export default function EstateAnalyzer() {
-  const [isMounted, setIsMounted] = useState(false);
-  const [focusedUrl, setFocusedUrl] = useState<string | null>(null);
+  // Core Input Url state
   const [urls, setUrls] = useState<string[]>([""]);
   const [isLoading, setIsLoading] = useState(false);
+  const [pendingUrls, setPendingUrls] = useState<string[]>([]);
   const [results, setResults] = useState<PropertyExtractionResult[]>([]);
+
+  // Hydration issue fix
+  const [isMounted, setIsMounted] = useState(false);
+
+  // Calculate missing carpet area
+  const [showTotalArea, setShowTotalArea] = useState(false);
+
+  // Checkbox
+  const [rowSelection, setRowSelection] = useState<Record<string, boolean>>({});
+
+  // Factor to convert to carpet area
+  const [rowFactors, setRowFactors] = useState<Record<string, number>>({});
+  // Default fallback
+  const [conversionFactor, setConversionFactor] = useState<number>(0.72);
+
+  // locate in table
+  const [focusedUrl, setFocusedUrl] = useState<string | null>(null);
+
+  // discount
   const [discountPercentage, setDiscountPercentage] = useState<number>(0);
+
+  // Row detail (Modal)
   const [selectedProperty, setSelectedProperty] =
     useState<PropertyExtractionResult | null>(null);
-
-  const [pendingUrls, setPendingUrls] = useState<string[]>([]);
-  const [rowSelection, setRowSelection] = useState<Record<string, boolean>>({});
-  const [conversionFactor, setConversionFactor] = useState<number>(0.72);
-  const [rowFactors, setRowFactors] = useState<Record<string, number>>({});
-  const [showTotalArea, setShowTotalArea] = useState(false);
 
   useEffect(() => {
     const savedUrls = localStorage.getItem("scrape_urls");
@@ -53,11 +77,10 @@ export default function EstateAnalyzer() {
       try {
         const parsed = JSON.parse(savedResults);
         setResults(parsed);
-        // Auto-check rows that have carpet area
+        // Auto-check rows that have ANY valid area
         const initSelection: Record<string, boolean> = {};
         parsed.forEach((r: any) => {
-          const areaValue = parseIndianNumber(r.data?.carpetArea || "0");
-          if (areaValue > 100) initSelection[r.url] = true;
+          if (hasValidArea(r)) initSelection[r.url] = true;
         });
         setRowSelection(initSelection);
       } catch (e) {
@@ -123,9 +146,8 @@ export default function EstateAnalyzer() {
               localStorage.setItem("scrape_history", JSON.stringify(unique));
               return unique;
             });
-            // Auto-check this URL if it has carpet area
-            const areaValue = parseIndianNumber(result.data?.carpetArea || "0");
-            if (areaValue > 100) {
+            // Auto-check this URL if it has ANY valid area
+            if (hasValidArea(result)) {
               setRowSelection((prev) => ({ ...prev, [result.url]: true }));
             }
           } catch (e) {
@@ -150,18 +172,10 @@ export default function EstateAnalyzer() {
   // When showTotalArea is ON: include every row that has price + any area
   // (factor converts built-up → carpet for rows missing carpet area).
   // When OFF: only manually checked rows are counted (existing behaviour).
-  const hasValidArea = (r: any) => {
-    const areas = [
-      r.data?.carpetArea,
-      r.data?.builtupArea,
-      r.data?.superBuiltupArea,
-    ];
+  // (hasValidArea is now defined at the file level)
 
-    return areas.some((a) => a && parseIndianNumber(a) > 50);
-  };
-
-  const rowsForAvg = results.filter((r) =>
-    showTotalArea ? r.data?.price && hasValidArea(r) : rowSelection[r.url],
+  const rowsForAvg = results.filter(
+    (r) => rowSelection[r.url] && r.data?.price && hasValidArea(r),
   );
 
   const validPrices = rowsForAvg

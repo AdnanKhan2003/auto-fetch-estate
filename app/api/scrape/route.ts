@@ -29,7 +29,7 @@ export async function POST(request: Request) {
 
     const stream = new ReadableStream({
       async start(controller) {
-        const CONCURRENCY_LIMIT = 3;
+        const CONCURRENCY_LIMIT = 2; // Reduced from 5 to prevent Gemini 503 quotas
 
         for (let i = 0; i < activeUrls.length; i += CONCURRENCY_LIMIT) {
           const chunk = activeUrls.slice(i, i + CONCURRENCY_LIMIT);
@@ -75,9 +75,9 @@ export async function POST(request: Request) {
 
           if (i + CONCURRENCY_LIMIT < activeUrls.length) {
             console.log(
-              `[Batch] Cooldown: Waiting 3 seconds before next chunk...`,
+              `[Batch] Cooldown: Waiting 11 seconds before next chunk...`,
             );
-            await new Promise((resolve) => setTimeout(resolve, 3000));
+            await new Promise((resolve) => setTimeout(resolve, 11000));
           }
         }
         controller.close();

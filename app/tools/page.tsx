@@ -176,8 +176,7 @@ export default function CalculatorsPage() {
       {/* 🏙️ PREMIUM HEADER */}
       <header className="sticky top-0 z-50 w-full border-b border-border bg-background/80 backdrop-blur-md">
         <div className="flex h-[64px] items-center gap-4 sm:gap-6 px-8">
-          <SidebarTrigger className="cursor-pointer hover:bg-muted/50 transition-colors p-2 rounded-md -ml-2" />
-          <div className="h-6 w-px bg-border/60 hidden sm:block" aria-hidden="true"></div>
+          <SidebarTrigger className="cursor-pointer md:hidden hover:bg-muted/50 transition-colors p-2 rounded-md -ml-2" />
           <div className="flex flex-col">
             <h1 className="text-lg font-bold tracking-tight text-foreground leading-none">
               Tools

@@ -1,6 +1,10 @@
 import path from "path";
 import fs from "fs";
-import { chromium } from "playwright-core"; // system Chrome (swap to 'playwright' for Docker/CI)
+import { chromium } from "playwright-extra";
+import stealthPlugin from "puppeteer-extra-plugin-stealth";
+
+// Activate the stealth plugin globally
+chromium.use(stealthPlugin());
 
 import { propertySchema, Property } from "./schema";
 import {
@@ -73,50 +77,7 @@ async function launchBrowser() {
     },
   });
 
-  // Anti-bot fingerprint overrides
-  await context.addInitScript(() => {
-    // 1. Remove the webdriver flag
-    Object.defineProperty(navigator, "webdriver", { get: () => undefined });
-
-    // 2. Make chrome runtime object look like a real browser
-    (window.navigator as any).chrome = {
-      runtime: {
-        connect: () => {},
-        sendMessage: () => {},
-      },
-    };
-
-    // 3. Language and plugins
-    Object.defineProperty(navigator, "languages", {
-      get: () => ["en-IN", "en-US", "en"],
-    });
-    Object.defineProperty(navigator, "plugins", {
-      get: () => {
-        // Return a PluginArray-like object with 3 common plugins
-        const arr = [1, 2, 3];
-        (arr as any).namedItem = () => null;
-        (arr as any).refresh = () => {};
-        return arr;
-      },
-    });
-
-    // 4. Notification permissions — common Akamai probe
-    const originalQuery = window.navigator.permissions.query;
-    (window.navigator.permissions as any).query = (parameters: any) =>
-      parameters.name === "notifications"
-        ? Promise.resolve({ state: Notification.permission })
-        : originalQuery(parameters);
-
-    // 5. Platform and hardware concurrency — must match UA (Windows)
-    Object.defineProperty(navigator, "platform", { get: () => "Win32" });
-    Object.defineProperty(navigator, "hardwareConcurrency", { get: () => 8 });
-    Object.defineProperty(navigator, "deviceMemory", { get: () => 8 });
-
-    // 6. Screen dimensions — should match the viewport
-    Object.defineProperty(screen, "width", { get: () => 1280 });
-    Object.defineProperty(screen, "height", { get: () => 800 });
-    Object.defineProperty(screen, "colorDepth", { get: () => 24 });
-  });
+  // Note: Anti-bot fingerprint overrides are now handled by puppeteer-extra-plugin-stealth
 
   return { browser, context };
 }
@@ -125,9 +86,9 @@ async function navigatePage(page: any, url: string) {
   // Use "domcontentloaded" for sites with Akamai/Cloudflare WAF.
   // "networkidle" holds the connection open longer, which raises
   // suspicious-activity scores and can stall on JS challenges.
-  const waitStrategy = url.includes("housing.com")
+  const waitStrategy = url.includes("housing.com") || url.includes("99acres.com")
     ? "domcontentloaded"
-    : "networkidle";
+    : "domcontentloaded"; // Actually, networkidle is too flaky for all real estate sites. Let's use domcontentloaded for all.
 
   await page.goto(url, { waitUntil: waitStrategy, timeout: 60000 });
   await page.waitForSelector("body", { timeout: 10000 });
@@ -172,7 +133,7 @@ async function takeScreenshot(
     screenshotName,
   );
   fs.mkdirSync(path.dirname(screenshotPath), { recursive: true });
-  await page.screenshot({ path: screenshotPath });
+  await page.screenshot({ path: screenshotPath, timeout: 60000 });
   return { screenshotName, screenshotPath };
 }
 
@@ -224,7 +185,7 @@ function applyNormalizations(data: Record<string, any>): void {
 
 // ─── Main export ─────────────────────────────────────────────────────────────
 
-export async function processUrl(url: string) {
+async function processUrl(url: string) {
   const { browser, context } = await launchBrowser();
   const page = await context.newPage();
 
@@ -327,4 +288,7 @@ export async function processUrl(url: string) {
   }
 }
 
-export type PropertyExtractionResult = Awaited<ReturnType<typeof processUrl>>;
+type PropertyExtractionResult = Awaited<ReturnType<typeof processUrl>>;
+
+export { processUrl };
+export type { PropertyExtractionResult };

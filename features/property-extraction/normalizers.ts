@@ -25,7 +25,7 @@ const AREA_TYPE_MAP = [
 /**
  * Helper: Extracts the first numeric value from a string (ignores commas).
  */
-export function extractNumericValue(raw: string): number | null {
+function extractNumericValue(raw: string): number | null {
   const match = raw.replace(COMMA_REGEX, "").match(NUMERIC_REGEX);
   if (!match) return null;
 
@@ -54,7 +54,7 @@ function convertToSqFt(
  * Collapses all whitespace/newlines in a raw price string.
  * Handles SquareYards-style: "₹ 85 L\n            \n                + Charges" → "₹ 85 L + Charges"
  */
-export function normalizePrice(raw?: string | null): string | null {
+function normalizePrice(raw?: string | null): string | null {
   if (!raw) return null;
   return raw.replace(WHITESPACE_REGEX, " ").trim() || null;
 }
@@ -63,7 +63,7 @@ export function normalizePrice(raw?: string | null): string | null {
  * Normalises any pricePerSqft string to a consistent "₹X,XXX/sqft" format.
  * Handles: "₹24,286/sqft", "₹3,132 per sqft", "₹ 84,307 per sqft", "24286"
  */
-export function normalizePricePerSqft(raw?: string | null): string | null {
+function normalizePricePerSqft(raw?: string | null): string | null {
   if (!raw) return null;
 
   const num = extractNumericValue(raw);
@@ -77,7 +77,7 @@ export function normalizePricePerSqft(raw?: string | null): string | null {
  * Normalises any area string to "350 sqft Carpet Area" format.
  * Detects area type from the raw string if present.
  */
-export function normalizeArea(raw?: string | null): string | null {
+function normalizeArea(raw?: string | null): string | null {
   if (!raw) return null;
 
   const num = extractNumericValue(raw);
@@ -93,3 +93,10 @@ export function normalizeArea(raw?: string | null): string | null {
 
   return `${normalizedValue} ${DEFAULT_UNIT}${areaTypeLabel}`;
 }
+
+export {
+  extractNumericValue,
+  normalizePrice,
+  normalizePricePerSqft,
+  normalizeArea
+};

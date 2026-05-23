@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const propertySchema = z.object({
+const propertySchema = z.object({
   // Basic Information
   propertyTitle: z
     .string()
@@ -249,4 +249,7 @@ export const propertySchema = z.object({
     ),
 });
 
-export type Property = z.infer<typeof propertySchema>;
+type Property = z.infer<typeof propertySchema>;
+
+export { propertySchema };
+export type { Property };

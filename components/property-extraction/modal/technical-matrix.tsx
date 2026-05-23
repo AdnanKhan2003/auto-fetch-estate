@@ -62,22 +62,28 @@ export function TechnicalMatrix({ data }: TechnicalMatrixProps) {
     <div className="space-y-6">
       <SectionHeader title="Technical Matrix" />
       <div className="space-y-4">
-        {rows.map((row, i) => (
-          <div
-            key={i}
-            className="flex items-center justify-between border-b border-border py-2 text-sm last:border-0"
-          >
-            <span className="flex items-center gap-3 text-muted-foreground">
-              {row.icon} {row.label}
-            </span>
-            <span
-              className="font-semibold text-foreground text-right max-w-[60%] truncate"
-              title={row.value}
+        {rows.length > 0 ? (
+          rows.map((row, i) => (
+            <div
+              key={i}
+              className="flex items-center justify-between border-b border-border py-2 text-sm last:border-0"
             >
-              {row.value}
-            </span>
+              <span className="flex items-center gap-3 text-muted-foreground">
+                {row.icon} {row.label}
+              </span>
+              <span
+                className="font-semibold text-foreground text-right max-w-[60%] truncate"
+                title={row.value}
+              >
+                {row.value}
+              </span>
+            </div>
+          ))
+        ) : (
+          <div className="flex flex-col items-center justify-center py-6 text-muted-foreground bg-muted/20 rounded-md border border-dashed border-border/50">
+            <span className="text-sm">No technical metrics found for this listing.</span>
           </div>
-        ))}
+        )}
       </div>
     </div>
   );
