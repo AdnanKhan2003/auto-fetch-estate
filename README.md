@@ -78,24 +78,28 @@ DATABASE_URL="postgres://user:password@hostname/dbname?sslmode=require"
 ### Prerequisites
 
 Ensure you have the following installed on your local machine:
+
 - [Node.js](https://nodejs.org/) (v18 or higher)
 - npm / yarn / pnpm
 
 ### Installation
 
 1. **Clone the repository:**
+
    ```bash
    git clone https://github.com/AdnanKhan2003/auto-fetch-estate.git
    cd auto-fetch-estate
    ```
 
 2. **Install dependencies:**
+
    ```bash
    npm install
    ```
 
 3. **Initialize the Database:**
    Push the Drizzle schema to your PostgreSQL database to create the necessary tables:
+
    ```bash
    npx drizzle-kit push
    ```
@@ -111,12 +115,15 @@ Ensure you have the following installed on your local machine:
 Drizzle ORM is used for database interactions. Below is a quick reference for the essential `drizzle-kit` commands used in this project.
 
 ### Development Commands
+
 - `npx drizzle-kit push`: Pushes your schema changes directly to the database without generating SQL migration files. Ideal for rapid prototyping.
-- `npx drizzle-kit generate`: Creates a versioned SQL migration file in your migrations folder based on your current schema. 
+- `npx drizzle-kit generate`: Creates a versioned SQL migration file in your migrations folder based on your current schema.
 - `npx drizzle-kit studio`: Launches Drizzle Studio, a local GUI for visually browsing and editing your data.
 
 ### Production Commands
+
 In production environments, **do not** use `push`. Instead, apply the versioned migration files generated during development.
+
 - `npx drizzle-kit migrate`: Reads your generated `.sql` files and safely applies only the pending migrations to the production database.
 
 ## 🛡️ Best Practices & Limitations
