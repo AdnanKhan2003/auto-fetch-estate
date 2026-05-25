@@ -1,5 +1,14 @@
 # Real Estate Data Scraper
 
+<div align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="./public/vsjadon-og-image.png">
+    <source media="(prefers-color-scheme: light)" srcset="./public/vsjadon-og-image-light.png">
+    <img alt="Real Estate Data Scraper Banner" src="./public/vsjadon-og-image-light.png" width="100%">
+  </picture>
+</div>
+<br />
+
 A high-performance, AI-powered real estate data extraction and analysis tool built with Next.js 16. This application uses automated stealth browsing and advanced Large Language Models to structure highly unstructured real estate listings into predictable, relational data formats.
 
 ## 🚀 Features
