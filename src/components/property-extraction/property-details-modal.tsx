@@ -85,7 +85,7 @@ function PropertyDetailsModal({
       <Lightbox
         isOpen={lightboxOpen}
         onClose={() => setLightboxOpen(false)}
-        imageUrl={property?.screenshotUrl || "/fallback-image.png"}
+        imageUrl={property?.screenshotUrl ? `/api/images/${property.screenshotUrl}` : "/fallback-image.png"}
         title={property?.data?.propertyTitle}
       />
     </>

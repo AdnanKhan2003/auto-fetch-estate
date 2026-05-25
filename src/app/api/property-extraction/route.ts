@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
 import { processUrl } from "@/features/property-extraction/scraper";
-import { getQuotaMetrics } from "@/lib/ai-rate-limiter";
+import { getQuotaMetrics } from "@/features/property-extraction/ai-rate-limiter";
 import { auth } from "@/auth/auth";
 import { headers } from "next/headers";
 import { propertyListing, session } from "@/db/schema";
 import { db } from "@/db";
+import { and, eq } from "drizzle-orm";
 
 let batchCounter = 0;
 
@@ -62,7 +63,7 @@ export async function POST(request: Request) {
                   price: result.data?.price || null,
                   carpetArea: result.data?.carpetArea || null,
                   screenshotUrl: result.screenshotUrl || null,
-                  extractedData: result.data as any,
+                  extractedData: result.data,
                   status: "success",
                   tokensUsed: result.tokensUsed,
                 });
@@ -127,5 +128,69 @@ export async function POST(request: Request) {
   } catch (error: any) {
     console.error("[Batch Error]", error);
     return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
+
+export async function GET(request: Request) {
+  try {
+    const sessionData = await auth.api.getSession({ headers: await headers() });
+    if (!sessionData?.user) {
+      return NextResponse.json(
+        {
+          error: "Unauthorized",
+        },
+        {
+          status: 401,
+        },
+      );
+    }
+
+    const properties = await db.query.propertyListing.findMany({
+      where: eq(propertyListing.userId, sessionData.user.id),
+      orderBy: (listings, { desc }) => [desc(listings.createdAt)],
+    });
+
+    return NextResponse.json(properties);
+  } catch (error) {
+    console.error("Error fetching properties: ", error);
+    return NextResponse.json(
+      { error: "Internal Server Error" },
+      { status: 500 },
+    );
+  }
+}
+
+export async function DELETE(request: Request) {
+  try {
+    const sessionData = await auth.api.getSession({ headers: await headers() });
+    if (!sessionData?.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get("id");
+
+    if (id) {
+      await db
+        .delete(propertyListing)
+        .where(
+          and(
+            eq(propertyListing.id, id),
+            eq(propertyListing.userId, sessionData.user.id),
+          ),
+        );
+    } else {
+      await db
+        .delete(propertyListing)
+        .where(eq(propertyListing.userId, sessionData.user.id));
+    }
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error("Error deleting properties: ", error);
+    return NextResponse.json(
+      { error: "Internal Server Error" },
+      { status: 500 },
+    );
   }
 }

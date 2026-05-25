@@ -2,7 +2,7 @@ import fs from "fs";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { generateObject } from "ai";
 import { propertySchema, Property } from "./schema";
-import { checkQuotaAndConsume } from "@/lib/ai-rate-limiter";
+import { checkQuotaAndConsume } from "@/features/property-extraction/ai-rate-limiter";
 
 const DEFAULT_GOOGLE_MODEL = "gemini-2.5-flash";
 

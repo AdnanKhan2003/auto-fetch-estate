@@ -8,10 +8,7 @@ import PropertyDetailsModal from "./property-details-modal";
 import { PropertyExtractionResult } from "@/features/property-extraction/scraper";
 import { COMMA_REGEX, NUMERIC_REGEX } from "@/lib/regex";
 import { calculateRawRatePerSqft, parseIndianNumber } from "@/lib/format-utils";
-import {
-  deleteAllPropertyListings,
-  getPropertyListings,
-} from "@/features/property-extraction/actions";
+
 import {
   AlertDialog,
   AlertDialogAction,
@@ -78,10 +75,13 @@ export default function EstateAnalyzer() {
   useEffect(() => {
     async function loadData() {
       try {
-        const properties = await getPropertyListings();
+        const response = await fetch("/api/property-extraction");
+        if (!response.ok) throw new Error("Failed to fetch properties");
+
+        const properties = await response.json();
 
         if (properties && properties.length > 0) {
-          const formattedResults = properties.map((p) => ({
+          const formattedResults = properties.map((p: any) => ({
             url: p.url,
             status: p.status,
             data: p.extractedData,
@@ -125,7 +125,7 @@ export default function EstateAnalyzer() {
 
     setPendingUrls(uniqueUrls); // show skeleton rows immediately
     try {
-      const response = await fetch("/api/scrape", {
+      const response = await fetch("/api/property-extraction", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ urls: uniqueUrls }),
@@ -193,7 +193,11 @@ export default function EstateAnalyzer() {
     setResults([]);
     setRowSelection({});
     try {
-      await deleteAllPropertyListings();
+      const response = await fetch("/api/property-extraction", {
+        method: "DELETE",
+      });
+
+      if (!response.ok) throw new Error("Failed to clear DB");
     } catch (e) {
       console.error("Failed to clear DB", e);
     }

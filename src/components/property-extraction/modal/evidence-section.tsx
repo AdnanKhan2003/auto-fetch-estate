@@ -22,9 +22,14 @@ export function EvidenceSection({
       >
         {property && (
           <Image
-            src={property.screenshotUrl || "/fallback-image.png"}
+            src={
+              property.screenshotUrl
+                ? `/api/images/${property.screenshotUrl}`
+                : "/fallback-image.png"
+            }
             width={1280}
             height={800}
+            unoptimized={true}
             className="w-full h-auto transition-all duration-1000 group-hover:scale-[1.02]"
             alt={`Screenshot of ${property.data?.propertyTitle || "property"}`}
             title={`Screenshot of ${property.data?.propertyTitle || "property"}`}

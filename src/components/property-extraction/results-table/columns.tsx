@@ -80,9 +80,10 @@ export const columns: ColumnDef<PropertyExtractionResult>[] = [
       return (
         <div className="h-10 w-14 relative overflow-hidden rounded border border-border bg-muted">
           <Image
-            src={screenshot || "/fallback-image.png"}
+            src={screenshot ? `/api/images/${screenshot}` : "/fallback-image.png"}
             alt="Property"
             fill
+            unoptimized={true}
             className="object-cover"
             onError={(e) => {
               ((e.currentTarget.src = "/fallback-image.png"),

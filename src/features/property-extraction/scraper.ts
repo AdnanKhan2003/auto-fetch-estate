@@ -20,6 +20,7 @@ import {
   extractBySelectors,
 } from "./page-utils";
 import { extractStructuredData, runVisionExtraction } from "./ai-extractor";
+import { uploadScreenshotToS3 } from "@/lib/s3-client";
 
 // Re-export schema so existing consumers (e.g. route.ts) don't need changing
 export { propertySchema };
@@ -107,7 +108,7 @@ async function navigatePage(page: any, url: string) {
 async function takeScreenshot(
   page: any,
   url: string,
-): Promise<{ screenshotName: string; screenshotPath: string }> {
+): Promise<{ screenshotName: string; screenshotBuffer: Buffer }> {
   let slug = "property";
   try {
     const urlObj = new URL(url);
@@ -127,15 +128,11 @@ async function takeScreenshot(
   } catch (e) {}
 
   const screenshotName = `${slug}-${Date.now()}.png`;
-  const screenshotPath = path.join(
-    process.cwd(),
-    "public",
-    "screenshots",
-    screenshotName,
-  );
-  fs.mkdirSync(path.dirname(screenshotPath), { recursive: true });
-  await page.screenshot({ path: screenshotPath, timeout: 60000 });
-  return { screenshotName, screenshotPath };
+  const screenshotBuffer = await page.screenshot({ timeout: 60000 });
+
+  await uploadScreenshotToS3(screenshotBuffer, screenshotName);
+
+  return { screenshotName, screenshotBuffer };
 }
 
 // ─── Data helpers ─────────────────────────────────────────────────────────────
@@ -201,7 +198,7 @@ async function processUrl(url: string) {
       throw new Error("Bot protection triggered");
 
     // Step 3 — Screenshot
-    const { screenshotName, screenshotPath } = await takeScreenshot(page, url);
+    const { screenshotName } = await takeScreenshot(page, url);
 
     // Step 4 — Clean text
     const cleanText = await extractCleanContent(page);
@@ -265,13 +262,22 @@ async function processUrl(url: string) {
     const finalData: Record<string, any> = { ...cleanMerged, ...aiData };
     applyNormalizations(finalData);
 
+    const parsedData = propertySchema.safeParse(finalData);
+    if (!parsedData.success) {
+      console.error(`[Zod Error] Schema validation failed for ${url}`);
+      throw new Error(`Data validation Failed:
+        ${parsedData.error.issues[0].path} -
+        ${parsedData.error.issues[0].message}
+        `);
+    }
+
     // Step 11 — Return
     const hasAiData = Object.keys(structuredData).length > 0 || visionUsed;
 
     return {
       url,
-      screenshotUrl: `/screenshots/${screenshotName}`,
-      data: finalData,
+      screenshotUrl: screenshotName,
+      data: parsedData.data,
       status: "success" as const,
       aiUsed: hasAiData,
       visionUsed,
