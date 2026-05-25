@@ -78,6 +78,7 @@ export function Lightbox({ isOpen, onClose, imageUrl, title }: LightboxProps) {
         <Image
           src={imageUrl}
           width={1280}
+          unoptimized={true}
           height={800}
           className="max-h-[92vh] max-w-[92vw] w-auto h-auto rounded-lg object-contain shadow-2xl"
           alt={`Fullscreen screenshot of ${title || "property"}`}

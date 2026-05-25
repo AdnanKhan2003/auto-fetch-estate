@@ -25,7 +25,7 @@ export async function uploadScreenshotToS3(
 ): Promise<void> {
   const command = new PutObjectCommand({
     Bucket: bucketName,
-    Key: `screenshot/${filename}`,
+    Key: filename,
     Body: fileBuffer,
     ContentType: mimeType,
   });
@@ -38,7 +38,7 @@ export async function getPresignedScreenshotUrl(
 ): Promise<string> {
   const command = new GetObjectCommand({
     Bucket: bucketName,
-    Key: `screenshot/${filename}`,
+    Key: filename,
   });
 
   return await getSignedUrl(s3Client, command, { expiresIn: 3600 });

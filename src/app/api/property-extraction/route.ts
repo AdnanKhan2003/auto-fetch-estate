@@ -7,8 +7,6 @@ import { propertyListing, session } from "@/db/schema";
 import { db } from "@/db";
 import { and, eq } from "drizzle-orm";
 
-let batchCounter = 0;
-
 export async function POST(request: Request) {
   try {
     const sessionData = await auth.api.getSession({ headers: await headers() });
@@ -17,9 +15,8 @@ export async function POST(request: Request) {
     }
     const userId = sessionData.user.id;
 
-    batchCounter++;
-    const runId = `${Date.now()}-${Math.floor(Math.random() * 10000)}`;
     const { urls } = await request.json();
+    const batchId = crypto.randomUUID();
 
     if (!urls || !Array.isArray(urls)) {
       return NextResponse.json(
@@ -31,8 +28,6 @@ export async function POST(request: Request) {
     const activeUrls = urls.filter((url: string) => url.trim());
 
     console.log("\n\n" + "=".repeat(60));
-    console.log(`🚀 BATCH ATTEMPT #${batchCounter}`);
-    console.log(`🧪 RUN ID: ${runId}`);
     console.log(`🔗 PROCESSING ${activeUrls.length} URLs IN PARALLEL`);
     console.log("=".repeat(60) + "\n");
 
@@ -49,7 +44,7 @@ export async function POST(request: Request) {
             chunk.map(async (url: string) => {
               try {
                 console.log(`[Batch] Scraping: ${url}`);
-                const result = await processUrl(url.trim());
+                const result = await processUrl(url.trim(), batchId);
                 console.log(`[Batch] Done: ${url}`);
 
                 await db.insert(propertyListing).values({
@@ -122,7 +117,6 @@ export async function POST(request: Request) {
       headers: {
         "Content-Type": "application/x-ndjson",
         "Transfer-Encoding": "chunked",
-        "X-Run-Id": runId,
       },
     });
   } catch (error: any) {

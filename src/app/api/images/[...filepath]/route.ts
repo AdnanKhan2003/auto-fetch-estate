@@ -3,19 +3,23 @@ import { NextResponse } from "next/server";
 
 export async function GET(
   request: Request,
-  { params }: { params: Promise<{ filename: string }> },
+  { params }: { params: Promise<{ filepath: string[] }> },
 ) {
   try {
-    const { filename } = await params;
+    const { filepath } = await params;
 
-    if (!filename)
+    if (!filepath || filepath.length === 0)
       return new NextResponse("Filename is required", { status: 400 });
 
-    const presignedUrl = await getPresignedScreenshotUrl(filename);
+    const s3Key = filepath.join("/");
+    const presignedUrl = await getPresignedScreenshotUrl(s3Key);
 
     return NextResponse.redirect(presignedUrl);
   } catch (error) {
     console.error("Error generating presigned URL: ", error);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Internal Server Error" },
+      { status: 500 },
+    );
   }
 }

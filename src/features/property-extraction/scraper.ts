@@ -108,6 +108,7 @@ async function navigatePage(page: any, url: string) {
 async function takeScreenshot(
   page: any,
   url: string,
+  batchId: string,
 ): Promise<{ screenshotName: string; screenshotBuffer: Buffer }> {
   let slug = "property";
   try {
@@ -127,7 +128,7 @@ async function takeScreenshot(
     slug = `${domain}-${longest || "listing"}`;
   } catch (e) {}
 
-  const screenshotName = `${slug}-${Date.now()}.png`;
+  const screenshotName = `${batchId}/${slug}-${Date.now()}.png`;
   const screenshotBuffer = await page.screenshot({ timeout: 60000 });
 
   await uploadScreenshotToS3(screenshotBuffer, screenshotName);
@@ -183,7 +184,7 @@ function applyNormalizations(data: Record<string, any>): void {
 
 // ─── Main export ─────────────────────────────────────────────────────────────
 
-async function processUrl(url: string) {
+async function processUrl(url: string, batchId: string) {
   const { browser, context } = await launchBrowser();
   const page = await context.newPage();
 
@@ -198,7 +199,7 @@ async function processUrl(url: string) {
       throw new Error("Bot protection triggered");
 
     // Step 3 — Screenshot
-    const { screenshotName } = await takeScreenshot(page, url);
+    const { screenshotName } = await takeScreenshot(page, url, batchId);
 
     // Step 4 — Clean text
     const cleanText = await extractCleanContent(page);
