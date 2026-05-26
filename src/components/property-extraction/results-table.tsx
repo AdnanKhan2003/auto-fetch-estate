@@ -41,6 +41,7 @@ interface ResultsTableProps {
   totalCarpetArea: number;
   estimatedCount: number;
   originalUrls: string[];
+  onDelete: (id: string) => void;
 }
 
 function ResultsTable({
@@ -62,6 +63,7 @@ function ResultsTable({
   totalCarpetArea,
   estimatedCount,
   originalUrls,
+  onDelete,
 }: ResultsTableProps) {
   const [sorting, setSorting] = useState<SortingState>([]);
 
@@ -80,7 +82,13 @@ function ResultsTable({
     getSortedRowModel: getSortedRowModel(),
     getRowId: (row) => row.url,
     enableSortingRemoval: true,
-    meta: { globalConversionFactor, rowFactors, setRowFactors, originalUrls },
+    meta: {
+      globalConversionFactor,
+      rowFactors,
+      setRowFactors,
+      originalUrls,
+      onDelete,
+    },
   });
 
   useEffect(() => {
@@ -191,7 +199,10 @@ function ResultsTable({
                               ${cell.column.id === "data_pricePerSqft" ? "pr-6 text-right font-black text-foreground" : ""}
                               ${isFocused ? "first:before:absolute first:before:left-0 first:before:top-0 first:before:bottom-0 first:before:w-1 first:before:bg-foreground first:before:rounded-full" : ""}`}
                             >
-                              {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                              {flexRender(
+                                cell.column.columnDef.cell,
+                                cell.getContext(),
+                              )}
                             </TableCell>
                           ))}
                         </TableRow>
@@ -200,21 +211,29 @@ function ResultsTable({
 
                     const currentSessionNodes = originalUrls.map((url) => {
                       renderedUrls.add(url);
-                      const completedRow = table.getRowModel().rows.find((r) => r.original.url === url);
+                      const completedRow = table
+                        .getRowModel()
+                        .rows.find((r) => r.original.url === url);
                       if (completedRow) return renderRow(completedRow);
-                      if (pendingUrls.includes(url)) return <SkeletonRow key={`skel-${url}`} />;
+                      if (pendingUrls.includes(url))
+                        return <SkeletonRow key={`skel-${url}`} />;
                       return null;
                     });
 
-                    const historyNodes = table.getRowModel().rows
-                      .filter((row) => !renderedUrls.has(row.original.url))
+                    const historyNodes = table
+                      .getRowModel()
+                      .rows.filter((row) => !renderedUrls.has(row.original.url))
                       .map((row) => renderRow(row));
 
                     const extraSkeletons = pendingUrls
                       .filter((url) => !renderedUrls.has(url))
                       .map((url) => <SkeletonRow key={`skel-extra-${url}`} />);
 
-                    return [...currentSessionNodes, ...historyNodes, ...extraSkeletons];
+                    return [
+                      ...currentSessionNodes,
+                      ...historyNodes,
+                      ...extraSkeletons,
+                    ];
                   })()}
                 </>
               ) : (

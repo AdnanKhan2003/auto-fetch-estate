@@ -1,21 +1,24 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ExternalLink } from "lucide-react";
+import { ExternalLink, Trash2 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog";
 import { Lightbox } from "./modal/lightbox";
 import { MetricsGrid } from "./modal/metrics-grid";
 import { TechnicalMatrix } from "./modal/technical-matrix";
 import { EvidenceSection } from "./modal/evidence-section";
+import { Button } from "../ui/button";
 
 interface PropertyDetailsModalProps {
   property: any | null;
   onClose: () => void;
+  onDelete?: (id: string) => void;
 }
 
 function PropertyDetailsModal({
   property,
   onClose,
+  onDelete,
 }: PropertyDetailsModalProps) {
   const [lightboxOpen, setLightboxOpen] = useState(false);
 
@@ -46,7 +49,7 @@ function PropertyDetailsModal({
             }
           }}
         >
-          <DialogHeader className="flex-row items-center justify-between space-y-0 overflow-x-hidden border-b border-border bg-card p-6 sm:p-8">
+          <DialogHeader className="flex-row items-center justify-between space-y-0 overflow-x-hidden border-b border-border bg-card p-6 sm:p-8 pr-12 sm:pr-16">
             <div className="min-w-0 flex-1 flex flex-col gap-1 text-card-foreground">
               <DialogTitle asChild>
                 <a
@@ -66,6 +69,18 @@ function PropertyDetailsModal({
                 {domain}
               </span>
             </div>
+
+            {property?.id && onDelete && (
+              <Button
+                variant="destructive"
+                size="icon"
+                onClick={() => onDelete(property.id)}
+                className="ml-4 cursor-pointer shrink-0"
+                title="Delete property"
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            )}
           </DialogHeader>
 
           <div className="flex-1 space-y-12 overflow-y-auto overflow-x-hidden bg-card p-6 sm:p-10">
@@ -85,7 +100,11 @@ function PropertyDetailsModal({
       <Lightbox
         isOpen={lightboxOpen}
         onClose={() => setLightboxOpen(false)}
-        imageUrl={property?.screenshotUrl ? `/api/images/${property.screenshotUrl}` : "/fallback-image.png"}
+        imageUrl={
+          property?.screenshotUrl
+            ? `/api/images/${property.screenshotUrl}`
+            : "/fallback-image.png"
+        }
         title={property?.data?.propertyTitle}
       />
     </>

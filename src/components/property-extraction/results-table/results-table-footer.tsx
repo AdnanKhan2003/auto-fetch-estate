@@ -49,8 +49,8 @@ export function ResultsTableFooter({
                 : "—"}
             </span>
           </TableCell>
-          {/* Empty cell for Rate/Sqft column (col 9) */}
-          <TableCell colSpan={1} className="py-3 pr-6" />
+          {/* Empty cell for Rate/Sqft AND actions columns */}
+          <TableCell colSpan={2} className="py-3 pr-6" />
         </TableRow>
       )}
 
@@ -70,6 +70,8 @@ export function ResultsTableFooter({
               : "—"}
           </span>
         </TableCell>
+        {/* Empty cell for actions column */}
+        <TableCell colSpan={1} />
       </TableRow>
 
       {/* ── Discount % ── */}
@@ -100,6 +102,8 @@ export function ResultsTableFooter({
             <span className="text-lg font-black text-foreground">%</span>
           </div>
         </TableCell>
+        {/* Empty cell for actions column */}
+        <TableCell colSpan={1} />
       </TableRow>
 
       {/* ── Discounted Avg Price/sqft ── */}
@@ -117,6 +121,8 @@ export function ResultsTableFooter({
               : "—"}
           </span>
         </TableCell>
+        {/* Empty cell for actions column */}
+        <TableCell colSpan={1} />
       </TableRow>
     </TableFooter>
   );

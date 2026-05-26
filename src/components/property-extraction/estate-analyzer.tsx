@@ -46,7 +46,9 @@ export default function EstateAnalyzer() {
   const [urls, setUrls] = useState<string[]>([""]);
   const [isLoading, setIsLoading] = useState(false);
   const [pendingUrls, setPendingUrls] = useState<string[]>([]);
-  const [results, setResults] = useState<PropertyExtractionResult[]>([]);
+  const [results, setResults] = useState<
+    (PropertyExtractionResult & { id?: string })[]
+  >([]);
 
   // Hydration issue fix
   const [isMounted, setIsMounted] = useState(false);
@@ -69,8 +71,9 @@ export default function EstateAnalyzer() {
   const [discountPercentage, setDiscountPercentage] = useState<number>(0);
 
   // Row detail (Modal)
-  const [selectedProperty, setSelectedProperty] =
-    useState<PropertyExtractionResult | null>(null);
+  const [selectedProperty, setSelectedProperty] = useState<
+    (PropertyExtractionResult & { id?: string }) | null
+  >(null);
 
   useEffect(() => {
     async function loadData() {
@@ -82,6 +85,7 @@ export default function EstateAnalyzer() {
 
         if (properties && properties.length > 0) {
           const formattedResults = properties.map((p: any) => ({
+            id: p.id,
             url: p.url,
             status: p.status,
             data: p.extractedData,
@@ -106,6 +110,35 @@ export default function EstateAnalyzer() {
 
     loadData();
   }, []);
+
+  const deleteSingleRecord = async (idToDelete: string) => {
+    try {
+      const response = await fetch(
+        `/api/property-extraction?id=${idToDelete}`,
+        {
+          method: "DELETE",
+        },
+      );
+
+      if (!response.ok) throw new Error("Failed to delete record");
+
+      setResults((prev) => prev.filter((r: any) => r.id !== idToDelete));
+
+      setRowSelection((prev) => {
+        const next = { ...prev };
+        const deletedUrl = results.find((r: any) => r.id === idToDelete)?.url;
+
+        if (deletedUrl) delete next[deletedUrl];
+        return next;
+      });
+
+      if (selectedProperty?.id === idToDelete) {
+        setSelectedProperty(null);
+      }
+    } catch (e) {
+      console.error("Failed to delete record", e);
+    }
+  };
 
   const handleScrape = async (submittedUrls: string[]) => {
     setIsLoading(true);
@@ -306,11 +339,13 @@ export default function EstateAnalyzer() {
           totalCarpetArea={totalCarpetArea}
           originalUrls={urls}
           estimatedCount={estimatedCount}
+          onDelete={deleteSingleRecord}
         />
       </main>
       <PropertyDetailsModal
         property={selectedProperty}
         onClose={() => setSelectedProperty(null)}
+        onDelete={deleteSingleRecord}
       />
 
       <AlertDialog

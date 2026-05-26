@@ -4,11 +4,12 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { ColumnDef } from "@tanstack/react-table";
 import Image from "next/image";
 import { PropertyExtractionResult } from "@/features/property-extraction/scraper";
-import { ArrowUpDown, ExternalLink } from "lucide-react";
+import { ArrowUpDown, ExternalLink, Trash2 } from "lucide-react";
 
 import { COMMA_REGEX, NUMERIC_REGEX } from "@/lib/regex";
 import { parseIndianNumber, calculateRatePerSqft } from "@/lib/format-utils";
 import Link from "next/link";
+import { Button } from "@/components/ui/button";
 
 // Smart helper to sort Indian currency and numeric strings
 const smartNumericSort = (rowA: any, rowB: any, columnId: string) => {
@@ -80,7 +81,9 @@ export const columns: ColumnDef<PropertyExtractionResult>[] = [
       return (
         <div className="h-10 w-14 relative overflow-hidden rounded border border-border bg-muted">
           <Image
-            src={screenshot ? `/api/images/${screenshot}` : "/fallback-image.png"}
+            src={
+              screenshot ? `/api/images/${screenshot}` : "/fallback-image.png"
+            }
             alt="Property"
             fill
             unoptimized={true}
@@ -325,6 +328,34 @@ export const columns: ColumnDef<PropertyExtractionResult>[] = [
       return (
         <div className="text-right font-black text-foreground">
           {rateToDisplay || "N/A"}
+        </div>
+      );
+    },
+  },
+  {
+    id: "actions",
+    header: () => <div className="text-center">Actions</div>,
+    enableSorting: false,
+    cell: ({ row, table }) => {
+      const meta = table.options.meta as any;
+      const propertyId = (row.original as any).id;
+
+      return (
+        <div
+          className="flex items-center justify-center"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {propertyId && meta?.onDelete && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => meta.onDelete(propertyId)}
+              className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 cursor-pointer"
+              title="Delete Property"
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          )}
         </div>
       );
     },

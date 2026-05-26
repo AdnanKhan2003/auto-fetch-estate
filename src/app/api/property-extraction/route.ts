@@ -47,8 +47,10 @@ export async function POST(request: Request) {
                 const result = await processUrl(url.trim(), batchId);
                 console.log(`[Batch] Done: ${url}`);
 
+                const newId = crypto.randomUUID();
+
                 await db.insert(propertyListing).values({
-                  id: crypto.randomUUID(),
+                  id: newId,
                   userId,
                   url: url.trim(),
                   title: result.data?.propertyTitle || null,
@@ -67,6 +69,7 @@ export async function POST(request: Request) {
 
                 const enrichedResult = {
                   ...result,
+                  id: newId,
                   rpdRemaining: metrics.rpdRemaining,
                 };
 
@@ -76,9 +79,9 @@ export async function POST(request: Request) {
                 );
               } catch (e: any) {
                 console.log(`[Batch] Error on ${url}: ${e.message}`);
-
+                const errorId = crypto.randomUUID();
                 await db.insert(propertyListing).values({
-                  id: crypto.randomUUID(),
+                  id: errorId,
                   userId: userId,
                   url: url.trim(),
                   status: "error",
@@ -89,6 +92,7 @@ export async function POST(request: Request) {
                 const metrics = await getQuotaMetrics();
                 const errorResult = {
                   url: url.trim(),
+                  id: errorId,
                   status: "error",
                   error: e.message,
                   rpdRemaining: metrics.rpdRemaining,
