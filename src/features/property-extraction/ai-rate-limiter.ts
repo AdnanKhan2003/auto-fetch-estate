@@ -1,6 +1,6 @@
 import { db } from "@/db";
 import { apiQuota } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 
 const REQUEST_PER_DAY = 20;
 
@@ -45,7 +45,7 @@ async function checkQuotaAndConsume() {
   await db
     .update(apiQuota)
     .set({
-      requestsToday: requestsToday + 1,
+      requestsToday: sql`${apiQuota.requestsToday} + 1`,
       tokensUsedToday,
       lastResetDate,
       updatedAt: new Date(),

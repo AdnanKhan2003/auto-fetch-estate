@@ -1,11 +1,15 @@
 import { NextResponse } from "next/server";
 import { processUrl } from "@/features/property-extraction/scraper";
-import { getQuotaMetrics } from "@/features/property-extraction/ai-rate-limiter";
+import {
+  getQuotaMetrics,
+  logTokensUsed,
+} from "@/features/property-extraction/ai-rate-limiter";
 import { auth } from "@/auth/auth";
 import { headers } from "next/headers";
 import { propertyListing, session } from "@/db/schema";
 import { db } from "@/db";
 import { and, eq } from "drizzle-orm";
+import { success } from "zod";
 
 export async function POST(request: Request) {
   try {
@@ -49,6 +53,10 @@ export async function POST(request: Request) {
 
                 const newId = crypto.randomUUID();
 
+                if (result.status === "success") {
+                  await logTokensUsed(result.tokensUsed);
+                }
+
                 await db.insert(propertyListing).values({
                   id: newId,
                   userId,
@@ -71,6 +79,8 @@ export async function POST(request: Request) {
                   ...result,
                   id: newId,
                   rpdRemaining: metrics.rpdRemaining,
+                  updatedAt: new Date().toISOString(),
+                  createdAt: new Date().toISOString(),
                 };
 
                 // NDJSON — one JSON object per line, pushed immediately
@@ -155,6 +165,73 @@ export async function GET(request: Request) {
       { error: "Internal Server Error" },
       { status: 500 },
     );
+  }
+}
+
+export async function PATCH(request: Request) {
+  try {
+    const sessionData = await auth.api.getSession({ headers: await headers() });
+    if (!sessionData?.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const body = await request.json();
+    const { id, updates } = body;
+
+    if (!id || !updates) {
+      return NextResponse.json(
+        { error: "Missing id or updates" },
+        { status: 400 },
+      );
+    }
+
+    const existing = await db.query.propertyListing.findFirst({
+      where: and(
+        eq(propertyListing.id, id),
+        eq(propertyListing.userId, sessionData.user.id),
+      ),
+    });
+
+    if (!existing) {
+      return NextResponse.json(
+        { error: "Property Not Fount" },
+        { status: 404 },
+      );
+    }
+
+    const mergedData = {
+      ...((existing.extractedData as any) || {}),
+      ...updates,
+    };
+
+    const now = new Date();
+    await db
+      .update(propertyListing)
+      .set({
+        extractedData: mergedData,
+        title: mergedData.title || existing.title,
+        propertyType: mergedData.propertyType || existing.propertyType,
+        city: mergedData.city || existing.city,
+        location: mergedData.location || existing.location,
+        price: mergedData.price || existing.price,
+        carpetArea: mergedData.carpetArea || existing.carpetArea,
+        updatedAt: now,
+      })
+      .where(
+        and(
+          eq(propertyListing.id, id),
+          eq(propertyListing.userId, sessionData.user.id),
+        ),
+      );
+
+    return NextResponse.json({
+      success: true,
+      updatedData: mergedData,
+      updatedAt: now.toISOString(),
+    });
+  } catch (error: any) {
+    console.error("Error updating property: ", error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
 

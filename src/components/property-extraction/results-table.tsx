@@ -21,6 +21,7 @@ import {
   useReactTable,
 } from "@tanstack/react-table";
 import { PropertyExtractionResult } from "@/features/property-extraction/scraper";
+import { Button } from "../ui/button";
 
 interface ResultsTableProps {
   results: PropertyExtractionResult[];
@@ -42,6 +43,7 @@ interface ResultsTableProps {
   estimatedCount: number;
   originalUrls: string[];
   onDelete: (id: string) => void;
+  onUpdate: (id: string, updates: any) => void;
 }
 
 function ResultsTable({
@@ -64,6 +66,7 @@ function ResultsTable({
   estimatedCount,
   originalUrls,
   onDelete,
+  onUpdate,
 }: ResultsTableProps) {
   const [sorting, setSorting] = useState<SortingState>([]);
 
@@ -88,6 +91,7 @@ function ResultsTable({
       setRowFactors,
       originalUrls,
       onDelete,
+      onUpdate,
     },
   });
 
@@ -111,7 +115,7 @@ function ResultsTable({
         <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">
           Compare Prices
         </h2>
-        <button
+        <Button
           onClick={() => {
             const turningOn = !showTotalArea;
             setShowTotalArea(turningOn);
@@ -140,7 +144,7 @@ function ResultsTable({
           }`}
         >
           Σ Calculate Missing Carpet Area
-        </button>
+        </Button>
       </div>
       <Card className="overflow-hidden rounded-xl border-border bg-card shadow-none">
         <div className="overflow-x-auto">
@@ -209,6 +213,24 @@ function ResultsTable({
                       );
                     };
 
+                    // WITH THIS:
+                    const isSortingActive = sorting && sorting.length > 0;
+
+                    if (isSortingActive) {
+                      // 1. Render all rows in their sorted order
+                      const sortedNodes = table
+                        .getRowModel()
+                        .rows.map((row) => renderRow(row));
+
+                      // 2. Append pending loading skeletons to the bottom
+                      const loadingNodes = pendingUrls.map((url) => (
+                        <SkeletonRow key={`skel-${url}`} />
+                      ));
+
+                      return [...sortedNodes, ...loadingNodes];
+                    }
+
+                    // Fallback to input order + inline skeletons when not sorting
                     const currentSessionNodes = originalUrls.map((url) => {
                       renderedUrls.add(url);
                       const completedRow = table

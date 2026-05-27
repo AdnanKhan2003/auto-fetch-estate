@@ -2,6 +2,7 @@ import { ZoomIn, ExternalLink } from "lucide-react";
 import { Button } from "../../ui/button";
 import Image from "next/image";
 import SectionHeader from "./section-header";
+import Link from "next/link";
 
 interface EvidenceSectionProps {
   property: any;
@@ -52,8 +53,8 @@ export function EvidenceSection({
         className="h-12 w-full cursor-pointer gap-3 rounded-xl border-border font-bold text-muted-foreground hover:text-foreground"
         asChild
       >
-        <a
-          href={property?.url}
+        <Link
+          href={property?.url || "#"}
           target="_blank"
           rel="noreferrer"
           title={
@@ -63,7 +64,7 @@ export function EvidenceSection({
           }
         >
           <ExternalLink size={16} /> Open Original Source
-        </a>
+        </Link>
       </Button>
     </div>
   );

@@ -30,29 +30,32 @@ export type { Property };
 
 const CRITICAL_FIELDS = ["propertyTitle", "price", "location"] as const;
 
-// ─── Browser helpers ─────────────────────────────────────────────────────────
+let globalBrowser = (globalThis as any).browser || null;
 
-async function launchBrowser() {
-  const browser = await chromium.launch({
-    channel: "chrome",
-    headless: true,
-    args: [
-      // Use the new headless implementation — reduces DevTools Protocol exposure
-      "--headless=new",
-      // Suppress automation flags that Akamai/Cloudflare fingerprint
-      "--disable-blink-features=AutomationControlled",
-      // Standard flags to reduce resource usage and flakiness
-      "--no-sandbox",
-      "--disable-dev-shm-usage",
-      "--disable-gpu",
-      // Helps pass canvas-based fingerprint checks
-      "--use-gl=swiftshader",
-      // Language matching — must align with accept-language header
-      "--lang=en-IN",
-    ],
-  });
+async function getSharedBrowser() {
+  if (!globalBrowser || !globalBrowser.isConnected()) {
+    globalBrowser = await chromium.launch({
+      channel: "chrome",
+      headless: true,
+      args: [
+        "--headless=new",
+        "--disable-blink-features=AutomationControlled",
+        "--no-sandbox",
+        "--disable-dev-shm-usage",
+        "--disable-gpu",
+        "--use-gl=swiftshader",
+        "--lang=en-IN",
+      ],
+    });
 
-  // Pick a realistic, non-randomised Chrome version UA
+    (globalThis as any).browser = globalBrowser;
+  }
+  return globalBrowser;
+}
+
+async function createIsolatedContext() {
+  const browser = await getSharedBrowser();
+
   const userAgent =
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36";
 
@@ -63,7 +66,6 @@ async function launchBrowser() {
     hasTouch: false,
     locale: "en-IN",
     timezoneId: "Asia/Kolkata",
-    // Client-Hint headers — real Chrome sends these; headless scrapers typically omit them
     extraHTTPHeaders: {
       "accept-language": "en-IN,en;q=0.9,en-US;q=0.8",
       "sec-ch-ua":
@@ -78,10 +80,10 @@ async function launchBrowser() {
     },
   });
 
-  // Note: Anti-bot fingerprint overrides are now handled by puppeteer-extra-plugin-stealth
-
-  return { browser, context };
+  return context;
 }
+
+// ─── Browser helpers ─────────────────────────────────────────────────────────
 
 async function navigatePage(page: any, url: string) {
   // Use "domcontentloaded" for sites with Akamai/Cloudflare WAF.
@@ -185,7 +187,7 @@ function applyNormalizations(data: Record<string, any>): void {
 // ─── Main export ─────────────────────────────────────────────────────────────
 
 async function processUrl(url: string, batchId: string) {
-  const { browser, context } = await launchBrowser();
+  const context = await createIsolatedContext();
   const page = await context.newPage();
 
   try {
@@ -199,7 +201,11 @@ async function processUrl(url: string, batchId: string) {
       throw new Error("Bot protection triggered");
 
     // Step 3 — Screenshot
-    const { screenshotName } = await takeScreenshot(page, url, batchId);
+    const { screenshotName, screenshotBuffer } = await takeScreenshot(
+      page,
+      url,
+      batchId,
+    );
 
     // Step 4 — Clean text
     const cleanText = await extractCleanContent(page);
@@ -243,21 +249,21 @@ async function processUrl(url: string, batchId: string) {
     let visionUsed = false;
     let visionTokens = 0;
 
-    // if (missingCritical.length > 0 || !hasAnyArea || filledFields < 15) {
-    //   ({
-    //     aiData,
-    //     visionUsed,
-    //     tokens: visionTokens,
-    //   } = await runVisionExtraction({
-    //     url,
-    //     screenshotPath,
-    //     missingCritical: !hasAnyArea
-    //       ? [...missingCritical, "Area"]
-    //       : missingCritical,
-    //     cleanDeterministic: cleanMerged,
-    //     cleanText,
-    //   }));
-    // }
+    if (missingCritical.length > 0 || !hasAnyArea || filledFields < 15) {
+      ({
+        aiData,
+        visionUsed,
+        tokens: visionTokens,
+      } = await runVisionExtraction({
+        url,
+        screenshotBuffer,
+        missingCritical: !hasAnyArea
+          ? [...missingCritical, "Area"]
+          : missingCritical,
+        cleanDeterministic: cleanMerged,
+        cleanText,
+      }));
+    }
 
     // Step 10 — Final merge, normalise, sanity-check
     const finalData: Record<string, any> = { ...cleanMerged, ...aiData };
@@ -291,7 +297,6 @@ async function processUrl(url: string, batchId: string) {
     return { url, status: "error" as const, error: error.message };
   } finally {
     await context.close();
-    await browser.close();
   }
 }
 

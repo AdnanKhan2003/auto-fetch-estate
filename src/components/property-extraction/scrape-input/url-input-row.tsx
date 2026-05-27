@@ -3,6 +3,7 @@ import { Button } from "../../ui/button";
 import { Input } from "../../ui/input";
 import { Control, Controller } from "react-hook-form";
 import { Field, FieldError } from "@/components/ui/field";
+import TooltipWrapper from "@/components/tooltip/tooltip";
 
 interface UrlInputRowProps {
   index: number;
@@ -49,11 +50,12 @@ export function UrlInputRow({
                 size="icon"
                 type="button"
                 onClick={onFocus}
-                title="Locate in Table"
                 disabled={!field.value}
                 className="h-11 w-11 cursor-pointer text-muted-foreground hover:bg-primary/10 hover:text-primary"
               >
-                <MoveDownRight size={18} />
+                <TooltipWrapper content="Locate in Table">
+                  <MoveDownRight size={18} />
+                </TooltipWrapper>
               </Button>
             </div>
 
@@ -65,7 +67,9 @@ export function UrlInputRow({
                 onClick={onDelete}
                 className="h-11 w-11 cursor-pointer text-muted-foreground hover:bg-red-500/10 hover:text-red-500"
               >
-                <Trash2 size={18} />
+                <TooltipWrapper content="Delete URL">
+                  <Trash2 size={18} />
+                </TooltipWrapper>
               </Button>
             )}
           </div>

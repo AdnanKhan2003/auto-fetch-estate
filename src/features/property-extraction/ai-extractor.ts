@@ -126,7 +126,7 @@ async function extractStructuredData(
 
 interface VisionParams {
   url: string;
-  screenshotPath: string;
+  screenshotBuffer: Buffer;
   missingCritical: readonly string[];
   cleanDeterministic: Record<string, any>;
   cleanText: string;
@@ -144,7 +144,7 @@ interface VisionResult {
  */
 async function runVisionExtraction({
   url,
-  screenshotPath,
+  screenshotBuffer,
   missingCritical,
   cleanDeterministic,
   cleanText,
@@ -161,7 +161,6 @@ async function runVisionExtraction({
     console.log(`[AI] Attempting Vision extraction for: ${url}`);
     console.log(`[AI] Vision Model: ${visionModelName}`);
 
-    const screenshotBuffer = fs.readFileSync(screenshotPath);
     const visionGoogle = createGoogleGenerativeAI({ apiKey: visionApiKey });
 
     await checkQuotaAndConsume();

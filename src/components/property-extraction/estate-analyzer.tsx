@@ -91,6 +91,8 @@ export default function EstateAnalyzer() {
             data: p.extractedData,
             tokens: p.tokensUsed,
             screenshotUrl: p.screenshotUrl,
+            createdAt: p.createdAt,
+            updatedAt: p.updatedAt,
           }));
 
           setResults(formattedResults as any);
@@ -110,6 +112,42 @@ export default function EstateAnalyzer() {
 
     loadData();
   }, []);
+
+  const updateSingleRecord = async (idToUpdate: string, updates: any) => {
+    try {
+      const response = await fetch("/api/property-extraction", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: idToUpdate, updates }),
+      });
+
+      if (!response.ok) throw new Error("Failed to update record");
+
+      const resData = await response.json();
+
+      setResults((prev) =>
+        prev.map((r: any) =>
+          r.id === idToUpdate
+            ? { ...r, data: resData.updatedData, updatedAt: resData.updatedAt }
+            : r,
+        ),
+      );
+
+      if (selectedProperty?.id === idToUpdate) {
+        setSelectedProperty((prev) =>
+          prev
+            ? {
+                ...prev,
+                data: resData.updatedData,
+                updatedAt: resData.updatedAt,
+              }
+            : null,
+        );
+      }
+    } catch (error) {
+      console.error("Failed to update record", error);
+    }
+  };
 
   const deleteSingleRecord = async (idToDelete: string) => {
     try {
@@ -340,12 +378,14 @@ export default function EstateAnalyzer() {
           originalUrls={urls}
           estimatedCount={estimatedCount}
           onDelete={deleteSingleRecord}
+          onUpdate={updateSingleRecord}
         />
       </main>
       <PropertyDetailsModal
         property={selectedProperty}
         onClose={() => setSelectedProperty(null)}
         onDelete={deleteSingleRecord}
+        onUpdate={updateSingleRecord}
       />
 
       <AlertDialog
