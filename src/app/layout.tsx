@@ -38,7 +38,9 @@ export default function RootLayout({
         className={`${poppins.className} min-h-full flex flex-col antialiased selection:bg-zinc-900 selection:text-white dark:selection:bg-zinc-200 dark:selection:text-zinc-900`}
       >
         <ThemeProvider>
-          <LayoutWrapper>{children}</LayoutWrapper>
+          <TooltipProvider>
+            {children}
+          </TooltipProvider>
         </ThemeProvider>
       </body>
     </html>

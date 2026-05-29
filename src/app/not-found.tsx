@@ -4,15 +4,27 @@ import { motion } from "framer-motion";
 import Link from "next/link";
 import { Home, Construction, Ruler } from "lucide-react";
 import ThemeToggle from "@/components/theme/theme-toggle";
+import { useState, useEffect } from 'react';
 
 export default function NotFound() {
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
   return (
     <div className="flex min-h-screen flex-col items-center justify-center overflow-hidden bg-background text-foreground selection:bg-primary/30 font-mono relative">
+
+    <div className="absolute top-4 right-4 z-20">
+        <ThemeToggle />
+    </div>
+
       {/* 1. The Blueprint Grid (Static) - Reduced opacity for light mode */}
       <div className="absolute inset-0 z-0 opacity-10 dark:opacity-20 bg-[linear-gradient(to_right,#1e3a8a_1px,transparent_1px),linear-gradient(to_bottom,#1e3a8a_1px,transparent_1px)] bg-size-[50px_50px]" />
       {/* 2. Drifting Structural Lines (Animated) */}
       <div className="absolute inset-0 z-0 pointer-events-none">
-        {[...Array(6)].map((_, i) => (
+        {isMounted && [...Array(6)].map((_, i) => (
           <motion.div
             key={i}
             initial={{ opacity: 0, x: -100 }}
