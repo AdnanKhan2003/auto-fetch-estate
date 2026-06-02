@@ -7,7 +7,7 @@ import { PropertyExtractionResult } from "@/features/property-extraction/scraper
 import { ArrowUpDown, ExternalLink, Pencil, Trash2 } from "lucide-react";
 
 import { COMMA_REGEX, NUMERIC_REGEX } from "@/lib/regex";
-import { parseIndianNumber, calculateRatePerSqft } from "@/lib/format-utils";
+import { parseIndianPrice, formatRatePerSqft } from "@/lib/format-utils";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { useEffect, useState } from "react";
@@ -16,8 +16,8 @@ import TooltipWrapper from "@/components/tooltip/tooltip";
 
 // Smart helper to sort Indian currency and numeric strings
 const smartNumericSort = (rowA: any, rowB: any, columnId: string) => {
-  const a = parseIndianNumber(rowA.getValue(columnId));
-  const b = parseIndianNumber(rowB.getValue(columnId));
+  const a = parseIndianPrice(rowA.getValue(columnId));
+  const b = parseIndianPrice(rowB.getValue(columnId));
 
   return a < b ? -1 : a > b ? 1 : 0;
 };
@@ -32,7 +32,7 @@ const AreaCell = ({ row, table }: { row: any; table: any }) => {
   const propertyId = row.original.id;
 
   const currentAreaStr = carpetArea || builtupArea || superBuiltupArea || "";
-  const numericArea = currentAreaStr ? parseIndianNumber(currentAreaStr) : "";
+  const numericArea = currentAreaStr ? parseIndianPrice(currentAreaStr) : "";
 
   const [isEditing, setIsEditing] = useState(false);
   const [val, setVal] = useState(numericArea ? numericArea.toString() : "");
@@ -147,16 +147,16 @@ const RateCell = ({ row, table }: { row: any; table: any }) => {
   let factor = meta?.rowFactors?.[url];
 
   if (data?.carpetArea) {
-    effectiveArea = parseIndianNumber(data.carpetArea);
+    effectiveArea = parseIndianPrice(data.carpetArea);
   } else if (data?.builtupArea) {
-    effectiveArea = parseIndianNumber(data.builtupArea) * (factor ?? 0.85);
+    effectiveArea = parseIndianPrice(data.builtupArea) * (factor ?? 0.85);
   } else if (data?.superBuiltupArea) {
-    effectiveArea = parseIndianNumber(data.superBuiltupArea) * (factor ?? 0.72);
+    effectiveArea = parseIndianPrice(data.superBuiltupArea) * (factor ?? 0.72);
   }
 
-  const calculatedRate = calculateRatePerSqft(data?.price, effectiveArea);
+  const calculatedRate = formatRatePerSqft(data?.price, effectiveArea);
   const rateToDisplay = calculatedRate || data?.pricePerSqft;
-  const numericRate = rateToDisplay ? parseIndianNumber(rateToDisplay) : 0;
+  const numericRate = rateToDisplay ? parseIndianPrice(rateToDisplay) : 0;
 
   const [isEditing, setIsEditing] = useState(false);
   const [val, setVal] = useState(numericRate ? numericRate.toString() : "");
@@ -440,7 +440,7 @@ export const columns: ColumnDef<PropertyExtractionResult>[] = [
       factor = factor ?? defaultFactor;
 
       if (areaToCalc) {
-        const rawArea = parseIndianNumber(areaToCalc);
+        const rawArea = parseIndianPrice(areaToCalc);
         const calculated = Math.round(rawArea * factor);
         return (
           <div className="flex flex-col gap-0.5">

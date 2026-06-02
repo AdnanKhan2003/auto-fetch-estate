@@ -7,7 +7,7 @@ import ResultsTable from "./results-table";
 import PropertyDetailsModal from "./property-details-modal";
 import { PropertyExtractionResult } from "@/features/property-extraction/scraper";
 import { COMMA_REGEX, NUMERIC_REGEX } from "@/lib/regex";
-import { calculateRawRatePerSqft, parseIndianNumber } from "@/lib/format-utils";
+import { calculateRatePerSqft, parseIndianPrice } from "@/lib/format-utils";
 
 import {
   AlertDialog,
@@ -37,7 +37,7 @@ function hasValidArea(r: any): boolean {
     r.data?.builtupArea,
     r.data?.superBuiltupArea,
   ];
-  return areas.some((a) => a && parseIndianNumber(a) > 50);
+  return areas.some((a) => a && parseIndianPrice(a) > 50);
 }
 
 export default function EstateAnalyzer() {
@@ -287,19 +287,19 @@ export default function EstateAnalyzer() {
     .map((r) => {
       let effectiveArea: number | null = null;
       if (r.data?.carpetArea) {
-        effectiveArea = parseIndianNumber(r.data.carpetArea);
+        effectiveArea = parseIndianPrice(r.data.carpetArea);
       } else {
         const factor = rowFactors[r.url];
         if (r.data?.builtupArea) {
           effectiveArea =
-            parseIndianNumber(r.data.builtupArea) * (factor ?? 0.85); // default builtup to carpet
+            parseIndianPrice(r.data.builtupArea) * (factor ?? 0.85); // default builtup to carpet
         } else if (r.data?.superBuiltupArea) {
           effectiveArea =
-            parseIndianNumber(r.data.superBuiltupArea) * (factor ?? 0.72); // default super builtup to carpet
+            parseIndianPrice(r.data.superBuiltupArea) * (factor ?? 0.72); // default super builtup to carpet
         }
       }
 
-      const calcRate = calculateRawRatePerSqft(r.data?.price, effectiveArea);
+      const calcRate = calculateRatePerSqft(r.data?.price, effectiveArea);
       return calcRate !== null
         ? calcRate
         : parsePricePerSqft(r.data?.pricePerSqft);
@@ -318,15 +318,15 @@ export default function EstateAnalyzer() {
     (acc, r) => {
       let factor = rowFactors[r.url];
       if (r.data?.carpetArea) {
-        acc.totalCarpetArea += parseIndianNumber(r.data.carpetArea);
+        acc.totalCarpetArea += parseIndianPrice(r.data.carpetArea);
       } else if (r.data?.builtupArea) {
         acc.totalCarpetArea += Math.round(
-          parseIndianNumber(r.data.builtupArea) * (factor ?? 0.85),
+          parseIndianPrice(r.data.builtupArea) * (factor ?? 0.85),
         );
         acc.estimatedCount++;
       } else if (r.data?.superBuiltupArea) {
         acc.totalCarpetArea += Math.round(
-          parseIndianNumber(r.data.superBuiltupArea) * (factor ?? 0.72),
+          parseIndianPrice(r.data.superBuiltupArea) * (factor ?? 0.72),
         );
         acc.estimatedCount++;
       }

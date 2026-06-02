@@ -1,6 +1,6 @@
 import { COMMA_REGEX, NUMERIC_REGEX } from "./regex";
 
-function parseIndianNumber(val: any): number {
+function parseIndianPrice(val: any): number {
   if (!val) return 0;
   const str = String(val).toLowerCase().replace(COMMA_REGEX, "");
 
@@ -26,21 +26,21 @@ function parseIndianNumber(val: any): number {
   return num;
 }
 
-function calculateRawRatePerSqft(
+function calculateRatePerSqft(
   priceStr: any,
   effectiveArea: number | null,
 ): number | null {
-  const price = parseIndianNumber(priceStr);
+  const price = parseIndianPrice(priceStr);
 
   if (!price || !effectiveArea || effectiveArea <= 0) return null;
   return Math.round(price / effectiveArea);
 }
 
-function calculateRatePerSqft(
+function formatRatePerSqft(
   priceStr: any,
   effectiveArea: number | null,
 ): string | null {
-  const rate = calculateRawRatePerSqft(priceStr, effectiveArea);
+  const rate = calculateRatePerSqft(priceStr, effectiveArea);
 
   if (!rate) return null;
 
@@ -48,4 +48,4 @@ function calculateRatePerSqft(
   return `₹${rate.toLocaleString("en-IN")} / sqft`;
 }
 
-export { parseIndianNumber, calculateRawRatePerSqft, calculateRatePerSqft };
+export { parseIndianPrice, calculateRatePerSqft, formatRatePerSqft };

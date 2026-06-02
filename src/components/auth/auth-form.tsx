@@ -6,10 +6,15 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import LoginForm from "./login-form";
+import ThemeToggle from "../theme/theme-toggle";
 
 function AuthForm() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-linear-to-br from-background-to-muted p-4">
+    <div className="relative flex min-h-screen items-center justify-center bg-linear-to-br from-background-to-muted p-4">
+      <div className="absolute top-6 right-6 z-50">
+        <ThemeToggle />
+      </div>
+
       <Card className="w-full max-w-[400px] shadow-2xl border-none">
         <CardHeader>
           <CardTitle className="text-2xl font-bold tracking-tight">

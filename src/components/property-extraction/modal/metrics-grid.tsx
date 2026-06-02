@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import MetricCard from "./metric-card";
-import { calculateRatePerSqft, parseIndianNumber } from "@/lib/format-utils";
+import { formatRatePerSqft, parseIndianPrice } from "@/lib/format-utils";
 import { Pencil } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import TooltipWrapper from "@/components/tooltip/tooltip";
@@ -20,7 +20,7 @@ const AreaInput = ({
   initialArea: string;
   onUpdate: any;
 }) => {
-  const numericArea = initialArea ? parseIndianNumber(initialArea) : 0;
+  const numericArea = initialArea ? parseIndianPrice(initialArea) : 0;
   const [val, setVal] = useState(numericArea ? numericArea.toString() : "");
   const [isEditing, setIsEditing] = useState(false);
 
@@ -78,7 +78,7 @@ const RateInput = ({
   initialRate: string;
   onUpdate: any;
 }) => {
-  const numericRate = initialRate ? parseIndianNumber(initialRate) : 0;
+  const numericRate = initialRate ? parseIndianPrice(initialRate) : 0;
   const [val, setVal] = useState(numericRate ? numericRate.toString() : "");
   const [isEditing, setIsEditing] = useState(false);
 
@@ -132,13 +132,13 @@ const RateInput = ({
 export function MetricsGrid({ data, propertyId, onUpdate }: MetricsGridProps) {
   let effectiveArea: number | null = null;
   if (data?.carpetArea) {
-    effectiveArea = parseIndianNumber(data.carpetArea);
+    effectiveArea = parseIndianPrice(data.carpetArea);
   } else if (data?.builtupArea) {
-    effectiveArea = parseIndianNumber(data.builtupArea) * 0.85;
+    effectiveArea = parseIndianPrice(data.builtupArea) * 0.85;
   } else if (data?.superBuiltupArea) {
-    effectiveArea = parseIndianNumber(data.superBuiltupArea) * 0.72;
+    effectiveArea = parseIndianPrice(data.superBuiltupArea) * 0.72;
   } else if (data?.area) {
-    effectiveArea = parseIndianNumber(data.area) * 0.72;
+    effectiveArea = parseIndianPrice(data.area) * 0.72;
   }
 
   let areaToDisplay =
@@ -153,7 +153,7 @@ export function MetricsGrid({ data, propertyId, onUpdate }: MetricsGridProps) {
     else if (data?.area) areaLabel = "*Carpet area unknown";
   }
   const rateToDisplay =
-    calculateRatePerSqft(data?.price, effectiveArea) || data?.pricePerSqft;
+    formatRatePerSqft(data?.price, effectiveArea) || data?.pricePerSqft;
 
   return (
     <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
