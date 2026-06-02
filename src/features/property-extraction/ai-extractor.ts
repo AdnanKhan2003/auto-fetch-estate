@@ -6,14 +6,7 @@ import { checkQuotaAndConsume } from "@/features/property-extraction/ai-rate-lim
 
 const DEFAULT_GOOGLE_MODEL = "gemini-2.5-flash";
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Text Extraction
-// ─────────────────────────────────────────────────────────────────────────────
-
-/**
- * Uses a Gemini text model to fill schema fields from JSON-LD blocks and
- * raw page text. Returns whatever the model can extract; returns {} on failure.
- */
+// AI fills in data what it can identify and return in format based on output guardrail.
 async function extractStructuredData(
   page: any,
   cleanText: string,
@@ -120,10 +113,6 @@ async function extractStructuredData(
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Vision Fallback
-// ─────────────────────────────────────────────────────────────────────────────
-
 interface VisionParams {
   url: string;
   screenshotBuffer: Buffer;
@@ -138,10 +127,7 @@ interface VisionResult {
   tokens: number;
 }
 
-/**
- * Uses Gemini Vision (screenshot image) to recover fields that text extraction
- * missed. Only called when critical fields are still absent after text AI.
- */
+// Uses Gemini Vision (screenshot image) to recover fields that text extraction missed.
 async function runVisionExtraction({
   url,
   screenshotBuffer,

@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+// AI Output Guardrails
 const propertySchema = z.object({
   // Basic Information
   propertyTitle: z
@@ -13,7 +14,11 @@ const propertySchema = z.object({
     .optional()
     .describe("e.g., Flat, Villa, Apartment, Office."),
   bhkType: z.string().nullable().optional().describe("e.g., 1BHK, 2BHK, 3BHK."),
-  projectType: z.string().nullable().optional().describe("e.g., Residential, Commercial."),
+  projectType: z
+    .string()
+    .nullable()
+    .optional()
+    .describe("e.g., Residential, Commercial."),
 
   // Location Details
   location: z
@@ -21,7 +26,11 @@ const propertySchema = z.object({
     .nullable()
     .optional()
     .describe("The neighborhood, locality, or city."),
-  address: z.string().nullable().optional().describe("The full address of the property."),
+  address: z
+    .string()
+    .nullable()
+    .optional()
+    .describe("The full address of the property."),
   city: z
     .string()
     .nullable()
@@ -95,8 +104,16 @@ const propertySchema = z.object({
     .nullable()
     .optional()
     .describe("e.g., Unfurnished, Semi-furnished, Fully furnished."),
-  numberOfBathrooms: z.number().nullable().optional().describe("Number of bathrooms."),
-  numberOfBalconies: z.number().nullable().optional().describe("Number of balconies."),
+  numberOfBathrooms: z
+    .number()
+    .nullable()
+    .optional()
+    .describe("Number of bathrooms."),
+  numberOfBalconies: z
+    .number()
+    .nullable()
+    .optional()
+    .describe("Number of balconies."),
   facing: z
     .string()
     .nullable()
@@ -178,7 +195,11 @@ const propertySchema = z.object({
     .nullable()
     .optional()
     .describe("Indicates if the property is RERA approved."),
-  reraNumber: z.string().nullable().optional().describe("RERA registration number."),
+  reraNumber: z
+    .string()
+    .nullable()
+    .optional()
+    .describe("RERA registration number."),
   verifiedTag: z
     .boolean()
     .nullable()
@@ -225,7 +246,11 @@ const propertySchema = z.object({
     .nullable()
     .optional()
     .describe("Contact information for the seller/agent."),
-  responseRate: z.string().nullable().optional().describe("Seller response rate."),
+  responseRate: z
+    .string()
+    .nullable()
+    .optional()
+    .describe("Seller response rate."),
   buyersServed: z
     .string()
     .nullable()
@@ -273,7 +298,11 @@ const propertySchema = z.object({
     .nullable()
     .optional()
     .describe("Transit score of the locality."),
-  safetyScore: z.number().nullable().optional().describe("Safety score of the locality."),
+  safetyScore: z
+    .number()
+    .nullable()
+    .optional()
+    .describe("Safety score of the locality."),
 
   // Visuals & Extras
   numberOfPhotos: z

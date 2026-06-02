@@ -8,15 +8,15 @@ chromium.use(stealthPlugin());
 
 import { propertySchema, Property } from "./schema";
 import {
-  normalizePrice,
-  normalizePricePerSqft,
+  cleanPriceWhitespace,
+  normalizeRatePerSqft,
   normalizeArea,
   extractNumericValue,
 } from "./normalizers";
 import {
   ERROR_PAGE_PHRASES,
   isBlocked,
-  extractCleanContent,
+  extractCleanBody,
   extractBySelectors,
 } from "./page-utils";
 import { extractStructuredData, runVisionExtraction } from "./ai-extractor";
@@ -31,28 +31,43 @@ export type { Property };
 const CRITICAL_FIELDS = ["propertyTitle", "price", "location"] as const;
 
 let globalBrowser = (globalThis as any).browser || null;
+let browserPromise: Promise<any> | null = null;
 
+// 1 Global Browser instance shared by all parallel runs
 async function getSharedBrowser() {
-  if (!globalBrowser || !globalBrowser.isConnected()) {
-    globalBrowser = await chromium.launch({
-      channel: "chrome",
-      headless: true,
-      args: [
-        "--headless=new",
-        "--disable-blink-features=AutomationControlled",
-        "--no-sandbox",
-        "--disable-dev-shm-usage",
-        "--disable-gpu",
-        "--use-gl=swiftshader",
-        "--lang=en-IN",
-      ],
-    });
-
-    (globalThis as any).browser = globalBrowser;
+  if (globalBrowser && globalBrowser.isConnected()) {
+    return globalBrowser;
   }
-  return globalBrowser;
+
+  if (!browserPromise) {
+    browserPromise = chromium
+      .launch({
+        channel: "chrome",
+        headless: true,
+        args: [
+          "--headless=new",
+          "--disable-blink-features=AutomationControlled",
+          "--no-sandbox",
+          "--disable-dev-shm-usage",
+          "--disable-gpu",
+          "--use-gl=swiftshader",
+          "--lang=en-IN",
+        ],
+      })
+      .then((browser) => {
+        globalBrowser = browser;
+        (globalThis as any).browser = browser;
+        return browser;
+      })
+      .catch((err) => {
+        browserPromise = null;
+        throw err;
+      });
+  }
+  return browserPromise;
 }
 
+// Isolated Context per scraper run
 async function createIsolatedContext() {
   const browser = await getSharedBrowser();
 
@@ -83,8 +98,7 @@ async function createIsolatedContext() {
   return context;
 }
 
-// ─── Browser helpers ─────────────────────────────────────────────────────────
-
+// Navigates to target URL with site-specific loading thresholds and random user delays
 async function navigatePage(page: any, url: string) {
   // Use "domcontentloaded" for sites with Akamai/Cloudflare WAF.
   // "networkidle" holds the connection open longer, which raises
@@ -107,6 +121,7 @@ async function navigatePage(page: any, url: string) {
   await page.waitForTimeout(Math.floor(Math.random() * 2000) + 3000);
 }
 
+// Capture screenshot of page
 async function takeScreenshot(
   page: any,
   url: string,
@@ -138,9 +153,7 @@ async function takeScreenshot(
   return { screenshotName, screenshotBuffer };
 }
 
-// ─── Data helpers ─────────────────────────────────────────────────────────────
-
-/** Builds the zero-value default object (nulls + empty arrays) for the schema. */
+// Pre-populates a schema we give to ai, with empty array and null values matching the property schema
 function buildDefaultData(): Record<string, any> {
   return Object.keys(propertySchema.shape).reduce(
     (acc, key) => {
@@ -152,12 +165,12 @@ function buildDefaultData(): Record<string, any> {
   );
 }
 
-/** Applies price, area, and carpetArea normalisations in-place. */
+// Applies price, area, and carpetArea normalisations in-place.
 function applyNormalizations(data: Record<string, any>): void {
-  if (data.price) data.price = normalizePrice(data.price) ?? data.price;
+  if (data.price) data.price = cleanPriceWhitespace(data.price) ?? data.price;
   if (data.pricePerSqft)
     data.pricePerSqft =
-      normalizePricePerSqft(data.pricePerSqft) ?? data.pricePerSqft;
+      normalizeRatePerSqft(data.pricePerSqft) ?? data.pricePerSqft;
   if (data.carpetArea)
     data.carpetArea = normalizeArea(data.carpetArea) ?? data.carpetArea;
   if (data.builtupArea)
@@ -184,13 +197,12 @@ function applyNormalizations(data: Record<string, any>): void {
   }
 }
 
-// ─── Main export ─────────────────────────────────────────────────────────────
-
+// Runs the complete pipeline: downloads page content, screenshots, parses html, and triggers AI extraction
 async function processUrl(url: string, batchId: string) {
-  const context = await createIsolatedContext();
-  const page = await context.newPage();
-
+  let context;
   try {
+    context = await createIsolatedContext();
+    const page = await context.newPage();
     // Step 1 — Navigate
     await navigatePage(page, url);
 
@@ -208,7 +220,7 @@ async function processUrl(url: string, batchId: string) {
     );
 
     // Step 4 — Clean text
-    const cleanText = await extractCleanContent(page);
+    const cleanText = await extractCleanBody(page);
 
     // Step 5 — 404 / removed listing detection
     const lowerClean = cleanText.toLowerCase();
@@ -296,7 +308,9 @@ async function processUrl(url: string, batchId: string) {
     console.error(`Failed to process ${url}:`, error);
     return { url, status: "error" as const, error: error.message };
   } finally {
-    await context.close();
+    if (context) {
+      await context.close().catch(console.error);
+    }
   }
 }
 

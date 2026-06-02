@@ -42,12 +42,14 @@ async function checkQuotaAndConsume() {
     );
   }
 
+  const dayChanged = lastResetDate !== currentPacificDate;
+
   await db
     .update(apiQuota)
     .set({
-      requestsToday: sql`${apiQuota.requestsToday} + 1`,
-      tokensUsedToday,
-      lastResetDate,
+      requestsToday: dayChanged ? 1 : sql`${apiQuota.requestsToday} + 1`,
+      tokensUsedToday: dayChanged ? 0 : tokensUsedToday,
+      lastResetDate: currentPacificDate,
       updatedAt: new Date(),
     })
     .where(eq(apiQuota.id, "global"));

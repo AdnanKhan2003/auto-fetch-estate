@@ -1,5 +1,6 @@
 import { COMMA_REGEX, NUMERIC_REGEX } from "./regex";
 
+// Parse from Human readable String to (Ex: '1.5 Cr' -> 15000000)
 function parseIndianPrice(val: any): number {
   if (!val) return 0;
   const str = String(val).toLowerCase().replace(COMMA_REGEX, "");
@@ -26,6 +27,7 @@ function parseIndianPrice(val: any): number {
   return num;
 }
 
+// Calculates raw rate per square foot. (Ex: '1.5 Cr' / 1000 -> 15000)
 function calculateRatePerSqft(
   priceStr: any,
   effectiveArea: number | null,
@@ -36,6 +38,7 @@ function calculateRatePerSqft(
   return Math.round(price / effectiveArea);
 }
 
+// Calculates and formats rate per square foot to Indian currency style. (Ex: ("1.5 Cr", 1000) -> "₹15,000 / sqft")
 function formatRatePerSqft(
   priceStr: any,
   effectiveArea: number | null,

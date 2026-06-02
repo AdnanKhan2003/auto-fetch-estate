@@ -39,11 +39,13 @@ export async function POST(request: Request) {
 
     const stream = new ReadableStream({
       async start(controller) {
-        const CONCURRENCY_LIMIT = 2; // Reduced from 5 to prevent Gemini 503 quotas
+        // avoid Gemini API rate limit quota exhaustion (503s)
+        const CONCURRENCY_LIMIT = 2;
 
         for (let i = 0; i < activeUrls.length; i += CONCURRENCY_LIMIT) {
           const chunk = activeUrls.slice(i, i + CONCURRENCY_LIMIT);
-          // Fire all scrapes in parallel; flush each result the moment it resolves
+
+          // Fire scrapes in parallel; return each result the moment it resolves
           await Promise.allSettled(
             chunk.map(async (url: string) => {
               try {
@@ -83,7 +85,7 @@ export async function POST(request: Request) {
                   createdAt: new Date().toISOString(),
                 };
 
-                // NDJSON — one JSON object per line, pushed immediately
+                // NDJSON: one JSON object per line, pushed immediately
                 controller.enqueue(
                   encoder.encode(JSON.stringify(enrichedResult) + "\n"),
                 );
@@ -120,6 +122,7 @@ export async function POST(request: Request) {
             console.log(
               `[Batch] Cooldown: Waiting 11 seconds before next chunk...`,
             );
+            // allow target server & API limits to reset
             await new Promise((resolve) => setTimeout(resolve, 13000));
           }
         }
@@ -127,6 +130,7 @@ export async function POST(request: Request) {
       },
     });
 
+    // stream keeps HTTP connections alive during slow browser scrapes
     return new Response(stream, {
       headers: {
         "Content-Type": "application/x-ndjson",

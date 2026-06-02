@@ -1,7 +1,4 @@
-/**
- * Phrases that indicate a 404 or removed-listing page.
- * Checked against cleanText (case-insensitive) + length guard to avoid false positives.
- */
+// Phrases that indicate a 404 or removed-listing page.
 const ERROR_PAGE_PHRASES = [
   "something is missing",
   "page not found",
@@ -11,20 +8,17 @@ const ERROR_PAGE_PHRASES = [
   "this listing has been removed",
   "listing not available",
   "property not found",
-  // Housing.com / Akamai block page markers
   "request blocked",
   "suspicious activity",
   "your request was temporarily blocked",
 ] as const;
 
-/**
- * Returns true if the page title or HTML body signals a bot-protection block.
- */
+// Returns true if the page title or HTML body signals a bot-protection block.
 function isBlocked(pageTitle: string, html: string): boolean {
   const lowTitle = pageTitle.toLowerCase();
   const lowHtml = html.toLowerCase();
 
-  // Check the page title first — most reliable indicator of a real block
+  // Check the page title first which is most reliable indicator of a real block
   if (
     lowTitle.includes("access denied") ||
     lowTitle.includes("robot check") ||
@@ -33,14 +27,12 @@ function isBlocked(pageTitle: string, html: string): boolean {
     return true;
   }
 
-  // Only flag "blocked" if the body is tiny — avoids false positives on normal pages
+  // Only flag "blocked" if the body is tiny to avoid false positives on normal pages
   if (html.length < 500 && lowHtml.includes("blocked")) {
     return true;
   }
 
-  // Housing.com / Akamai Bot Manager block page:
-  // The page title is just "Housing.com" so title checks miss it.
-  // Instead, detect their specific block-page body fingerprint.
+  // Akamai Bot Manager block page:
   if (
     lowHtml.includes("request blocked") &&
     lowHtml.includes("suspicious activity")
@@ -59,11 +51,8 @@ function isBlocked(pageTitle: string, html: string): boolean {
   return false;
 }
 
-/**
- * Strips nav, footer, ads, and scripts from the page then returns the
- * remaining visible body text — ready to feed to the AI extractor.
- */
-async function extractCleanContent(page: any): Promise<string> {
+// Strips nav, footer, etc and feeds clean body to ai.
+async function extractCleanBody(page: any): Promise<string> {
   return page.evaluate(() => {
     const junkSelectors = [
       "script",
@@ -111,20 +100,8 @@ async function extractCleanContent(page: any): Promise<string> {
   });
 }
 
-/**
- * Extracts property fields using CSS selectors.
- *
- * Currently targets MagicBricks class names (.mb-ldp__*).
- * To add support for another site, add a URL-based routing block:
- *
- *   if (hostname.includes("99acres"))  return extract99AcresSelectors(page);
- *   if (hostname.includes("nobroker")) return extractNoBrokerSelectors(page);
- *
- * and implement the site-specific helper below this function.
- */
-async function extractBySelectors(
-  page: any,
-): Promise<Record<string, any>> {
+// Extracts property fields using CSS selectors. Currently targets MagicBricks class names
+async function extractBySelectors(page: any): Promise<Record<string, any>> {
   // Generic text helper — tries each selector in order, returns first match < 200 chars
   const get = async (...selectors: string[]) => {
     for (const sel of selectors) {
@@ -233,9 +210,4 @@ async function extractBySelectors(
   };
 }
 
-export {
-  ERROR_PAGE_PHRASES,
-  isBlocked,
-  extractCleanContent,
-  extractBySelectors
-};
+export { ERROR_PAGE_PHRASES, isBlocked, extractCleanBody, extractBySelectors };
