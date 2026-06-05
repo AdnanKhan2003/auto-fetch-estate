@@ -8,7 +8,12 @@ interface ActionButtonsProps {
   onExecute: () => void;
 }
 
-export function ActionButtons({ isLoading, isExecuteDisabled, onAddTarget, onExecute }: ActionButtonsProps) {
+export function ActionButtons({
+  isLoading,
+  isExecuteDisabled,
+  onAddTarget,
+  onExecute,
+}: ActionButtonsProps) {
   return (
     <div className="flex items-center justify-between border-t border-border pt-4">
       <Button
@@ -22,7 +27,7 @@ export function ActionButtons({ isLoading, isExecuteDisabled, onAddTarget, onExe
       <Button
         onClick={onExecute}
         disabled={isExecuteDisabled}
-        className="h-11 cursor-pointer border-none bg-primary px-10 font-bold text-primary-foreground shadow-sm transition-all hover:bg-primary/90 disabled:bg-muted disabled:text-muted-foreground"
+        className="h-11 cursor-pointer border-none bg-primary px-10 font-bold text-primary-foreground shadow-sm hover:bg-primary/90 disabled:bg-muted disabled:text-muted-foreground"
       >
         {isLoading ? (
           <>

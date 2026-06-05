@@ -22,7 +22,7 @@ function EstateHeader({ onClear }: EstateHeaderProps) {
             variant="ghost"
             size="sm"
             onClick={onClear}
-            className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:text-red-500 transition-colors cursor-pointer"
+            className="flex items-center transition-colors gap-2 text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:text-red-500  cursor-pointer"
           >
             <span className="hidden sm:inline">Clear History</span>
             <Trash2 className="h-4 w-4 sm:h-3 sm:w-3" />

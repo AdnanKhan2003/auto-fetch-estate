@@ -137,7 +137,7 @@ function ResultsTable({
           }}
           aria-pressed={showTotalArea}
           aria-label="Toggle total carpet area"
-          className={`flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest px-2.5 py-1.5 rounded-md border transition-all duration-200 cursor-pointer ${
+          className={`flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest px-2.5 py-1.5 rounded-md border duration-200 cursor-pointer ${
             showTotalArea
               ? "bg-foreground text-background border-foreground"
               : "text-muted-foreground border-border hover:text-foreground hover:border-foreground/40"
@@ -192,7 +192,7 @@ function ResultsTable({
                           key={row.id}
                           id={rowId}
                           data-state={row.getIsSelected() && "selected"}
-                          className={`border-b transition-all duration-300 cursor-pointer hover:bg-black/10 dark:hover:bg-muted/50 data-[state=selected]:hover:bg-black/10 dark:data-[state=selected]:hover:bg-muted/80 ${isFocused ? "bg-black/10! dark:bg-white/15!" : ""}`}
+                          className={`border-b cursor-pointer hover:bg-black/10 dark:hover:bg-muted/50 transition-all duration-300 data-[state=selected]:hover:bg-black/10 dark:data-[state=selected]:hover:bg-muted/80 ${isFocused ? "bg-black/10! dark:bg-white/15!" : ""}`}
                           onClick={() => onRowClick(row.original)}
                         >
                           {row.getVisibleCells().map((cell: any) => (

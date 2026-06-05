@@ -97,7 +97,7 @@ const AreaCell = ({ row, table }: { row: any; table: any }) => {
           className="cursor-pointer group/pencil"
         >
           <TooltipWrapper content="Edit Area">
-            <Pencil className="h-3 w-3 text-muted-foreground/40 group-hover/pencil:text-foreground shrink-0 transition-colors" />
+            <Pencil className="h-3 w-3 transition-colors text-muted-foreground/40 group-hover/pencil:text-foreground shrink-0 " />
           </TooltipWrapper>
         </span>
       </div>
@@ -211,7 +211,7 @@ const RateCell = ({ row, table }: { row: any; table: any }) => {
         className="cursor-pointer group/pencil"
       >
         <TooltipWrapper content="Edit Rate/Sqft">
-          <Pencil className="h-3 w-3 text-muted-foreground/40 group-hover/pencil:text-foreground shrink-0 transition-colors" />
+          <Pencil className="h-3 w-3 text-muted-foreground/40 group-hover/pencil:text-foreground shrink-0 " />
         </TooltipWrapper>
       </span>
     </div>
@@ -351,7 +351,7 @@ export const columns: ColumnDef<PropertyExtractionResult>[] = [
               {title}
             </span>
             <TooltipWrapper content="Open Link">
-              <ExternalLink className="h-3 w-3 shrink-0 text-muted-foreground group-hover:text-blue-500 transition-colors" />
+              <ExternalLink className="h-3 w-3 shrink-0 text-muted-foreground group-hover:text-blue-500 " />
             </TooltipWrapper>
           </Link>
           <div className="flex items-center gap-2 text-[10px] text-muted-foreground/80 font-medium">

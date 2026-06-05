@@ -31,7 +31,7 @@ export function EvidenceSection({
             width={1280}
             height={800}
             unoptimized={true}
-            className="w-full h-auto transition-all duration-1000 group-hover:scale-[1.02]"
+            className="w-full transition-transform duration-300  h-auto group-hover:scale-[1.02]"
             alt={`Screenshot of ${property.data?.propertyTitle || "property"}`}
             title={`Screenshot of ${property.data?.propertyTitle || "property"}`}
             onError={(e) => {
@@ -40,7 +40,7 @@ export function EvidenceSection({
             }}
           />
         )}
-        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-black/30">
+        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 duration-200 bg-black/30">
           <div className="flex items-center gap-2 rounded-full bg-black/60 px-4 py-2 text-xs font-semibold text-white backdrop-blur-sm">
             <ZoomIn size={14} />
             View fullscreen

@@ -8,6 +8,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogClose,
+  DialogDescription,
 } from "../ui/dialog";
 import { Lightbox } from "./modal/lightbox";
 import { MetricsGrid } from "./modal/metrics-grid";
@@ -86,10 +87,15 @@ function PropertyDetailsModal({
                     {property?.data?.propertyTitle || "Property Overview"}
                   </span>
                   <TooltipWrapper content="Open URL">
-                    <ExternalLink className="h-5 w-5 shrink-0 text-muted-foreground group-hover:text-blue-500 transition-colors" />
+                    <ExternalLink className="h-5 w-5 transition-colors shrink-0 text-muted-foreground group-hover:text-blue-500 " />
                   </TooltipWrapper>
                 </Link>
               </DialogTitle>
+
+              <DialogDescription className="sr-only">
+                Detailed analysis and metrics of the scraped property listing.
+              </DialogDescription>
+
               <div className="flex items-center gap-2 text-sm text-muted-foreground/80 font-medium">
                 <span>{domain}</span>
                 {property?.createdAt &&

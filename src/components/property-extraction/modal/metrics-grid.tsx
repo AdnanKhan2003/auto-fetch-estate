@@ -62,7 +62,7 @@ const AreaInput = ({
         className="cursor-pointer group/pencil inline-flex items-center"
       >
         <TooltipWrapper content="Edit Area">
-          <Pencil className="h-4 w-4 text-muted-foreground/40 group-hover/pencil:text-foreground shrink-0 transition-colors" />
+          <Pencil className="h-4 w-4 transition-colors text-muted-foreground/40 group-hover/pencil:text-foreground shrink-0 " />
         </TooltipWrapper>
       </span>
     </span>
@@ -122,7 +122,7 @@ const RateInput = ({
         className="cursor-pointer group/pencil inline-flex items-center"
       >
         <TooltipWrapper content="Edit Rate / Sqft">
-          <Pencil className="h-4 w-4 text-muted-foreground/40 group-hover/pencil:text-foreground shrink-0 transition-colors" />
+          <Pencil className="h-4 w-4 transition-colors text-muted-foreground/40 group-hover/pencil:text-foreground shrink-0 " />
         </TooltipWrapper>
       </span>
     </span>

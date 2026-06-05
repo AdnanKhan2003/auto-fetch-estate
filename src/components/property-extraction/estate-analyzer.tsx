@@ -105,12 +105,14 @@ export default function EstateAnalyzer() {
         }
       } catch (error) {
         console.error("Failed to load from DB", error);
-      } finally {
-        setIsMounted(true);
       }
     }
 
     loadData();
+  }, []);
+
+  useEffect(() => {
+    setIsMounted(true);
   }, []);
 
   const updateSingleRecord = async (idToUpdate: string, updates: any) => {
@@ -349,7 +351,7 @@ export default function EstateAnalyzer() {
   if (!isMounted) return null;
 
   return (
-    <div className="space-y-6 sm:space-y-10 px-0 sm:px-6 pb-8 bg-background text-foreground">
+    <div className="space-y-6 sm:space-y-10 px-0 pb-8 bg-background text-foreground">
       <EstateHeader onClear={clearHistory} />
       <main className="flex-1 min-w-0 overflow-hidden space-y-10 px-4 sm:px-6 py-6 sm:py-10">
         <ScrapeInputCard
