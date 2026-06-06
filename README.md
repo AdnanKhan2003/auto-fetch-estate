@@ -15,6 +15,7 @@ A high-performance, AI-powered real estate data extraction and analysis tool bui
 
 - **Automated Stealth Scraping:** Bypasses aggressive WAF protections on major real estate portals using Playwright and the Puppeteer Stealth plugin.
 - **AI-Driven Data Structuring:** Leverages Google's Gemini models via the Vercel AI SDK to predictably extract over 50 specific data points (carpet area, price per sqft, amenities, etc.) from unstructured HTML.
+- **AI-Powered Property Search Engine:** Processes natural language search queries by running a LangChain-based orchestrator agent that queries Google Serper API, discovers listing links on aggregator pages, scrapes their details, and streams real-time status updates back to the client.
 - **Intelligent Normalization:** Backend sanitization pipelines prevent AI hallucinations (e.g., ensuring carpet area does not exceed built-up area).
 - **Parallel Batch Processing:** Efficiently streams NDJSON results to the client, utilizing concurrency limits to prevent API quota exhaustion.
 - **Modern Authentication:** Secure, session-based authentication managed by `better-auth`.
@@ -24,7 +25,7 @@ A high-performance, AI-powered real estate data extraction and analysis tool bui
 ## 🛠️ Tech Stack
 
 - **Frontend:** Next.js 16 (App Router), TypeScript, Tailwind CSS, shadcn/ui, Lucide React, Next Themes
-- **Backend:** Next.js API Routes, TypeScript, Playwright Extra, Puppeteer Stealth, Vercel AI SDK, Zod
+- **Backend:** Next.js API Routes, TypeScript, Playwright Extra, Puppeteer Stealth, Vercel AI SDK, Zod, LangChain, @langchain/google-genai, Serper API
 - **Database:** PostgreSQL, Neon, Drizzle ORM
 - **Authentication:** better-auth
 - **Object Storage:** AWS S3
@@ -41,12 +42,14 @@ This project follows a highly scalable, domain-driven architecture utilizing Nex
 │   │   ├── api/                # Backend API Routes
 │   │   │   ├── auth/[...all]/  # better-auth catch-all route
 │   │   │   ├── images/[...filepath]/ # AWS S3 Catch-all Proxy Route (Pre-signed URLs)
-│   │   │   └── property-extraction/  # Unified Controller for POST (Scraping), GET, DELETE
+│   │   │   ├── property-extraction/  # Unified Controller for POST (Scraping), GET, DELETE
+│   │   │   └── property-search/ # Streaming orchestrator agent endpoint
 │   ├── auth/                   # Core authentication logic (better-auth client/server config)
 │   ├── components/             # Reusable UI components (shadcn/ui, layout, modals)
 │   ├── db/                     # Database schemas and Drizzle ORM connection logic
 │   ├── features/               # Core Domain Logic (Decoupled from API routes)
-│   │   └── property-extraction/# Scraper engine, AI extractors, Zod schemas, normalizers
+│   │   ├── property-extraction/# Scraper engine, AI extractors, Zod schemas, normalizers
+│   │   └── property-search/    # AI agent orchestrator logic, tools, and link extractors
 │   └── lib/                    # Third-party integrations (e.g., s3-client.ts) and utils
 ```
 
@@ -57,6 +60,7 @@ Create a `.env` file in the root of the project. Use the following structure wit
 ```env
 # AI Integration
 GOOGLE_GENERATIVE_AI_API_KEY="your_google_gemini_api_key_here"
+SERPER_API_KEY="your_serper_api_key_here"
 
 # AWS S3 Storage
 AWS_REGION="your_aws_region_here"
@@ -131,6 +135,7 @@ In production environments, **do not** use `push`. Instead, apply the versioned 
 - **Rate Limiting:** The application is configured with internal rate limits to respect external API free-tier quotas (e.g., LLM APIs).
 - **Strict Boundaries:** Incoming AI data is parsed through strict Zod schemas before database insertion to prevent frontend crashes from hallucinated fields.
 - **Stealth Browsing:** The scraping engine uses headless Chromium. Success rates may vary based on live bot-mitigation updates on target websites.
+- **Bundling Configuration:** Due to LangChain's dynamic import mechanisms, packages like `langchain`, `@langchain/core`, and `@langchain/google-genai` are explicitly marked as external in the Next.js configuration to ensure successful builds.
 
 ## 📄 License
 
