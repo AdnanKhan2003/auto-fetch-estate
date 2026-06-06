@@ -91,7 +91,7 @@ async function extractStructuredData(
          ${JSON.stringify(knownData, null, 2)}
       `;
 
-    await checkQuotaAndConsume();
+    // await checkQuotaAndConsume();
 
     const { object, usage } = await generateObject({
       model: googleProvider(modelName),
@@ -149,7 +149,7 @@ async function runVisionExtraction({
 
     const visionGoogle = createGoogleGenerativeAI({ apiKey: visionApiKey });
 
-    await checkQuotaAndConsume();
+    // await checkQuotaAndConsume();
 
     const { object, usage } = await generateObject({
       model: visionGoogle(visionModelName),

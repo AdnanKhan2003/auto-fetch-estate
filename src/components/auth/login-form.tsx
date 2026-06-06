@@ -107,7 +107,7 @@ function LoginForm() {
 
         <LoadingButton
           type="submit"
-          className="w-full font-semibold"
+          className="w-full font-semibold cursor-pointer"
           loading={loading}
         >
           Log In

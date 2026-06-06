@@ -316,5 +316,5 @@ async function processUrl(url: string, batchId: string) {
 
 type PropertyExtractionResult = Awaited<ReturnType<typeof processUrl>>;
 
-export { processUrl };
+export { getSharedBrowser, createIsolatedContext, processUrl };
 export type { PropertyExtractionResult };
