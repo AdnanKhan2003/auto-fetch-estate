@@ -102,6 +102,16 @@ function ScrapeInputCard({
               setSearchStatus(data.action);
             } else if (data.type === "message") {
               setSearchStatus("Agent thinking...");
+            } else if (data.type === "error") {
+              const isRateLimit =
+                data.error.includes("429") ||
+                data.error.toLowerCase().includes("quota");
+
+              const freindlyMessage = isRateLimit
+                ? "Gemini AI server is busy (quota exceeded). Please try again in a few minutes."
+                : "Search failed. Please try again.";
+              setSearchStatus(freindlyMessage);
+              setIsSearching(false);
             } else if (data.type === "done" && data.urls?.length > 0) {
               setSearchStatus("Found URLs! Populating...");
 

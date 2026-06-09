@@ -1,8 +1,7 @@
-import fs from "fs";
-import { createGoogleGenerativeAI } from "@ai-sdk/google";
-import { generateObject } from "ai";
 import { propertySchema, Property } from "./schema";
 import { checkQuotaAndConsume } from "@/features/property-extraction/ai-rate-limiter";
+import { ChatGoogleGenerativeAI } from "@langchain/google-genai";
+import { HumanMessage } from "langchain";
 
 const DEFAULT_GOOGLE_MODEL = "gemini-2.5-flash";
 
@@ -52,8 +51,6 @@ async function extractStructuredData(
   console.log(`[AI] Using API Key: ${apiKey.slice(0, 5)}...`);
   console.log(`[AI] Using Model: ${modelName}`);
 
-  const googleProvider = createGoogleGenerativeAI({ apiKey });
-
   try {
     const prompt = `
          You are a Real Estate Data Specialist. 
@@ -93,18 +90,30 @@ async function extractStructuredData(
 
     // await checkQuotaAndConsume();
 
-    const { object, usage } = await generateObject({
-      model: googleProvider(modelName),
-      schema: propertySchema,
-      prompt,
-      maxRetries: 0,
+    const llm = new ChatGoogleGenerativeAI({
+      model: modelName,
+      apiKey,
     });
 
-    if (object && Object.keys(object).length > 0) {
+    const structedLlm = llm.withStructuredOutput(propertySchema, {
+      name: "extract_property_data",
+      includeRaw: true,
+    });
+
+    const response = await structedLlm.invoke(prompt);
+
+    const rawMessage = response.raw as any;
+    const usage =
+      rawMessage.usage_metadata || rawMessage.response_metadata?.tokenUsage;
+    const tokens = usage ? usage.total_tokens || usage.totalTokens : 0;
+
+    const data = response.parsed || {};
+
+    if (data && Object.keys(data).length > 0) {
       console.log("✅ [AI] Extraction successful!");
     }
 
-    return { data: object, tokens: usage?.totalTokens ?? 0 };
+    return { data, tokens };
   } catch (err: any) {
     console.error("\n❌ [AI Error] Extraction failed!");
     console.error(`Reason: ${err.message}`);
@@ -147,46 +156,54 @@ async function runVisionExtraction({
     console.log(`[AI] Attempting Vision extraction for: ${url}`);
     console.log(`[AI] Vision Model: ${visionModelName}`);
 
-    const visionGoogle = createGoogleGenerativeAI({ apiKey: visionApiKey });
+    const llm = new ChatGoogleGenerativeAI({
+      model: visionModelName,
+      apiKey: visionApiKey,
+    });
+
+    const structedLlm = llm.withStructuredOutput(propertySchema, {
+      name: "extract_property_data_vision",
+      includeRaw: true,
+    });
 
     // await checkQuotaAndConsume();
 
-    const { object, usage } = await generateObject({
-      model: visionGoogle(visionModelName),
-      schema: propertySchema,
-      messages: [
+    const message = new HumanMessage({
+      content: [
         {
-          role: "user",
-          content: [
-            {
-              type: "text",
-              text: `
+          type: "text",
+          text: `
                 Extract real estate data from this screenshot and text. 
                 Focus on: ${missingCritical.join(", ")}
                 Already Found: ${JSON.stringify(cleanDeterministic)}
                 Raw Text Preview: ${cleanText.slice(0, 5000)}
               `,
-            },
-            {
-              type: "image",
-              image: screenshotBuffer,
-              mimeType: "image/png",
-            } as any,
-          ],
         },
+        {
+          type: "image_url",
+          image_url: {
+            url: `data:image/png;base64,${screenshotBuffer.toString("base64")}`,
+          },
+        } as any,
       ],
-      maxRetries: 0,
     });
 
+    const response = await structedLlm.invoke([message]);
+
+    const rawMessage = response.raw as any;
+    const usage =
+      rawMessage.usage_metadata || rawMessage.response_metadata?.tokenUsage;
+    const tokens = usage ? usage.total_tokens || usage.totalTokens : 0;
+
     console.log("\n--- LOG 3.5: AI VISION RESULT (From Screenshot) ---");
-    console.log(JSON.stringify(object, null, 2));
+    console.log(JSON.stringify(response.parsed, null, 2));
     console.log("--------------------------------------------------\n");
     console.log("✅ [AI] Vision extraction successful!");
 
     return {
-      aiData: object,
+      aiData: response.parsed,
       visionUsed: true,
-      tokens: usage?.totalTokens ?? 0,
+      tokens,
     };
   } catch (aiError: any) {
     console.error("❌ [AI Vision Error]:", aiError.message);

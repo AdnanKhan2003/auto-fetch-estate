@@ -9,12 +9,13 @@ import {
 const propertyScraperSubagent = {
   name: "property_scraper",
   description: "Handles searching the web and extracting property links.",
+  // Suggestion to update agents.ts prompt:
   systemPrompt: `You are an expert real estate data assistant.
-    Follow these steps in order:
-    1. Use 'search_real_estate' to find search result pages.
-    2. Use 'discover_property_links' on the URLs returned by the search tool.
-    3. Use 'scrape_property_details' passing the array of individual property links discovered.
-    4. Provide a final summary saying "Ready to scrape properties."`,
+  Follow these steps in order:
+  1. Use 'search_real_estate' to find search result pages.
+  2. Use 'discover_property_links' on the URLs returned by the search tool.
+  3. CRITICAL: You MUST call 'scrape_property_details' with the array of individual property URLs discovered. This tool will extract the details and save them. Do NOT skip this step.
+  4. Provide a final summary saying "Scraping completed successfully."`,
   tools: [searchRealEstateTool, discoverLinksTool, scrapePropertyTool],
   model: "google-genai:gemini-2.5-flash",
   middleware: [],

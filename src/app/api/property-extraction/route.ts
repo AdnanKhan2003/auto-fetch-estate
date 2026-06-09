@@ -1,15 +1,13 @@
 import { NextResponse } from "next/server";
 import { processUrl } from "@/features/property-extraction/scraper";
-import {
-  getQuotaMetrics,
-  logTokensUsed,
-} from "@/features/property-extraction/ai-rate-limiter";
+
 import { auth } from "@/auth/auth";
 import { headers } from "next/headers";
 import { propertyListing, session } from "@/db/schema";
 import { db } from "@/db";
 import { and, eq } from "drizzle-orm";
 import { success } from "zod";
+import { scrapePropertyTool } from "@/features/property-search/agent-tools";
 
 export async function POST(request: Request) {
   try {
@@ -39,94 +37,21 @@ export async function POST(request: Request) {
 
     const stream = new ReadableStream({
       async start(controller) {
-        // avoid Gemini API rate limit quota exhaustion (503s)
-        const CONCURRENCY_LIMIT = 2;
-
-        for (let i = 0; i < activeUrls.length; i += CONCURRENCY_LIMIT) {
-          const chunk = activeUrls.slice(i, i + CONCURRENCY_LIMIT);
-
-          // Fire scrapes in parallel; return each result the moment it resolves
-          await Promise.allSettled(
-            chunk.map(async (url: string) => {
-              try {
-                console.log(`[Batch] Scraping: ${url}`);
-                const result = await processUrl(url.trim(), batchId);
-                console.log(`[Batch] Done: ${url}`);
-
-                const newId = crypto.randomUUID();
-
-                if (result.status === "success") {
-                  await logTokensUsed(result.tokensUsed);
-                }
-
-                await db.insert(propertyListing).values({
-                  id: newId,
-                  userId,
-                  url: url.trim(),
-                  title: result.data?.propertyTitle || null,
-                  propertyType: result.data?.propertyType || null,
-                  city: result.data?.city || null,
-                  location: result.data?.location || null,
-                  price: result.data?.price || null,
-                  carpetArea: result.data?.carpetArea || null,
-                  screenshotUrl: result.screenshotUrl || null,
-                  extractedData: result.data,
-                  status: "success",
-                  tokensUsed: result.tokensUsed,
-                });
-
-                const metrics = await getQuotaMetrics();
-
-                const enrichedResult = {
-                  ...result,
-                  id: newId,
-                  rpdRemaining: metrics.rpdRemaining,
-                  updatedAt: new Date().toISOString(),
-                  createdAt: new Date().toISOString(),
-                };
-
-                // NDJSON: one JSON object per line, pushed immediately
-                controller.enqueue(
-                  encoder.encode(JSON.stringify(enrichedResult) + "\n"),
-                );
-              } catch (e: any) {
-                console.log(`[Batch] Error on ${url}: ${e.message}`);
-                const errorId = crypto.randomUUID();
-                await db.insert(propertyListing).values({
-                  id: errorId,
-                  userId: userId,
-                  url: url.trim(),
-                  status: "error",
-                  errorMessage: e.message,
-                  tokensUsed: 0,
-                });
-
-                const metrics = await getQuotaMetrics();
-                const errorResult = {
-                  url: url.trim(),
-                  id: errorId,
-                  status: "error",
-                  error: e.message,
-                  rpdRemaining: metrics.rpdRemaining,
-                  tokensUsed: 0,
-                };
-
-                controller.enqueue(
-                  encoder.encode(JSON.stringify(errorResult) + "\n"),
-                );
-              }
-            }),
+        try {
+          await scrapePropertyTool.invoke(
+            { detailUrls: activeUrls },
+            {
+              configurable: {
+                userId,
+                streamWriter: controller,
+              },
+            },
           );
-
-          if (i + CONCURRENCY_LIMIT < activeUrls.length) {
-            console.log(
-              `[Batch] Cooldown: Waiting 11 seconds before next chunk...`,
-            );
-            // allow target server & API limits to reset
-            await new Promise((resolve) => setTimeout(resolve, 13000));
-          }
+        } catch (e: any) {
+          console.error("[Direct Scrape Tool Error]", e);
+        } finally {
+          controller.close();
         }
-        controller.close();
       },
     });
 

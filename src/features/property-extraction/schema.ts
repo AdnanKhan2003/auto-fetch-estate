@@ -318,7 +318,7 @@ const propertySchema = z.object({
   cardinalFacing: z.string().nullable().optional(),
   legalStatus: z.string().nullable().optional(),
   additionalFeatures: z
-    .record(z.string(), z.any())
+    .record(z.string(), z.string())
     .optional()
     .describe(
       "A dictionary for any extra property details found on the page that do not fit into the standard fields above. Keys should be human-readable feature names. Values must be strings.",

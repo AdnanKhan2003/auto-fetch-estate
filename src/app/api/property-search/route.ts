@@ -1,10 +1,18 @@
 import { NextResponse } from "next/server";
 import { orchestratorAgent } from "@/features/property-search/agents";
+import { headers } from "next/headers";
+import { auth } from "@/auth/auth";
 
 process.env.GOOGLE_API_KEY = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
 
 export async function POST(req: Request) {
   try {
+    const sessionData = await auth.api.getSession({ headers: await headers() });
+    if (!sessionData) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const userId = sessionData.user.id;
+
     const { query } = await req.json();
 
     if (!query) {
@@ -24,7 +32,13 @@ export async function POST(req: Request) {
         let collectedUrls: string[] = [];
         let accumulatedText = "";
 
-        const config = { configurable: { thread_id: crypto.randomUUID() } };
+        const config = {
+          configurable: {
+            thread_id: crypto.randomUUID(),
+            userId,
+            streamWriter: writer,
+          },
+        };
         const agentStream = await orchestratorAgent.stream(
           {
             messages: [
