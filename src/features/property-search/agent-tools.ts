@@ -82,8 +82,6 @@ export const discoverLinksTool = tool(
   },
 );
 
-// We don't actually scrape in the tool anymore, we just return the URLs to the orchestrator
-// so the UI can trigger the main extraction flow.
 export const scrapePropertyTool = tool(
   async ({ detailUrls }, config) => {
     const userId = config?.configurable?.userId;
