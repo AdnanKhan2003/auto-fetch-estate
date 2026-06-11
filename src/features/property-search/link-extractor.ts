@@ -38,6 +38,18 @@ export async function getIndividualPropertyLinks(
         );
     });
 
+    // Debug: log page title and link count to confirm page loaded
+    const pageTitle = await page.title();
+    console.log(`[Link Discovery] Page title: "${pageTitle}"`);
+    console.log(
+      `[Link Discovery] Total <a> tags found: ${extractedLinks.length}`,
+    );
+    if (extractedLinks.length > 0) {
+      console.log(
+        `[Link Discovery] First 3 links: ${JSON.stringify(extractedLinks.slice(0, 3))}`,
+      );
+    }
+
     await context.close(); // Close the isolated context when done
 
     console.log(
