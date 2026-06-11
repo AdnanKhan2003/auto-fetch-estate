@@ -16,6 +16,17 @@ const nextConfig: NextConfig = {
     "@langchain/core",
     "@langchain/google-genai",
   ],
+  outputFileTracingIncludes: {
+    "/api/**": [
+      "./node_modules/shallow-clone/**/*",
+      "./node_modules/is-plain-object/**/*",
+      "./node_modules/kind-of/**/*",
+      "./node_modules/for-own/**/*",
+      "./node_modules/lazy-cache/**/*",
+      "./node_modules/clone-deep/**/*",
+      "./node_modules/merge-deep/**/*",
+    ],
+  },
 };
 
 export default nextConfig;
