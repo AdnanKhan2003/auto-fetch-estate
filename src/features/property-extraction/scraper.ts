@@ -41,9 +41,11 @@ async function getSharedBrowser() {
   }
 
   if (!browserPromise) {
-    browserPromise = chromium
-      .launch({
-        channel: "chrome",
+    browserPromise = (async () => {
+      const isVercel =
+        !!process.env.VERCEL || !!process.env.AWS_LAMBDA_FUNCTION_NAME;
+
+      let launchOptions: any = {
         headless: true,
         args: [
           "--headless=new",
@@ -53,17 +55,26 @@ async function getSharedBrowser() {
           "--disable-gpu",
           "--use-gl=swiftshader",
           "--lang=en-IN",
+          "--single-process",
+          "--disable-setuid-sandbox",
         ],
-      })
-      .then((browser) => {
-        globalBrowser = browser;
-        (globalThis as any).browser = browser;
-        return browser;
-      })
-      .catch((err) => {
-        browserPromise = null;
-        throw err;
-      });
+      };
+      if (isVercel) {
+        // On Vercel: use @sparticuz/chromium binary
+        const sparticuzChromium = (await import("@sparticuz/chromium")).default;
+        launchOptions.executablePath = await sparticuzChromium.executablePath();
+      } else {
+        // Locally: use system Chrome
+        launchOptions.channel = "chrome";
+      }
+      const browser = await chromium.launch(launchOptions);
+      globalBrowser = browser;
+      (globalThis as any).browser = browser;
+      return browser;
+    })().catch((err) => {
+      browserPromise = null;
+      throw err;
+    });
   }
   return browserPromise;
 }
