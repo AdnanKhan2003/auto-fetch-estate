@@ -1,13 +1,10 @@
 import { NextResponse } from "next/server";
-import { processUrl } from "@/features/property-extraction/scraper";
-
 import { auth } from "@/auth/auth";
 import { headers } from "next/headers";
 import { propertyListing, session } from "@/db/schema";
 import { db } from "@/db";
 import { and, eq } from "drizzle-orm";
 import { success } from "zod";
-import { scrapePropertyTool } from "@/features/property-search/agent-tools";
 
 export async function POST(request: Request) {
   try {
@@ -38,6 +35,7 @@ export async function POST(request: Request) {
     const stream = new ReadableStream({
       async start(controller) {
         try {
+          const { scrapePropertyTool } = await import("@/features/property-search/agent-tools");
           await scrapePropertyTool.invoke(
             { detailUrls: activeUrls },
             {

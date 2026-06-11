@@ -3,7 +3,6 @@ import crypto from "crypto";
 
 import * as z from "zod";
 import { getIndividualPropertyLinks } from "./link-extractor";
-import { processUrl } from "../property-extraction/scraper";
 import {
   getQuotaMetrics,
   logTokensUsed,
@@ -108,6 +107,7 @@ export const scrapePropertyTool = tool(
         chunk.map(async (url: string) => {
           try {
             console.log(`[Batch] Scraping: ${url}`);
+            const { processUrl } = await import("../property-extraction/scraper");
             const result = await processUrl(url.trim(), batchId);
 
             if (result.status === "error") {

@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { orchestratorAgent } from "@/features/property-search/agents";
 import { headers } from "next/headers";
 import { auth } from "@/auth/auth";
 
@@ -39,6 +38,7 @@ export async function POST(req: Request) {
             streamWriter: writer,
           },
         };
+        const { orchestratorAgent } = await import("@/features/property-search/agents");
         const agentStream = await orchestratorAgent.stream(
           {
             messages: [
