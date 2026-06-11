@@ -9,6 +9,7 @@ const nextConfig: NextConfig = {
     "clone-deep",
     "merge-deep",
     "is-plain-object",
+    "shallow-clone",
     "@langchain/core",
     "@langchain/google-genai",
   ],
