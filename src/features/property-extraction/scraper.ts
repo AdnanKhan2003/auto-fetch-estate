@@ -1,3 +1,4 @@
+import "is-plain-object";
 import path from "path";
 import fs from "fs";
 import { chromium } from "playwright-extra";
