@@ -111,7 +111,10 @@ export async function getIndividualPropertyLinks(
     );
     return propertyUrls;
   } catch (error: any) {
-    console.error(`[Link Discovery] Failed: ${error.message}`);
+    console.error(`[Link Discovery] FAILED for ${listingUrl}`);
+    console.error(`[Link Discovery] Error name: ${error.name}`);
+    console.error(`[Link Discovery] Error message: ${error.message}`);
+    console.error(`[Link Discovery] Full stack: ${error.stack}`);
     await context.close().catch(() => {});
     return [];
   }
