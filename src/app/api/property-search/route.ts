@@ -28,6 +28,8 @@ export async function POST(req: Request) {
     // Start background agent
     (async () => {
       try {
+
+
         const testMode = true; // Set this to false to restore the original AI agent flow
 
         if (testMode) {
@@ -42,8 +44,13 @@ export async function POST(req: Request) {
           await writeMsg("Starting Playwright test (No AI)...");
 
           const testUrls = [
-            "https://www.99acres.com/1-bhk-flats-in-vashi-navi-mumbai-ffid?nn_source=Performance&nn_account=Google_99acres-generic-new&nn_campaign=2057566963_75814568093_378999981074&nn_medium=2057566963_75814568093_378999981074&nn_adtype=g_&nn_keyword=&nn_placement=&gad_source=1&gad_campaignid=2057566963&gbraid=0AAAAADLswZUIGK6VRACuYb3i2Sloz737a&gclid=CjwKCAjwuanRBhBSEiwAY5y6V21yiiO8x7FveiYUTNe9sPVQKxadyU15UVKDMONwq2Mavz-6drnsYBoCQccQAvD_BwE",
-            "https://news.ycombinator.com/"
+            "https://housing.com/in/buy/navi-mumbai/sector-17-vashi-gid/?utm_source=google&utm_medium=cpc&utm_campaign=DSA_City_Mumbai_MobDesk_LocalitySearchTerms&utm_term=&gad_source=1&gad_campaignid=16823650546&gbraid=0AAAAADqjP_SvVTouR3r88_Ku5t-U0QFye&gclid=Cj0KCQjw3K7RBhDJARIsAKRtP5S8DurT0Lp4qjuhsMoF2dhjw0gr980ckvNby5SHSuCfWtFtCYLpj4AaAqRHEALw_wcB",
+            "https://www.99acres.com/flats-in-sector-17-vashi-navi-mumbai-ffid?isSecondaryExpansionRequired=true&nn_source=Performance&nn_account=Google_99acres-generic-new&nn_campaign=2057566963_75814568093_378999981074&nn_medium=2057566963_75814568093_378999981074&nn_adtype=g_&nn_keyword=&nn_placement=&gad_source=1&gad_campaignid=2057566963&gbraid=0AAAAADLswZUIGK6VRACuYb3i2Sloz737a&gclid=Cj0KCQjw3K7RBhDJARIsAKRtP5QhbxRdGNxJylAjal1UV3rQintRfUq47VraY-zXp0y8cHt-6oUoOGwaApfIEALw_wcB",
+            "https://www.magicbricks.com/independent-house-for-sale-in-sector-17-vashi-navi-mumbai-pppfs",
+            "https://www.nobroker.in/1bhk-flats-for-sale-in-sector_17_vashi_mumbai",
+            "https://www.magicbricks.com/1-bhk-flats-in-sector-17-vashi-navi-mumbai-for-sale-pppfs",
+            "https://www.squareyards.com/sale/apartments-for-sale-in-vashi-sector-17-navi-mumbai",
+            "https://www.nobroker.in/1bhk-flats-for-sale-near-kuber_chs_mumbai"
           ];
 
           const { createIsolatedContext } =
@@ -111,7 +118,6 @@ export async function POST(req: Request) {
               }) + "\n",
             ),
           );
-          // await writer.close();
           return;
         }
 
