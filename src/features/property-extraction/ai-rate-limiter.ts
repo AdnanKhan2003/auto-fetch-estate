@@ -78,7 +78,7 @@ async function getQuotaMetrics() {
   const used = quotaRecord?.requestsToday || 0;
 
   return {
-    rpdRemaining: Math.max(REQUEST_PER_DAY - used),
+    rpdRemaining: Math.max(REQUEST_PER_DAY - used, 0),
   };
 }
 

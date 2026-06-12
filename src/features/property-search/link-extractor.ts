@@ -1,9 +1,6 @@
 import { z } from "zod";
 import { ChatGoogleGenerativeAI } from "@langchain/google-genai";
-import {
-  getSharedBrowser,
-  createIsolatedContext,
-} from "../property-extraction/scraper";
+import { createIsolatedContext } from "../property-extraction/scraper";
 
 export async function getIndividualPropertyLinks(
   listingUrl: string,
@@ -11,11 +8,12 @@ export async function getIndividualPropertyLinks(
   console.log(`\n[Link Discovery] Visiting listing URL: ${listingUrl}`);
 
   // Reuse the existing shared browser to save memory
-  const browser = await getSharedBrowser();
-  const context = await createIsolatedContext();
-  const page = await context.newPage();
+  let context;
 
   try {
+    context = await createIsolatedContext();
+    const page = await context.newPage();
+
     await page.goto(listingUrl, {
       waitUntil: "domcontentloaded",
       timeout: 30000,
@@ -23,6 +21,7 @@ export async function getIndividualPropertyLinks(
     await page.waitForTimeout(Math.floor(Math.random() * 2000) + 1000);
 
     const extractedLinks = await page.evaluate(() => {
+      ``;
       const anchors = Array.from(document.querySelectorAll("a"));
       return anchors
         .map((a) => ({
@@ -127,7 +126,9 @@ export async function getIndividualPropertyLinks(
     console.error(`[Link Discovery] Error name: ${error.name}`);
     console.error(`[Link Discovery] Error message: ${error.message}`);
     console.error(`[Link Discovery] Full stack: ${error.stack}`);
-    await context.close().catch(() => {});
+
     return [];
+  } finally {
+    if (context) await context.close().catch(() => {});
   }
 }

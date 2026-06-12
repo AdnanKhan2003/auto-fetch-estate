@@ -7,6 +7,7 @@ const nextConfig: NextConfig = {
     "playwright-extra",
     "merge-deep",
     "clone-deep",
+    "@sparticuz/chromium",
     "shallow-clone",
     "is-plain-object",
     "kind-of",
@@ -18,6 +19,7 @@ const nextConfig: NextConfig = {
   ],
   outputFileTracingIncludes: {
     "/api/**": [
+      "./node_modules/@sparticuz/chromium/**/*",
       "./node_modules/shallow-clone/**/*",
       "./node_modules/is-plain-object/**/*",
       "./node_modules/kind-of/**/*",

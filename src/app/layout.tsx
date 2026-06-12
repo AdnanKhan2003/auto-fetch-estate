@@ -2,10 +2,7 @@ import type { Metadata } from "next";
 import { Poppins } from "next/font/google"; // Import Poppins
 import ThemeProvider from "@/components/theme/theme-provider";
 import "./globals.css";
-import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
-import AppSidebar from "@/components/sidebar/app-sidebar";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import LayoutWrapper from "@/components/layout-wrapper";
 
 const poppins = Poppins({
   subsets: ["latin"],
@@ -38,9 +35,7 @@ export default function RootLayout({
         className={`${poppins.className} min-h-full flex flex-col antialiased selection:bg-zinc-900 selection:text-white dark:selection:bg-zinc-200 dark:selection:text-zinc-900`}
       >
         <ThemeProvider>
-          <TooltipProvider>
-            {children}
-          </TooltipProvider>
+          <TooltipProvider>{children}</TooltipProvider>
         </ThemeProvider>
       </body>
     </html>

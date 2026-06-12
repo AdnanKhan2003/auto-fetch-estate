@@ -343,7 +343,7 @@ export default function EstateAnalyzer() {
 
     if (indexA === -1 && indexB === -1) return 0;
     if (indexA === -1) return 1;
-    if (indexB === -1) return -2;
+    if (indexB === -1) return -1;
 
     return indexA - indexB;
   });
@@ -351,9 +351,9 @@ export default function EstateAnalyzer() {
   if (!isMounted) return null;
 
   return (
-    <div className="space-y-6 sm:space-y-10 px-0 pb-8 bg-background text-foreground">
+    <div className="space-y-6 sm:space-y-10 bg-background px-0 pb-8 text-foreground">
       <EstateHeader onClear={clearHistory} />
-      <main className="flex-1 min-w-0 overflow-hidden space-y-10 px-4 sm:px-6 py-6 sm:py-10">
+      <main className="flex-1 space-y-10 px-4 sm:px-6 py-6 sm:py-10 min-w-0 overflow-hidden">
         <ScrapeInputCard
           urls={urls}
           isLoading={isLoading}
@@ -396,21 +396,21 @@ export default function EstateAnalyzer() {
           if (!open) setDuplicateUrls([]);
         }}
       >
-        <AlertDialogContent className="border-border bg-card shadow-2xl rounded-2xl max-w-lg">
+        <AlertDialogContent className="bg-card shadow-2xl border-border rounded-2xl max-w-lg">
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-red-500 text-lg font-black tracking-widest uppercase flex items-center gap-2">
+            <AlertDialogTitle className="flex items-center gap-2 font-black text-red-500 text-lg uppercase tracking-widest">
               This Property's Data Already Exists!
             </AlertDialogTitle>
-            <AlertDialogDescription className="text-muted-foreground text-sm leading-relaxed pt-2">
+            <AlertDialogDescription className="pt-2 text-muted-foreground text-sm leading-relaxed">
               You have already scraped the following url or urls. To protect
               your strict Gemini API limits, we instantly canceled the scrape.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <div className="p-4 rounded-xl bg-black/5 dark:bg-black/40 border border-border/50 shadow-inner overflow-hidden">
-            <ul className="text-[11px] font-mono text-muted-foreground break-all space-y-2 max-h-[200px] overflow-y-auto">
+          <div className="bg-black/5 dark:bg-black/40 shadow-inner p-4 border border-border/50 rounded-xl overflow-hidden">
+            <ul className="space-y-2 max-h-[200px] overflow-y-auto font-mono text-[11px] text-muted-foreground break-all">
               {duplicateUrls.map((u) => (
                 <li key={u} className="flex items-start gap-2">
-                  <span className="text-red-500 font-bold mt-0.5">✕</span>
+                  <span className="mt-0.5 font-bold text-red-500">✕</span>
                   <span className="leading-snug">{u}</span>
                 </li>
               ))}

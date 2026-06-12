@@ -2,9 +2,9 @@ import { NextResponse } from "next/server";
 import { headers } from "next/headers";
 import { auth } from "@/auth/auth";
 
-process.env.GOOGLE_API_KEY = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
-
 export async function POST(req: Request) {
+  process.env.GOOGLE_API_KEY = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
+
   try {
     const sessionData = await auth.api.getSession({ headers: await headers() });
     if (!sessionData) {
@@ -38,7 +38,8 @@ export async function POST(req: Request) {
             streamWriter: writer,
           },
         };
-        const { orchestratorAgent } = await import("@/features/property-search/agents");
+        const { orchestratorAgent } =
+          await import("@/features/property-search/agents");
         const agentStream = await orchestratorAgent.stream(
           {
             messages: [

@@ -4,7 +4,6 @@ import { headers } from "next/headers";
 import { propertyListing, session } from "@/db/schema";
 import { db } from "@/db";
 import { and, eq } from "drizzle-orm";
-import { success } from "zod";
 
 export async function POST(request: Request) {
   try {
@@ -35,7 +34,8 @@ export async function POST(request: Request) {
     const stream = new ReadableStream({
       async start(controller) {
         try {
-          const { scrapePropertyTool } = await import("@/features/property-search/agent-tools");
+          const { scrapePropertyTool } =
+            await import("@/features/property-search/agent-tools");
           await scrapePropertyTool.invoke(
             { detailUrls: activeUrls },
             {
@@ -121,7 +121,7 @@ export async function PATCH(request: Request) {
 
     if (!existing) {
       return NextResponse.json(
-        { error: "Property Not Fount" },
+        { error: "Property Not Found" },
         { status: 404 },
       );
     }
