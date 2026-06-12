@@ -5,6 +5,7 @@ const nextConfig: NextConfig = {
     "puppeteer-extra-plugin-stealth",
     "puppeteer-extra-plugin",
     "playwright-extra",
+    "playwright-core",
     "merge-deep",
     "clone-deep",
     "@sparticuz/chromium",
@@ -19,6 +20,7 @@ const nextConfig: NextConfig = {
   ],
   outputFileTracingIncludes: {
     "/api/**": [
+      "./node_modules/playwright-core/**/*",
       "./node_modules/@sparticuz/chromium/**/*",
       "./node_modules/shallow-clone/**/*",
       "./node_modules/is-plain-object/**/*",

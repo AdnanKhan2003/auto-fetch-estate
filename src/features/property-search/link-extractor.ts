@@ -21,7 +21,6 @@ export async function getIndividualPropertyLinks(
     await page.waitForTimeout(Math.floor(Math.random() * 2000) + 1000);
 
     const extractedLinks = await page.evaluate(() => {
-      ``;
       const anchors = Array.from(document.querySelectorAll("a"));
       return anchors
         .map((a) => ({
