@@ -4,7 +4,8 @@ import fs from "fs";
 import { chromium } from "playwright-extra";
 import stealthPlugin from "puppeteer-extra-plugin-stealth";
 
-// Activate the stealth plugin globally
+const userPreferencesPlugin = require("puppeteer-extra-plugin-user-preferences");
+chromium.use(userPreferencesPlugin());
 chromium.use(stealthPlugin());
 
 import { propertySchema, Property } from "./schema";
