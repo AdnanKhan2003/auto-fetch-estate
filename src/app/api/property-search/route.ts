@@ -41,9 +41,10 @@ export async function POST(req: Request) {
 
           await writeMsg("Starting Playwright test (No AI)...");
 
-          const testUrl =
-            "https://www.99acres.com/1-bhk-flats-in-vashi-navi-mumbai-ffid?nn_source=Performance&nn_account=Google_99acres-generic-new&nn_campaign=2057566963_75814568093_378999981074&nn_medium=2057566963_75814568093_378999981074&nn_adtype=g_&nn_keyword=&nn_placement=&gad_source=1&gad_campaignid=2057566963&gbraid=0AAAAADLswZUIGK6VRACuYb3i2Sloz737a&gclid=CjwKCAjwuanRBhBSEiwAY5y6V21yiiO8x7FveiYUTNe9sPVQKxadyU15UVKDMONwq2Mavz-6drnsYBoCQccQAvD_BwE";
-          await writeMsg(`Target URL: ${testUrl.substring(0, 50)}...`);
+          const testUrls = [
+            "https://www.99acres.com/1-bhk-flats-in-vashi-navi-mumbai-ffid?nn_source=Performance&nn_account=Google_99acres-generic-new&nn_campaign=2057566963_75814568093_378999981074&nn_medium=2057566963_75814568093_378999981074&nn_adtype=g_&nn_keyword=&nn_placement=&gad_source=1&gad_campaignid=2057566963&gbraid=0AAAAADLswZUIGK6VRACuYb3i2Sloz737a&gclid=CjwKCAjwuanRBhBSEiwAY5y6V21yiiO8x7FveiYUTNe9sPVQKxadyU15UVKDMONwq2Mavz-6drnsYBoCQccQAvD_BwE",
+            "https://news.ycombinator.com/"
+          ];
 
           const { createIsolatedContext } =
             await import("@/features/property-extraction/scraper");
@@ -54,34 +55,45 @@ export async function POST(req: Request) {
 
           try {
             context = await createIsolatedContext();
-            const page = await context.newPage();
-
-            await writeMsg("Navigating to URL...");
-            await page.goto(testUrl, {
-              waitUntil: "domcontentloaded",
-              timeout: 30000,
-            });
-            await page.waitForTimeout(2000);
-
-            const title = await page.title();
-            await writeMsg(`Page loaded! Title: "${title}"`);
             
-            await writeMsg("Extracting page content to check for blocks...");
-            const pageText = await page.evaluate(() => {
-              return document.body ? document.body.innerText.substring(0, 1000) : "No body found";
-            });
-            await writeMsg(`\n--- PAGE CONTENT START ---\n${pageText}\n--- PAGE CONTENT END ---\n`);
+            for (const url of testUrls) {
+              await writeMsg(`\n--- TESTING URL: ${url.substring(0, 50)}... ---`);
+              const page = await context.newPage();
 
-            await writeMsg("Extracting links...");
-            const links = await page.evaluate(() => {
-              const anchors = Array.from(document.querySelectorAll("a"));
-              return anchors
-                .map((a) => a.href)
-                .filter((href) => href && href.startsWith("http"));
-            });
+              await writeMsg("Navigating to URL...");
+              await page.goto(url, {
+                waitUntil: "domcontentloaded",
+                timeout: 30000,
+              });
+              await page.waitForTimeout(2000);
 
-            await writeMsg(`Found ${links.length} total links on page.`);
-            collectedUrls = links.slice(0, 10); // Return first 10 for testing
+              const title = await page.title();
+              await writeMsg(`Page loaded! Title: "${title}"`);
+
+              await writeMsg("Extracting page content to check for blocks...");
+              const pageText = await page.evaluate(() => {
+                return document.body
+                  ? document.body.innerText.substring(0, 1000)
+                  : "No body found";
+              });
+              await writeMsg(
+                `\n--- PAGE CONTENT START ---\n${pageText}\n--- PAGE CONTENT END ---\n`,
+              );
+
+              await writeMsg("Extracting links...");
+              const links = await page.evaluate(() => {
+                const anchors = Array.from(document.querySelectorAll("a"));
+                return anchors
+                  .map((a) => a.href)
+                  .filter((href) => href && href.startsWith("http"));
+              });
+
+              await writeMsg(`Found ${links.length} total links on page.`);
+              if (collectedUrls.length === 0) {
+                collectedUrls = links.slice(0, 10); // Return first 10 for testing
+              }
+              await page.close();
+            }
             await writeMsg("Test completed successfully!");
           } catch (err: any) {
             await writeMsg(`PLAYWRIGHT ERROR: ${err.message}`);
