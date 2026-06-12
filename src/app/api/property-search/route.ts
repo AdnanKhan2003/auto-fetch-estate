@@ -28,6 +28,69 @@ export async function POST(req: Request) {
     // Start background agent
     (async () => {
       try {
+        const testMode = true; // Set this to false to restore the original AI agent flow
+        
+        if (testMode) {
+          const writeMsg = async (msg: string) => {
+            await writer.write(
+              encoder.encode(JSON.stringify({ type: "message", content: msg }) + "\n")
+            );
+          };
+
+          await writeMsg("Starting Playwright test (No AI)...");
+          
+          const testUrl = "https://www.99acres.com/1-bhk-flats-in-vashi-navi-mumbai-ffid?nn_source=Performance&nn_account=Google_99acres-generic-new&nn_campaign=2057566963_75814568093_378999981074&nn_medium=2057566963_75814568093_378999981074&nn_adtype=g_&nn_keyword=&nn_placement=&gad_source=1&gad_campaignid=2057566963&gbraid=0AAAAADLswZUIGK6VRACuYb3i2Sloz737a&gclid=CjwKCAjwuanRBhBSEiwAY5y6V21yiiO8x7FveiYUTNe9sPVQKxadyU15UVKDMONwq2Mavz-6drnsYBoCQccQAvD_BwE";
+          await writeMsg(`Target URL: ${testUrl.substring(0, 50)}...`);
+
+          const { createIsolatedContext } = await import("@/features/property-extraction/scraper");
+          
+          await writeMsg("Launching Chromium context...");
+          let context;
+          let collectedUrls: string[] = [];
+          
+          try {
+            context = await createIsolatedContext();
+            const page = await context.newPage();
+            
+            await writeMsg("Navigating to URL...");
+            await page.goto(testUrl, { waitUntil: "domcontentloaded", timeout: 30000 });
+            await page.waitForTimeout(2000);
+            
+            const title = await page.title();
+            await writeMsg(`Page loaded! Title: ${title}`);
+            
+            await writeMsg("Extracting links...");
+            const links = await page.evaluate(() => {
+              const anchors = Array.from(document.querySelectorAll("a"));
+              return anchors
+                .map(a => a.href)
+                .filter(href => href && href.startsWith("http"));
+            });
+            
+            await writeMsg(`Found ${links.length} total links on page.`);
+            collectedUrls = links.slice(0, 10); // Return first 10 for testing
+            await writeMsg("Test completed successfully!");
+            
+          } catch (err: any) {
+            await writeMsg(`PLAYWRIGHT ERROR: ${err.message}`);
+            console.error(err);
+          } finally {
+            if (context) await context.close().catch(() => {});
+          }
+
+          // Send final URLs back to client
+          await writer.write(
+            encoder.encode(
+              JSON.stringify({
+                type: "done",
+                urls: collectedUrls,
+              }) + "\n",
+            ),
+          );
+          await writer.close();
+          return;
+        }
+
         let collectedUrls: string[] = [];
         let accumulatedText = "";
 
