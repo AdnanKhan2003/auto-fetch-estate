@@ -93,6 +93,7 @@ async function extractStructuredData(
     const llm = new ChatGoogleGenerativeAI({
       model: modelName,
       apiKey,
+      maxRetries: 1,
     });
 
     const structedLlm = llm.withStructuredOutput(propertySchema, {
@@ -159,6 +160,7 @@ async function runVisionExtraction({
     const llm = new ChatGoogleGenerativeAI({
       model: visionModelName,
       apiKey: visionApiKey,
+      maxRetries: 1,
     });
 
     const structedLlm = llm.withStructuredOutput(propertySchema, {

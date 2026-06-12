@@ -19,6 +19,7 @@ const propertyScraperSubagent = {
   tools: [searchRealEstateTool, discoverLinksTool, scrapePropertyTool],
   model: "google-genai:gemini-2.5-flash",
   middleware: [],
+  maxIterations: 6,
 };
 
 export const orchestratorAgent = createAgent({

@@ -29,6 +29,8 @@ const nextConfig: NextConfig = {
       "./node_modules/lazy-cache/**/*",
       "./node_modules/clone-deep/**/*",
       "./node_modules/merge-deep/**/*",
+      "./node_modules/puppeteer-extra-plugin-stealth/**/*",
+      "./node_modules/puppeteer-extra-plugin/**/*",
     ],
   },
 };
