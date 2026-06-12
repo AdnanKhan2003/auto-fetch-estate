@@ -4,7 +4,9 @@ import fs from "fs";
 import { chromium } from "playwright-extra";
 import stealthPlugin from "puppeteer-extra-plugin-stealth";
 
+const userDataDirPlugin = require("puppeteer-extra-plugin-user-data-dir");
 const userPreferencesPlugin = require("puppeteer-extra-plugin-user-preferences");
+chromium.use(userDataDirPlugin());
 chromium.use(userPreferencesPlugin());
 chromium.use(stealthPlugin());
 

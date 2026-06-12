@@ -5,6 +5,7 @@ const nextConfig: NextConfig = {
     "puppeteer-extra-plugin-stealth",
     "puppeteer-extra-plugin",
     "puppeteer-extra-plugin-user-preferences",
+    "puppeteer-extra-plugin-user-data-dir",
     "playwright-extra",
     "playwright-core",
     "merge-deep",
