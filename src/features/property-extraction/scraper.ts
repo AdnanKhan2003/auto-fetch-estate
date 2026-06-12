@@ -69,6 +69,8 @@ async function getSharedBrowser() {
       } else {
         // Locally: use system Chrome
         launchOptions.channel = "chrome";
+        // Remove --single-process locally as it crashes Chromium on Windows
+        launchOptions.args = launchOptions.args.filter((arg: string) => arg !== "--single-process");
       }
       const browser = await chromium.launch(launchOptions);
       globalBrowser = browser;

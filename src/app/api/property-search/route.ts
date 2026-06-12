@@ -30,7 +30,7 @@ export async function POST(req: Request) {
       try {
 
 
-        const testMode = true; // Set this to false to restore the original AI agent flow
+        const testMode = false; // Set this to false to restore the original AI agent flow
 
         if (testMode) {
           const writeMsg = async (msg: string) => {
@@ -50,13 +50,22 @@ export async function POST(req: Request) {
             "https://www.nobroker.in/1bhk-flats-for-sale-in-sector_17_vashi_mumbai",
             "https://www.magicbricks.com/1-bhk-flats-in-sector-17-vashi-navi-mumbai-for-sale-pppfs",
             "https://www.squareyards.com/sale/apartments-for-sale-in-vashi-sector-17-navi-mumbai",
-            "https://www.nobroker.in/1bhk-flats-for-sale-near-kuber_chs_mumbai"
+            "https://www.nobroker.in/1bhk-flats-for-sale-near-kuber_chs_mumbai",
+            "https://www.ghar.tv/resale/1-bhk-flats-for-sale-in-sector-17-vashi-navi-mumbai/1-1-0-26-954-2377-1-1.html",
+            "https://www.nestoria.in/sector-17-vashi/flat/sale",
+            "https://www.commonfloor.com/kaveri-apartment-navi-mumbai/povp-he3ojv",
+            "https://www.proptiger.com/mumbai/apartments-flats-sale-vashi-50008/1bhk",
+            "https://propertywala.com/vashi_sector_17_navi_mumbai",
+            "https://www.quikr.com/homes/property/residential-1bhk-projects-for-sale-in-vashi-navimumbai-cid_400701-lid_2037",
+            "https://property.sulekha.com/1-bhk-residential-property-for-sale/navi-mumbai-mumbai",
+            "https://www.olx.in/en-in/vashi_g5326801/q-1-bhk"
           ];
 
           const { createIsolatedContext } =
             await import("@/features/property-extraction/scraper");
 
           await writeMsg("Launching Chromium context...");
+          console.log("[TEST] Launching Chromium context...");
           let context;
           let collectedUrls: string[] = [];
 
@@ -64,7 +73,10 @@ export async function POST(req: Request) {
             context = await createIsolatedContext();
             
             for (const url of testUrls) {
-              await writeMsg(`\n--- TESTING URL: ${url.substring(0, 50)}... ---`);
+              const urlPreview = url.split("?")[0].substring(0, 60);
+              await writeMsg(`\n--- TESTING URL: ${urlPreview}... ---`);
+              console.log(`\n[TEST] ---> Starting scrape for: ${urlPreview}`);
+              
               const page = await context.newPage();
 
               await writeMsg("Navigating to URL...");

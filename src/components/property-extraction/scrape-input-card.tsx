@@ -17,6 +17,7 @@ interface ScrapeInputCardProps {
   isLoading: boolean;
   onScrape: (activeUrls: string[]) => void;
   setFocusedUrl: (url: string | null) => void;
+  onPropertyScraped?: (data: any) => void;
 }
 
 const schema = z.object({
@@ -39,6 +40,7 @@ function ScrapeInputCard({
   isLoading,
   onScrape,
   setFocusedUrl,
+  onPropertyScraped,
 }: ScrapeInputCardProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearching, setIsSearching] = useState(false);
@@ -112,6 +114,22 @@ function ScrapeInputCard({
                 : "Search failed. Please try again.";
               setSearchStatus(freindlyMessage);
               setIsSearching(false);
+            } else if (data.type === "property_scraped") {
+              setSearchStatus(`Scraped property: ${data.data?.data?.propertyTitle?.substring(0, 30) || "Unknown"}...`);
+              if (onPropertyScraped) {
+                onPropertyScraped(data.data);
+              }
+              // Add URL to the input list dynamically
+              if (data.data?.url) {
+                 const currentUrls = form.getValues("urls");
+                 if (!currentUrls.some(u => u.value === data.data.url)) {
+                    // Update form values
+                    const newUrls = currentUrls.filter(u => u.value.trim() !== "");
+                    newUrls.push({ value: data.data.url });
+                    if (newUrls.length === 0) newUrls.push({ value: "" });
+                    replace(newUrls);
+                 }
+              }
             } else if (data.type === "done" && data.urls?.length > 0) {
               setSearchStatus("Found URLs! Populating...");
 

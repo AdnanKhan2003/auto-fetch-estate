@@ -350,6 +350,23 @@ export default function EstateAnalyzer() {
 
   if (!isMounted) return null;
 
+  const handlePropertyScraped = (result: any) => {
+    // Silently drop discarded results
+    if (result.status === "discarded") return;
+    
+    setResults((prev) => {
+      const merged = [result, ...prev];
+      const unique = Array.from(
+        new Map(merged.map((item) => [item.url, item])).values(),
+      );
+      return unique;
+    });
+    
+    if (result.data?.carpetArea) {
+      setRowSelection((prev) => ({ ...prev, [result.url]: true }));
+    }
+  };
+
   return (
     <div className="space-y-6 sm:space-y-10 bg-background px-0 pb-8 text-foreground">
       <EstateHeader onClear={clearHistory} />
@@ -359,6 +376,7 @@ export default function EstateAnalyzer() {
           isLoading={isLoading}
           onScrape={handleScrape}
           setFocusedUrl={setFocusedUrl}
+          onPropertyScraped={handlePropertyScraped}
         />
         <ResultsTable
           results={orderedResults}
