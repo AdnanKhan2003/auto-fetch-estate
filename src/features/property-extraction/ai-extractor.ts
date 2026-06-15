@@ -21,18 +21,18 @@ async function extractStructuredData(
   });
 
   const urlLabel = scrapeUrl ?? "(unknown URL)";
-  console.log("\n" + "=".repeat(60));
-  console.log(`JSON-LD DATA — ${urlLabel}`);
-  console.log("=".repeat(60));
-  console.log(
-    `script blocks joined length (chars): ${jsonLdData?.length ?? 0}`,
-  );
-  console.log(
-    jsonLdData?.trim()
-      ? jsonLdData
-      : "(empty — no application/ld+json or blank)",
-  );
-  console.log("=".repeat(60) + "\n");
+  // console.log("\n" + "=".repeat(60));
+  // console.log(`JSON-LD DATA — ${urlLabel}`);
+  // console.log("=".repeat(60));
+  // console.log(
+  //   `script blocks joined length (chars): ${jsonLdData?.length ?? 0}`,
+  // );
+  // console.log(
+  //   jsonLdData?.trim()
+  //     ? jsonLdData
+  //     : "(empty — no application/ld+json or blank)",
+  // );
+  // console.log("=".repeat(60) + "\n");
 
   // Nothing to work with — skip the API call
   if ((!jsonLdData || jsonLdData.length < 50) && !cleanText)
@@ -48,8 +48,8 @@ async function extractStructuredData(
     return { data: {}, tokens: 0 };
   }
 
-  console.log(`[AI] Using API Key: ${apiKey.slice(0, 5)}...`);
-  console.log(`[AI] Using Model: ${modelName}`);
+  // console.log(`[AI] Using API Key: ${apiKey.slice(0, 5)}...`);
+  // console.log(`[AI] Using Model: ${modelName}`);
 
   try {
     const prompt = `
@@ -68,7 +68,7 @@ async function extractStructuredData(
             - Total Area (IMPORTANT: Include the unit, e.g. "sqm", "sqyd", "sqft")
             - Rate per Area (pricePerSqft) (IMPORTANT: Include the unit, e.g. "/sqm", "/sqyd", "/sqft")
             - Building Age (ageOfBuilding)
-            - Locality (location)
+            - Locality (location) (IMPORTANT: Extract the neighborhood/locality and the city name, e.g., 'Sector 17 Vashi, Navi Mumbai'. Do not include flat numbers, building names, or detailed street info here.)
             - Vertical Position (floorNo)
             - Cardinal Facing (facing)
             - Furnishing Status
@@ -110,9 +110,9 @@ async function extractStructuredData(
 
     const data = response.parsed || {};
 
-    if (data && Object.keys(data).length > 0) {
-      console.log("✅ [AI] Extraction successful!");
-    }
+    // if (data && Object.keys(data).length > 0) {
+    //   console.log("✅ [AI] Extraction successful!");
+    // }
 
     return { data, tokens };
   } catch (err: any) {
@@ -154,8 +154,8 @@ async function runVisionExtraction({
   }
 
   try {
-    console.log(`[AI] Attempting Vision extraction for: ${url}`);
-    console.log(`[AI] Vision Model: ${visionModelName}`);
+    // console.log(`[AI] Attempting Vision extraction for: ${url}`);
+    // console.log(`[AI] Vision Model: ${visionModelName}`);
 
     const llm = new ChatGoogleGenerativeAI({
       model: visionModelName,
@@ -197,10 +197,10 @@ async function runVisionExtraction({
       rawMessage.usage_metadata || rawMessage.response_metadata?.tokenUsage;
     const tokens = usage ? usage.total_tokens || usage.totalTokens : 0;
 
-    console.log("\n--- LOG 3.5: AI VISION RESULT (From Screenshot) ---");
-    console.log(JSON.stringify(response.parsed, null, 2));
-    console.log("--------------------------------------------------\n");
-    console.log("✅ [AI] Vision extraction successful!");
+    // console.log("\n--- LOG 3.5: AI VISION RESULT (From Screenshot) ---");
+    // console.log(JSON.stringify(response.parsed, null, 2));
+    // console.log("--------------------------------------------------\n");
+    // console.log("✅ [AI] Vision extraction successful!");
 
     return {
       aiData: response.parsed,

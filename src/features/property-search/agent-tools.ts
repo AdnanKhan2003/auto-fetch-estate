@@ -12,15 +12,13 @@ import { propertyListing } from "@/db/schema";
 
 export const searchRealEstateTool = tool(
   async ({ query }) => {
-    console.log(`\n[Tool] Calling Serper API for: "${query}"...`);
-
     if (!process.env.SERPER_API_KEY) {
       return "Error: SERPER_API_KEY environment variable is missing.";
     }
 
     try {
-      const targetSites =
-        "site:99acres.com OR site:magicbricks.com OR site:nobroker.in OR site:squareyards.com";
+      const targetSites = "99acres magicbricks nobroker squareyards";
+      console.log(`\n🔍 Searching for: "${query} ${targetSites}" using Serper...`);
 
       const response = await fetch("https://google.serper.dev/search", {
         method: "POST",
@@ -33,6 +31,13 @@ export const searchRealEstateTool = tool(
 
       const data = await response.json();
 
+      const allowedDomains = [
+        "99acres",
+        "magicbricks",
+        "nobroker",
+        "squareyards",
+      ];
+
       const uniqueResults = [];
       const seenDomains = new Set();
 
@@ -40,8 +45,12 @@ export const searchRealEstateTool = tool(
         try {
           const domain = new URL(r.link).hostname.replace("www.", "");
 
-          if (!seenDomains.has(domain)) {
-            seenDomains.add(domain);
+          const matchesTarget = allowedDomains.find((allowed) =>
+            domain.includes(allowed),
+          );
+
+          if (matchesTarget && !seenDomains.has(matchesTarget)) {
+            seenDomains.add(matchesTarget);
             uniqueResults.push(r);
           }
         } catch (error) {
@@ -51,9 +60,8 @@ export const searchRealEstateTool = tool(
 
       const topResults = uniqueResults.slice(0, 4);
 
-      console.log(
-        `\n[Log] Picked ${topResults.length} listing URLs from Serper API.`,
-      );
+      console.log(`\n📍 Found ${topResults.length} listing URLs:`);
+      topResults.forEach((r: any) => console.log(` - ${r.link}`));
 
       const snippets = topResults.map(
         (r: any) => `- ${r.title}: ${r.snippet}\n  Link: ${r.link}`,
@@ -77,15 +85,15 @@ export const searchRealEstateTool = tool(
 
 export const discoverLinksTool = tool(
   async ({ listingUrl }) => {
-    console.log(
-      `\n[Log] Finding detailed pages for listing page: ${listingUrl}`,
-    );
-    const links = await getIndividualPropertyLinks(listingUrl);
+    console.log(`\n📂 Extracting 3 detail pages from: ${listingUrl}`);
+    const links = (await getIndividualPropertyLinks(listingUrl)).slice(0, 3);
 
     if (links.length === 0) {
+      console.log(" ❌ No detail pages found on this page.");
       return "No individual property links found on this page.";
     }
 
+    links.forEach((l, i) => console.log(`   ${i + 1}. ${l}`));
     return `Found ${links.length} property detail links:\n${links.map((l) => `- ${l}`).join("\n")}`;
   },
   {
@@ -114,9 +122,10 @@ export const scrapePropertyTool = tool(
       );
       return "Error: User ID session lost.";
     }
-    console.log(
-      `\n[Tool] Direct scraper started for ${detailUrls.length} properties...`,
-    );
+    console.log(`\n🚀 Scraper executing for ${detailUrls.length} final URLs:`);
+    detailUrls.forEach((url: string, index: number) => {
+      console.log(`   ${index + 1}. ${url}`);
+    });
     const CONCURRENCY_LIMIT = 2;
 
     for (let i = 0; i < detailUrls.length; i += CONCURRENCY_LIMIT) {

@@ -7,8 +7,8 @@ import { ActionButtons } from "./scrape-input/action-buttons";
 import { useForm, useFieldArray } from "react-hook-form";
 import z from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useState } from "react";
-import { Loader2, Search } from "lucide-react";
+import { useRef, useState } from "react";
+import { Loader2, Search, X } from "lucide-react";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 
@@ -18,6 +18,7 @@ interface ScrapeInputCardProps {
   onScrape: (activeUrls: string[]) => void;
   setFocusedUrl: (url: string | null) => void;
   onPropertyScraped?: (data: any) => void;
+  onStopScrape?: () => void;
 }
 
 const schema = z.object({
@@ -41,10 +42,12 @@ function ScrapeInputCard({
   onScrape,
   setFocusedUrl,
   onPropertyScraped,
+  onStopScrape,
 }: ScrapeInputCardProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearching, setIsSearching] = useState(false);
   const [searchStatus, setSearchStatus] = useState<string>("");
+  const abortSearchRef = useRef<AbortController | null>(null);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -75,11 +78,14 @@ function ScrapeInputCard({
     setIsSearching(true);
     setSearchStatus("Initializing AI Agent...");
 
+    abortSearchRef.current = new AbortController();
+
     try {
       const response = await fetch("/api/property-search", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ query: searchQuery }),
+        signal: abortSearchRef.current.signal,
       });
 
       if (!response.body) throw new Error("No response body");
@@ -115,20 +121,24 @@ function ScrapeInputCard({
               setSearchStatus(freindlyMessage);
               setIsSearching(false);
             } else if (data.type === "property_scraped") {
-              setSearchStatus(`Scraped property: ${data.data?.data?.propertyTitle?.substring(0, 30) || "Unknown"}...`);
+              setSearchStatus(
+                `Scraped property: ${data.data?.data?.propertyTitle?.substring(0, 30) || "Unknown"}...`,
+              );
               if (onPropertyScraped) {
                 onPropertyScraped(data.data);
               }
               // Add URL to the input list dynamically
               if (data.data?.url) {
-                 const currentUrls = form.getValues("urls");
-                 if (!currentUrls.some(u => u.value === data.data.url)) {
-                    // Update form values
-                    const newUrls = currentUrls.filter(u => u.value.trim() !== "");
-                    newUrls.push({ value: data.data.url });
-                    if (newUrls.length === 0) newUrls.push({ value: "" });
-                    replace(newUrls);
-                 }
+                const currentUrls = form.getValues("urls");
+                if (!currentUrls.some((u) => u.value === data.data.url)) {
+                  // Update form values
+                  const newUrls = currentUrls.filter(
+                    (u) => u.value.trim() !== "",
+                  );
+                  newUrls.push({ value: data.data.url });
+                  if (newUrls.length === 0) newUrls.push({ value: "" });
+                  replace(newUrls);
+                }
               }
             } else if (data.type === "done" && data.urls?.length > 0) {
               setSearchStatus("Found URLs! Populating...");
@@ -171,6 +181,18 @@ function ScrapeInputCard({
               disabled={isSearching || isLoading}
               className="bg-background"
             />
+
+            {isSearching && (
+              <Button
+                type="button"
+                variant="destructive"
+                className="cursor-pointer"
+                onClick={() => abortSearchRef.current?.abort()}
+              >
+                <X className="mr-2 w-4 h-4" /> Stop
+              </Button>
+            )}
+
             <Button
               type="submit"
               className="cursor-pointer"
@@ -227,6 +249,7 @@ function ScrapeInputCard({
               setTimeout(() => form.clearErrors(`urls.${newIndex}.value`), 0);
             }}
             onExecute={form.handleSubmit(handleSubmit)}
+            onStopScrape={onStopScrape}
           />
         </form>
       </CardContent>

@@ -28,8 +28,6 @@ export async function POST(req: Request) {
     // Start background agent
     (async () => {
       try {
-
-
         const testMode = false; // Set this to false to restore the original AI agent flow
 
         if (testMode) {
@@ -58,7 +56,7 @@ export async function POST(req: Request) {
             "https://propertywala.com/vashi_sector_17_navi_mumbai",
             "https://www.quikr.com/homes/property/residential-1bhk-projects-for-sale-in-vashi-navimumbai-cid_400701-lid_2037",
             "https://property.sulekha.com/1-bhk-residential-property-for-sale/navi-mumbai-mumbai",
-            "https://www.olx.in/en-in/vashi_g5326801/q-1-bhk"
+            "https://www.olx.in/en-in/vashi_g5326801/q-1-bhk",
           ];
 
           const { createIsolatedContext } =
@@ -71,12 +69,12 @@ export async function POST(req: Request) {
 
           try {
             context = await createIsolatedContext();
-            
+
             for (const url of testUrls) {
               const urlPreview = url.split("?")[0].substring(0, 60);
               await writeMsg(`\n--- TESTING URL: ${urlPreview}... ---`);
               console.log(`\n[TEST] ---> Starting scrape for: ${urlPreview}`);
-              
+
               const page = await context.newPage();
 
               await writeMsg("Navigating to URL...");
@@ -150,7 +148,7 @@ export async function POST(req: Request) {
             messages: [
               {
                 role: "user",
-                content: `Please search for "${query}". Find a search listing page, extract the individual property links, and pass them to the scrape tool.`,
+                content: `Search for "${query}". The search tool will return 4 different search listing URLs. You MUST use the discover_property_links tool on ALL 4 listing URLs! Extract exactly 3 individual property links from each listing page. Finally, combine all 12 of the property detail links you discovered and pass them as an array to the scrape_property_details tool.`,
               },
             ],
           },

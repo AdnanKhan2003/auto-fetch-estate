@@ -70,7 +70,9 @@ async function getSharedBrowser() {
         // Locally: use system Chrome
         launchOptions.channel = "chrome";
         // Remove --single-process locally as it crashes Chromium on Windows
-        launchOptions.args = launchOptions.args.filter((arg: string) => arg !== "--single-process");
+        launchOptions.args = launchOptions.args.filter(
+          (arg: string) => arg !== "--single-process",
+        );
       }
       const browser = await chromium.launch(launchOptions);
       globalBrowser = browser;
@@ -295,7 +297,10 @@ async function processUrl(url: string, batchId: string) {
     }
 
     // Step 10 — Final merge, normalise, sanity-check
-    const finalData: Record<string, any> = { ...cleanMerged, ...aiData };
+    const cleanAiData = Object.fromEntries(
+      Object.entries(aiData).filter(([_, v]) => v !== null && v !== undefined),
+    );
+    const finalData: Record<string, any> = { ...cleanMerged, ...cleanAiData };
     applyNormalizations(finalData);
 
     const parsedData = propertySchema.safeParse(finalData);
@@ -309,6 +314,23 @@ async function processUrl(url: string, batchId: string) {
 
     // Step 11 — Return
     const hasAiData = Object.keys(structuredData).length > 0 || visionUsed;
+
+    // =====================================================================
+    // 🕵️ DEBUG LOGGING: Print clean structured summary directly to the console
+    // =====================================================================
+    console.log("\n" + "=".repeat(60));
+    console.log(`📊 [SCRAPE RESULT] ${url}`);
+    console.log(`   - Title: ${parsedData.data.propertyTitle || "N/A"}`);
+    console.log(`   - Price: ${parsedData.data.price || "N/A"}`);
+    console.log(`   - Location: ${parsedData.data.location || "N/A"}`);
+    console.log(`   - Area: ${parsedData.data.carpetArea || parsedData.data.builtupArea || parsedData.data.superBuiltupArea || "N/A"}`);
+    console.log(`   - Text AI Used: ${Object.keys(structuredData).length > 0 ? "Yes" : "No"}`);
+    console.log(`   - Vision Fallback Used: ${visionUsed ? "Yes" : "No"}`);
+    console.log(`   - Tokens Used: ${textTokens + visionTokens}`);
+    console.log("\n🤖 Structured AI Output:");
+    console.log(JSON.stringify(parsedData.data, null, 2));
+    console.log("=".repeat(60) + "\n");
+    // =====================================================================
 
     return {
       url,

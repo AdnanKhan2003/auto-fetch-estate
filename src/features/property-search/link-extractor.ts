@@ -5,8 +5,6 @@ import { createIsolatedContext } from "../property-extraction/scraper";
 export async function getIndividualPropertyLinks(
   listingUrl: string,
 ): Promise<string[]> {
-  console.log(`\n[Link Discovery] Visiting listing URL: ${listingUrl}`);
-
   // Reuse the existing shared browser to save memory
   let context;
 
@@ -38,21 +36,21 @@ export async function getIndividualPropertyLinks(
 
     // Debug: log page title and link count to confirm page loaded
     const pageTitle = await page.title();
-    console.log(`[Link Discovery] Page title: "${pageTitle}"`);
-    console.log(
-      `[Link Discovery] Total <a> tags found: ${extractedLinks.length}`,
-    );
-    if (extractedLinks.length > 0) {
-      console.log(
-        `[Link Discovery] First 3 links: ${JSON.stringify(extractedLinks.slice(0, 3))}`,
-      );
-    }
+    // console.log(`[Link Discovery] Page title: "${pageTitle}"`);
+    // console.log(
+    //   `[Link Discovery] Total <a> tags found: ${extractedLinks.length}`,
+    // );
+    // if (extractedLinks.length > 0) {
+    //   console.log(
+    //     `[Link Discovery] First 3 links: ${JSON.stringify(extractedLinks.slice(0, 3))}`,
+    //   );
+    // }
 
     await context.close(); // Close the isolated context when done
 
-    console.log(
-      `[Link Discovery] Found ${extractedLinks.length} raw links. Passing to LangChain for filtering...`,
-    );
+    // console.log(
+    //   `[Link Discovery] Found ${extractedLinks.length} raw links. Passing to LangChain for filtering...`,
+    // );
 
     const apiKey =
       process.env.GOOGLE_API_KEY || process.env.GOOGLE_GENERATIVE_AI_API_KEY;
@@ -108,18 +106,21 @@ export async function getIndividualPropertyLinks(
     const rawMessage = response.raw as any;
     const usage =
       rawMessage.usage_metadata || rawMessage.response_metadata?.tokenUsage;
-    if (usage) {
-      console.log(
-        `[Token Usage] Gemini consumed -> Input: ${usage.input_tokens || usage.promptTokens}, Output: ${usage.output_tokens || usage.completionTokens}, Total: ${usage.total_tokens || usage.totalTokens} tokens`,
-      );
-    }
+    // if (usage) {
+    //   console.log(
+    //     `[Token Usage] Gemini consumed -> Input: ${usage.input_tokens || usage.promptTokens}, Output: ${usage.output_tokens || usage.completionTokens}, Total: ${usage.total_tokens || usage.totalTokens} tokens`,
+    //   );
+    // }
+    const tokens = usage ? usage.total_tokens || usage.totalTokens : 0;
 
     let propertyUrls = response.parsed?.propertyUrls || [];
     propertyUrls = propertyUrls.slice(0, 3); // Hardcode to exactly 3 detail pages max
-
     console.log(
-      `[Link Discovery] LangChain successfully filtered to ${propertyUrls.length} detail pages.`,
+      `   └─ 🎟️ Links Discovered: ${propertyUrls.length} | Tokens Used: ${tokens}`,
     );
+    // console.log(
+    //   `[Link Discovery] LangChain successfully filtered to ${propertyUrls.length} detail pages.`,
+    // );
     return propertyUrls;
   } catch (error: any) {
     console.error(`[Link Discovery] FAILED for ${listingUrl}`);

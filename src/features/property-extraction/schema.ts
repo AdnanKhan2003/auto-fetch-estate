@@ -25,7 +25,9 @@ const propertySchema = z.object({
     .string()
     .nullable()
     .optional()
-    .describe("The neighborhood, locality, or city."),
+    .describe(
+      "The neighborhood, sector, or locality name along with the city (e.g., 'Sector 17 Vashi, Navi Mumbai'). DO NOT put the house number, street address, or building name here.",
+    ),
   address: z
     .string()
     .nullable()

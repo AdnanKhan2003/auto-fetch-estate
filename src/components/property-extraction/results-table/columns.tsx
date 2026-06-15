@@ -78,7 +78,7 @@ const AreaCell = ({ row, table }: { row: any; table: any }) => {
             if (e.key === "Escape") setIsEditing(false);
           }}
           autoFocus
-          className="w-20 h-8 rounded-md border border-input bg-background px-2 py-1 text-xs font-mono ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+          className="bg-background file:bg-transparent px-2 py-1 border border-input file:border-0 rounded-md focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring ring-offset-background focus-visible:ring-offset-2 w-20 h-8 font-mono file:font-medium placeholder:text-muted-foreground text-xs file:text-sm"
         />
       </div>
     );
@@ -94,10 +94,10 @@ const AreaCell = ({ row, table }: { row: any; table: any }) => {
             setIsEditing(true);
           }}
           title="Edit Area"
-          className="cursor-pointer group/pencil"
+          className="group/pencil cursor-pointer"
         >
           <TooltipWrapper content="Edit Area">
-            <Pencil className="h-3 w-3 transition-colors text-muted-foreground/40 group-hover/pencil:text-foreground shrink-0 " />
+            <Pencil className="w-3 h-3 text-muted-foreground/40 group-hover/pencil:text-foreground transition-colors shrink-0" />
           </TooltipWrapper>
         </span>
       </div>
@@ -129,7 +129,7 @@ const AreaCell = ({ row, table }: { row: any; table: any }) => {
                 }));
               }
             }}
-            className="w-14 h-5 text-[11px] text-right border border-border/60 rounded px-1 bg-background text-foreground font-mono focus:outline-hidden focus:ring-1 focus:ring-ring"
+            className="bg-background px-1 border border-border/60 rounded focus:outline-hidden focus:ring-1 focus:ring-ring w-14 h-5 font-mono text-[11px] text-foreground text-right"
           />
         </div>
       )}
@@ -178,7 +178,7 @@ const RateCell = ({ row, table }: { row: any; table: any }) => {
   if (isEditing) {
     return (
       <div
-        className="flex items-center justify-end gap-1"
+        className="flex justify-end items-center gap-1"
         onClick={(e) => e.stopPropagation()}
       >
         <Input
@@ -191,15 +191,15 @@ const RateCell = ({ row, table }: { row: any; table: any }) => {
             if (e.key === "Escape") setIsEditing(false);
           }}
           autoFocus
-          className="w-24 h-8 rounded-md border border-input bg-background px-2 py-1 text-right text-xs font-mono ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-hidden foucs-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+          className="bg-background file:bg-transparent px-2 py-1 border border-input file:border-0 rounded-md focus-visible:outline-hidden focus-visible:ring-ring foucs-visible:ring-2 ring-offset-background focus-visible:ring-offset-2 w-24 h-8 font-mono file:font-medium placeholder:text-muted-foreground text-xs file:text-sm text-right"
         />
       </div>
     );
   }
 
   return (
-    <div className="flex items-center justify-end gap-2">
-      <span className="text-right font-black text-foreground text-sm">
+    <div className="flex justify-end items-center gap-2">
+      <span className="font-black text-foreground text-sm text-right">
         {rateToDisplay || "N/A"}
       </span>
       <span
@@ -208,10 +208,10 @@ const RateCell = ({ row, table }: { row: any; table: any }) => {
           setIsEditing(true);
         }}
         title="Edit rate"
-        className="cursor-pointer group/pencil"
+        className="group/pencil cursor-pointer"
       >
         <TooltipWrapper content="Edit Rate/Sqft">
-          <Pencil className="h-3 w-3 text-muted-foreground/40 group-hover/pencil:text-foreground shrink-0 " />
+          <Pencil className="w-3 h-3 text-muted-foreground/40 group-hover/pencil:text-foreground shrink-0" />
         </TooltipWrapper>
       </span>
     </div>
@@ -231,8 +231,8 @@ export const columns: ColumnDef<PropertyExtractionResult>[] = [
         originalIndex !== -1 ? originalIndex + 1 : row.index + 1;
 
       return (
-        <div className="flex items-center justify-center">
-          <div className="flex h-6 w-6 items-center justify-center rounded-md bg-muted/30 border border-border/50 text-xs font-mono text-muted-foreground">
+        <div className="flex justify-center items-center">
+          <div className="flex justify-center items-center bg-muted/30 border border-border/50 rounded-md w-6 h-6 font-mono text-muted-foreground text-xs">
             {displayIndex}
           </div>
         </div>
@@ -242,7 +242,7 @@ export const columns: ColumnDef<PropertyExtractionResult>[] = [
   {
     id: "select",
     header: ({ table }) => (
-      <div className="flex items-center justify-center h-full">
+      <div className="flex justify-center items-center h-full">
         <Checkbox
           checked={
             table.getIsAllPageRowsSelected() ||
@@ -256,7 +256,7 @@ export const columns: ColumnDef<PropertyExtractionResult>[] = [
     ),
     cell: ({ row }) => (
       <div
-        className="flex items-center justify-center"
+        className="flex justify-center items-center"
         onClick={(e) => e.stopPropagation()}
       >
         <TooltipWrapper content="Include in Calculation">
@@ -280,7 +280,7 @@ export const columns: ColumnDef<PropertyExtractionResult>[] = [
     cell: ({ row }) => {
       const screenshot = row.original.screenshotUrl;
       return (
-        <div className="h-10 w-14 relative overflow-hidden rounded border border-border bg-muted">
+        <div className="relative bg-muted border border-border rounded w-14 h-10 overflow-hidden">
           <Image
             src={
               screenshot ? `/api/images/${screenshot}` : "/fallback-image.png"
@@ -304,7 +304,7 @@ export const columns: ColumnDef<PropertyExtractionResult>[] = [
       <div className="flex items-center gap-1">
         Property
         <TooltipWrapper content="Sort by Title">
-          <ArrowUpDown className="h-3 w-3 opacity-50" />
+          <ArrowUpDown className="opacity-50 w-3 h-3" />
         </TooltipWrapper>
       </div>
     ),
@@ -338,7 +338,7 @@ export const columns: ColumnDef<PropertyExtractionResult>[] = [
       }
 
       return (
-        <div className="flex flex-col max-w-[250px] gap-0.5">
+        <div className="flex flex-col gap-0.5 max-w-[250px]">
           <Link
             href={url || "#"}
             target="_blank"
@@ -347,17 +347,17 @@ export const columns: ColumnDef<PropertyExtractionResult>[] = [
             className="group flex items-center gap-1.5 min-w-0 truncate"
             title={title}
           >
-            <span className="truncate font-semibold text-blue-600 dark:text-blue-400 group-hover:underline text-sm">
+            <span className="font-semibold text-blue-600 dark:text-blue-400 text-sm group-hover:underline truncate">
               {title}
             </span>
             <TooltipWrapper content="Open Link">
-              <ExternalLink className="h-3 w-3 shrink-0 text-muted-foreground group-hover:text-blue-500 " />
+              <ExternalLink className="w-3 h-3 text-muted-foreground group-hover:text-blue-500 shrink-0" />
             </TooltipWrapper>
           </Link>
-          <div className="flex items-center gap-2 text-[10px] text-muted-foreground/80 font-medium">
+          <div className="flex items-center gap-2 font-medium text-[10px] text-muted-foreground/80">
             <span>{domain}</span>
             {isEdited && (
-              <span className="shrink-0 inline-flex items-center rounded-md bg-amber-500/10 px-1.5 py-0.5 text-[9px] font-medium text-amber-500 ring-1 ring-inset ring-amber-500/20">
+              <span className="inline-flex items-center bg-amber-500/10 px-1.5 py-0.5 rounded-md ring-1 ring-amber-500/20 ring-inset font-medium text-[9px] text-amber-500 shrink-0">
                 Edited
               </span>
             )}
@@ -367,12 +367,31 @@ export const columns: ColumnDef<PropertyExtractionResult>[] = [
     },
   },
   {
+    accessorKey: "data.furnishingStatus",
+    header: ({ column }) => (
+      <div className="flex items-center gap-1">
+        Furnishing
+        <TooltipWrapper content="Sort by Furnishing Status">
+          <ArrowUpDown className="opacity-50 w-3 h-3" />
+        </TooltipWrapper>
+      </div>
+    ),
+    cell: ({ row }) => {
+      const status = row.original.data?.furnishingStatus;
+      return (
+        <span className="bg-muted/40 px-2 py-0.5 border border-border/50 rounded-md font-medium text-foreground text-xs capitalize">
+          {status || "N/A"}
+        </span>
+      );
+    },
+  },
+  {
     accessorKey: "data.location",
     header: ({ column }) => (
       <div className="flex items-center gap-1">
         Location
         <TooltipWrapper content="Sort by Location">
-          <ArrowUpDown className="h-3 w-3 opacity-50" />
+          <ArrowUpDown className="opacity-50 w-3 h-3" />
         </TooltipWrapper>
       </div>
     ),
@@ -384,7 +403,7 @@ export const columns: ColumnDef<PropertyExtractionResult>[] = [
       <div className="flex items-center gap-1">
         Price
         <TooltipWrapper content="Sort by Price">
-          <ArrowUpDown className="h-3 w-3 opacity-50" />
+          <ArrowUpDown className="opacity-50 w-3 h-3" />
         </TooltipWrapper>
       </div>
     ),
@@ -401,7 +420,7 @@ export const columns: ColumnDef<PropertyExtractionResult>[] = [
       <div className="flex items-center gap-1">
         Area
         <TooltipWrapper content="Sort by Area">
-          <ArrowUpDown className="h-3 w-3 opacity-50" />
+          <ArrowUpDown className="opacity-50 w-3 h-3" />
         </TooltipWrapper>
       </div>
     ),
@@ -460,10 +479,10 @@ export const columns: ColumnDef<PropertyExtractionResult>[] = [
   {
     accessorKey: "data.pricePerSqft",
     header: ({ column }) => (
-      <div className="flex items-center justify-end gap-1">
+      <div className="flex justify-end items-center gap-1">
         Rate/Sqft
         <TooltipWrapper content="Sort by Rate/Sqft">
-          <ArrowUpDown className="h-3 w-3 opacity-50" />
+          <ArrowUpDown className="opacity-50 w-3 h-3" />
         </TooltipWrapper>
       </div>
     ),
@@ -480,7 +499,7 @@ export const columns: ColumnDef<PropertyExtractionResult>[] = [
 
       return (
         <div
-          className="flex items-center justify-center"
+          className="flex justify-center items-center"
           onClick={(e) => e.stopPropagation()}
         >
           {propertyId && meta?.onDelete && (
@@ -488,11 +507,11 @@ export const columns: ColumnDef<PropertyExtractionResult>[] = [
               variant="ghost"
               size="icon"
               onClick={() => meta.onDelete(propertyId)}
-              className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 cursor-pointer"
+              className="hover:bg-destructive/10 text-muted-foreground hover:text-destructive cursor-pointer"
               title="Delete Property"
             >
               <TooltipWrapper content="Delete Property">
-                <Trash2 className="h-4 w-4" />
+                <Trash2 className="w-4 h-4" />
               </TooltipWrapper>
             </Button>
           )}

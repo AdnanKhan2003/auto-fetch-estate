@@ -183,6 +183,7 @@ export default function EstateAnalyzer() {
   };
 
   const handleScrape = async (submittedUrls: string[]) => {
+    setUrls(submittedUrls);
     setIsLoading(true);
 
     const existingUrls = submittedUrls.filter((url) =>
@@ -388,6 +389,9 @@ export default function EstateAnalyzer() {
           onScrape={handleScrape}
           setFocusedUrl={setFocusedUrl}
           onPropertyScraped={handlePropertyScraped}
+          onStopScrape={() => {
+            if (abortControllerRef.current) abortControllerRef.current.abort();
+          }}
         />
         <ResultsTable
           results={orderedResults}
