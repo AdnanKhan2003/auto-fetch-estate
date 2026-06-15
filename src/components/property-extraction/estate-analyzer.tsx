@@ -245,7 +245,7 @@ export default function EstateAnalyzer() {
             }
             // Append to table immediately
             setResults((prev) => {
-              const merged = [result, ...prev];
+              const merged = [...prev, result];
               const unique = Array.from(
                 new Map(merged.map((item) => [item.url, item])).values(),
               );
@@ -367,7 +367,7 @@ export default function EstateAnalyzer() {
     if (result.status === "discarded") return;
 
     setResults((prev) => {
-      const merged = [result, ...prev];
+      const merged = [...prev, result];
       const unique = Array.from(
         new Map(merged.map((item) => [item.url, item])).values(),
       );

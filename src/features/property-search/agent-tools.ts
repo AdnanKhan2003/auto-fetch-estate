@@ -9,6 +9,7 @@ import {
 } from "../property-extraction/ai-rate-limiter";
 import { db } from "@/db";
 import { propertyListing } from "@/db/schema";
+import { and, eq } from "drizzle-orm";
 
 export const searchRealEstateTool = tool(
   async ({ query }) => {
@@ -18,7 +19,9 @@ export const searchRealEstateTool = tool(
 
     try {
       const targetSites = "99acres magicbricks nobroker squareyards";
-      console.log(`\n🔍 Searching for: "${query} ${targetSites}" using Serper...`);
+      console.log(
+        `\n🔍 Searching for: "${query} ${targetSites}" using Serper...`,
+      );
 
       const response = await fetch("https://google.serper.dev/search", {
         method: "POST",
@@ -84,9 +87,23 @@ export const searchRealEstateTool = tool(
 );
 
 export const discoverLinksTool = tool(
-  async ({ listingUrl }) => {
+  async ({ listingUrl }, config) => {
+    const abortController = config?.configurable?.abortController;
+    if (abortController?.aborted) {
+      console.log("🛑 Discovery aborted.");
+      return "Error: Process was aborted by the user.";
+    }
+
     console.log(`\n📂 Extracting 3 detail pages from: ${listingUrl}`);
-    const links = (await getIndividualPropertyLinks(listingUrl)).slice(0, 3);
+    const { propertyUrls, tokens } =
+      await getIndividualPropertyLinks(listingUrl);
+    const links = propertyUrls.slice(0, 3);
+
+    const tracker = config?.configurable?.tokenTracker;
+    if (tracker) {
+      tracker.discoveryTokens += tokens;
+      tracker.aiCalls += 1;
+    }
 
     if (links.length === 0) {
       console.log(" ❌ No detail pages found on this page.");
@@ -113,8 +130,10 @@ export const scrapePropertyTool = tool(
   async ({ detailUrls }, config) => {
     const userId = config?.configurable?.userId;
     const writer = config?.configurable?.streamWriter;
+    const tracker = config?.configurable?.tokenTracker;
     const encoder = new TextEncoder();
     const batchId = crypto.randomUUID();
+    const abortController = config?.configurable?.abortController;
 
     if (!userId) {
       console.error(
@@ -122,19 +141,71 @@ export const scrapePropertyTool = tool(
       );
       return "Error: User ID session lost.";
     }
-    console.log(`\n🚀 Scraper executing for ${detailUrls.length} final URLs:`);
-    detailUrls.forEach((url: string, index: number) => {
+
+    const uniqueUrls = Array.from(new Set(detailUrls.map((url) => url.trim())));
+
+    console.log(
+      `\n🚀 Scraper executing for ${uniqueUrls.length} unique URLs (was ${detailUrls.length}):`,
+    );
+    uniqueUrls.forEach((url: string, index: number) => {
       console.log(`   ${index + 1}. ${url}`);
     });
     const CONCURRENCY_LIMIT = 2;
 
-    for (let i = 0; i < detailUrls.length; i += CONCURRENCY_LIMIT) {
-      const chunk = detailUrls.slice(i, i + CONCURRENCY_LIMIT);
+    for (let i = 0; i < uniqueUrls.length; i += CONCURRENCY_LIMIT) {
+      if (abortController?.aborted) {
+        console.log("🛑 Scraping batch aborted.");
+        return "Error: Process was aborted by the user.";
+      }
+
+      const chunk = uniqueUrls.slice(i, i + CONCURRENCY_LIMIT);
 
       // Fire scrapes in parallel; return each result the moment it resolves
       await Promise.allSettled(
         chunk.map(async (url: string) => {
           try {
+            const existing = await db
+              .select()
+              .from(propertyListing)
+              .where(
+                and(
+                  eq(propertyListing.userId, userId),
+                  eq(propertyListing.url, url),
+                ),
+              )
+              .limit(1);
+            if (existing.length > 0 && existing[0].status === "success") {
+              console.log(`[Batch] Already scraped (skipping fetch): ${url}`);
+              const metrics = await getQuotaMetrics();
+              const enrichedResult = {
+                status: "success" as const,
+                url: url,
+                screenshotUrl: existing[0].screenshotUrl,
+                data: existing[0].extractedData,
+                tokensUsed: 0,
+                aiUsed: false,
+                visionUsed: false,
+                id: existing[0].id,
+                rpdRemaining: metrics.rpdRemaining,
+                updatedAt:
+                  existing[0].updatedAt?.toISOString() ||
+                  new Date().toISOString(),
+                createdAt:
+                  existing[0].createdAt?.toISOString() ||
+                  new Date().toISOString(),
+              };
+              if (writer) {
+                await writer.write(
+                  encoder.encode(
+                    JSON.stringify({
+                      type: "property_scraped",
+                      data: enrichedResult,
+                    }) + "\n",
+                  ),
+                );
+              }
+              return;
+            }
             console.log(`[Batch] Scraping: ${url}`);
             const { processUrl } =
               await import("../property-extraction/scraper");
@@ -149,6 +220,13 @@ export const scrapePropertyTool = tool(
 
             if (result.status === "success") {
               await logTokensUsed(result.tokensUsed);
+              if (tracker) {
+                tracker.scrapeTokens += result.tokensUsed;
+                tracker.aiCalls += 1; // 1 call for Text AI
+                if (result.visionUsed) {
+                  tracker.aiCalls += 1; // +1 call for Vision AI
+                }
+              }
             }
 
             await db.insert(propertyListing).values({

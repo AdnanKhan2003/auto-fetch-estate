@@ -27,6 +27,13 @@ export async function POST(req: Request) {
 
     // Start background agent
     (async () => {
+      const tokenTracker = {
+        agentTokens: 0,
+        discoveryTokens: 0,
+        scrapeTokens: 0,
+        aiCalls: 0,
+      };
+
       try {
         const testMode = false; // Set this to false to restore the original AI agent flow
 
@@ -134,11 +141,19 @@ export async function POST(req: Request) {
         let collectedUrls: string[] = [];
         let accumulatedText = "";
 
+        const abortController = { aborted: false };
+        req.signal.addEventListener("abort", () => {
+          abortController.aborted = true;
+          console.log("🛑 Client disconnected. Aborting agent run...");
+        });
+
         const config = {
           configurable: {
             thread_id: crypto.randomUUID(),
             userId,
             streamWriter: writer,
+            tokenTracker,
+            abortController,
           },
         };
         const { orchestratorAgent } =
@@ -155,7 +170,32 @@ export async function POST(req: Request) {
           { ...config, streamMode: "values" },
         );
 
+        const countedMessageIds = new Set<string>();
+
         for await (const chunk of agentStream) {
+          if (abortController.aborted) {
+            console.log("🛑 Loop stopped due to user abort.");
+            break;
+          }
+
+          if (chunk.messages) {
+            for (const msg of chunk.messages) {
+              if (msg && msg.id && !countedMessageIds.has(msg.id)) {
+                const usage =
+                  (msg as any).usage_metadata ||
+                  (msg as any).response_metadata?.tokenUsage;
+                if (usage) {
+                  const tokens = usage.total_tokens || usage.totalTokens || 0;
+                  if (tokens > 0) {
+                    tokenTracker.agentTokens += tokens;
+                    tokenTracker.aiCalls += 1;
+                    countedMessageIds.add(msg.id);
+                  }
+                }
+              }
+            }
+          }
+
           const latestMessage = chunk.messages.at(-1) as any;
 
           if (latestMessage?.content) {
@@ -222,6 +262,27 @@ export async function POST(req: Request) {
           ),
         );
       } finally {
+        console.log(
+          "\n" + "============================================================",
+        );
+        console.log(`🏆 [GRAND SEARCH SUMMARY]`);
+        console.log(`   - Total AI Calls Made: ${tokenTracker.aiCalls}`);
+        console.log(
+          `   - Link Discovery Tokens: ${tokenTracker.discoveryTokens}`,
+        );
+        console.log(
+          `   - Scraper Tokens (Text + Vision): ${tokenTracker.scrapeTokens}`,
+        );
+        console.log(
+          `   - Agent Orchestrator Tokens: ${tokenTracker.agentTokens}`,
+        );
+        console.log(
+          `   - GRAND TOTAL TOKENS SPENT: ${tokenTracker.discoveryTokens + tokenTracker.scrapeTokens + tokenTracker.agentTokens}`,
+        );
+        console.log(
+          "============================================================\n",
+        );
+
         await writer.close();
       }
     })();

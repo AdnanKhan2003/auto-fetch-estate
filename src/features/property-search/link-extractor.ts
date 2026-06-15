@@ -4,7 +4,7 @@ import { createIsolatedContext } from "../property-extraction/scraper";
 
 export async function getIndividualPropertyLinks(
   listingUrl: string,
-): Promise<string[]> {
+): Promise<{ propertyUrls: string[]; tokens: number }> {
   // Reuse the existing shared browser to save memory
   let context;
 
@@ -26,12 +26,18 @@ export async function getIndividualPropertyLinks(
           text: a.innerText?.trim().replace(/\n/g, " ") || "",
         }))
         .filter((link) => link.href && link.href.startsWith("http"))
-        .filter(
-          (link) =>
-            !link.href.toLowerCase().includes("javascript:") &&
-            !link.href.toLowerCase().includes("mailto:") &&
-            link.text.length > 5,
-        );
+        .filter((link) => {
+          const href = link.href.toLowerCase();
+          
+          // Pre-filter obvious noise/menu items to keep link lists clean
+          if (href.includes("javascript:") || href.includes("mailto:")) return false;
+          if (href.includes("/homeloan") || href.includes("calculator") || href.includes("/advice")) return false;
+          if (href.includes("/contactus") || href.includes("/terms") || href.includes("/privacy")) return false;
+          if (href.includes("/propworth") || href.includes("/news/")) return false;
+          if (href.includes("emi-") || href.includes("eligibility-")) return false;
+          
+          return link.text.length > 5;
+        });
     });
 
     // Debug: log page title and link count to confirm page loaded
@@ -57,7 +63,7 @@ export async function getIndividualPropertyLinks(
 
     if (!apiKey) {
       console.error("[Link Discovery] GOOGLE_API_KEY missing.");
-      return [];
+      return { propertyUrls: [], tokens: 0 };
     }
 
     // Using gemini-2.5-flash as 3.5 isn't available yet in the standard API
@@ -98,7 +104,7 @@ export async function getIndividualPropertyLinks(
       3. Return ONLY the URLs.
      
       RAW LINKS:
-      ${linksText.slice(0, 4000)}
+      ${linksText.slice(0, 60000)}
     `;
 
     const response = await structuredLlm.invoke(prompt);
@@ -121,14 +127,14 @@ export async function getIndividualPropertyLinks(
     // console.log(
     //   `[Link Discovery] LangChain successfully filtered to ${propertyUrls.length} detail pages.`,
     // );
-    return propertyUrls;
+    return { propertyUrls, tokens };
   } catch (error: any) {
     console.error(`[Link Discovery] FAILED for ${listingUrl}`);
     console.error(`[Link Discovery] Error name: ${error.name}`);
     console.error(`[Link Discovery] Error message: ${error.message}`);
     console.error(`[Link Discovery] Full stack: ${error.stack}`);
 
-    return [];
+    return { propertyUrls: [], tokens: 0 };
   } finally {
     if (context) await context.close().catch(() => {});
   }
