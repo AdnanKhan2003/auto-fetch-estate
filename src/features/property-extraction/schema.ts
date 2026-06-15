@@ -268,6 +268,11 @@ const propertySchema = z.object({
     .nullable()
     .optional()
     .describe("Number of times the property was shortlisted."),
+  hasLift: z
+    .boolean()
+    .nullable()
+    .optional()
+    .describe("Indicates if the building has a lift/elevator."),
   carpetArea: z
     .string()
     .nullable()
@@ -321,12 +326,14 @@ const propertySchema = z.object({
     .array(
       z.object({
         featureName: z.string().describe("The name of the additional feature."),
-        featureValue: z.string().describe("The value or description of the feature.")
-      })
+        featureValue: z
+          .string()
+          .describe("The value or description of the feature."),
+      }),
     )
     .optional()
     .describe(
-      "A list of any extra property details found on the page that do not fit into the standard fields above.",
+      "A list of any extra property details found on the page. CRITICAL: Do NOT extract paragraphs of text, descriptions, reviews, building features, locality development, infrastructure details, or project legal status.",
     ),
 });
 

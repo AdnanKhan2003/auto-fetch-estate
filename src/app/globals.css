@@ -141,21 +141,20 @@
 
   /* ── Custom Scrollbar Utility ────────────────────── */
   .custom-scrollbar {
-    scrollbar-width: thin;
-    scrollbar-color: oklch(0.4 0 0 / 40%) transparent;
   }
   .custom-scrollbar::-webkit-scrollbar {
-    width: 5px;
-    height: 5px;
+    width: 3px;
+    height: 3px;
   }
   .custom-scrollbar::-webkit-scrollbar-track {
     background: transparent;
+    margin-block: 16px;
   }
   .custom-scrollbar::-webkit-scrollbar-thumb {
-    background: oklch(0.4 0 0 / 40%);
+    background: oklch(0.4 0 0 / 50%);
     border-radius: 999px;
   }
   .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: oklch(0.6 0 0 / 60%);
+    background: oklch(0.6 0 0 / 70%);
   }
 }

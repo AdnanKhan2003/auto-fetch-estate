@@ -19,17 +19,37 @@ export const searchRealEstateTool = tool(
     }
 
     try {
+      const targetSites =
+        "site:99acres.com OR site:magicbricks.com OR site:nobroker.in OR site:squareyards.com";
+
       const response = await fetch("https://google.serper.dev/search", {
         method: "POST",
         headers: {
           "X-API-KEY": process.env.SERPER_API_KEY,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ q: query }),
+        body: JSON.stringify({ q: `${query} ${targetSites}`, num: 20 }),
       });
 
       const data = await response.json();
-      const topResults = data.organic?.slice(0, 2) || [];
+
+      const uniqueResults = [];
+      const seenDomains = new Set();
+
+      for (const r of data.organic || []) {
+        try {
+          const domain = new URL(r.link).hostname.replace("www.", "");
+
+          if (!seenDomains.has(domain)) {
+            seenDomains.add(domain);
+            uniqueResults.push(r);
+          }
+        } catch (error) {
+          console.log(error);
+        }
+      }
+
+      const topResults = uniqueResults.slice(0, 4);
 
       console.log(
         `\n[Log] Picked ${topResults.length} listing URLs from Serper API.`,
@@ -107,7 +127,8 @@ export const scrapePropertyTool = tool(
         chunk.map(async (url: string) => {
           try {
             console.log(`[Batch] Scraping: ${url}`);
-            const { processUrl } = await import("../property-extraction/scraper");
+            const { processUrl } =
+              await import("../property-extraction/scraper");
             const result = await processUrl(url.trim(), batchId);
 
             if (result.status === "error") {

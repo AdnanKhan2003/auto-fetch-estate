@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import EstateHeader from "./estate-header";
 import ScrapeInputCard from "./scrape-input-card";
 import ResultsTable from "./results-table";
@@ -74,6 +74,8 @@ export default function EstateAnalyzer() {
   const [selectedProperty, setSelectedProperty] = useState<
     (PropertyExtractionResult & { id?: string }) | null
   >(null);
+
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
     async function loadData() {
@@ -197,11 +199,14 @@ export default function EstateAnalyzer() {
     const uniqueUrls = Array.from(new Set(submittedUrls));
 
     setPendingUrls(uniqueUrls); // show skeleton rows immediately
+
+    abortControllerRef.current = new AbortController();
     try {
       const response = await fetch("/api/property-extraction", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ urls: uniqueUrls }),
+        signal: abortControllerRef.current.signal,
       });
 
       if (!response.ok || !response.body) {
@@ -263,14 +268,20 @@ export default function EstateAnalyzer() {
   };
 
   const clearHistory = async () => {
-    setResults([]);
-    setRowSelection({});
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+
     try {
       const response = await fetch("/api/property-extraction", {
         method: "DELETE",
       });
 
       if (!response.ok) throw new Error("Failed to clear DB");
+
+      setResults([]);
+      setRowSelection({});
+      setUrls([""]);
     } catch (e) {
       console.error("Failed to clear DB", e);
     }
@@ -353,7 +364,7 @@ export default function EstateAnalyzer() {
   const handlePropertyScraped = (result: any) => {
     // Silently drop discarded results
     if (result.status === "discarded") return;
-    
+
     setResults((prev) => {
       const merged = [result, ...prev];
       const unique = Array.from(
@@ -361,7 +372,7 @@ export default function EstateAnalyzer() {
       );
       return unique;
     });
-    
+
     if (result.data?.carpetArea) {
       setRowSelection((prev) => ({ ...prev, [result.url]: true }));
     }

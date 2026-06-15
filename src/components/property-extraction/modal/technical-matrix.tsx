@@ -6,15 +6,15 @@ interface TechnicalMatrixProps {
 }
 
 export function TechnicalMatrix({ data }: TechnicalMatrixProps) {
-  const dynamicFeatures = Object.entries(data?.additionalFeatures || {}).map(
-    ([key, value]) => ({
-      label: key
-        .replace(/([A-Z])/g, " $1")
-        .replace(/^./, (str) => str.toUpperCase()),
-      value: String(value),
-      icon: <ArrowRight size={14} />,
-    }),
-  );
+  const dynamicFeatures = (
+    Array.isArray(data?.additionalFeatures) ? data.additionalFeatures : []
+  ).map((feature: any) => ({
+    label: feature.featureName
+      ? feature.featureName.replace(/^./, (str: string) => str.toUpperCase())
+      : "Feature",
+    value: String(feature.featureValue || ""),
+    icon: <ArrowRight size={14} />,
+  }));
 
   const rows = [
     {
@@ -66,13 +66,14 @@ export function TechnicalMatrix({ data }: TechnicalMatrixProps) {
           rows.map((row, i) => (
             <div
               key={i}
-              className="flex items-center justify-between border-b border-border py-2 text-sm last:border-0"
+              className="flex justify-between items-start gap-4 py-2 border-border last:border-0 border-b text-sm"
             >
-              <span className="flex items-center gap-3 text-muted-foreground">
-                {row.icon} {row.label}
+              <span className="flex items-center gap-3 mt-0.5 w-1/3 text-muted-foreground shrink-0">
+                <span className="mt-0.5 shrink-0">{row.icon}</span>
+                <span className="leading-snug">{row.label}</span>
               </span>
               <span
-                className="font-semibold text-foreground text-right max-w-[60%] truncate"
+                className="max-w-[60%] font-semibold text-foreground text-right"
                 title={row.value}
               >
                 {row.value}
@@ -80,8 +81,10 @@ export function TechnicalMatrix({ data }: TechnicalMatrixProps) {
             </div>
           ))
         ) : (
-          <div className="flex flex-col items-center justify-center py-6 text-muted-foreground bg-muted/20 rounded-md border border-dashed border-border/50">
-            <span className="text-sm">No technical metrics found for this listing.</span>
+          <div className="flex flex-col justify-center items-center bg-muted/20 py-6 border border-border/50 border-dashed rounded-md text-muted-foreground">
+            <span className="text-sm">
+              No technical metrics found for this listing.
+            </span>
           </div>
         )}
       </div>
