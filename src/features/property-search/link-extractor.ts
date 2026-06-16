@@ -26,45 +26,66 @@ export async function getIndividualPropertyLinks(
     await navigatePage(page, listingUrl);
 
     const extractedLinks = await page.evaluate(() => {
-      const anchors = Array.from(document.querySelectorAll("a"));
-      return anchors
-        .map((a) => ({
-          href: a.href,
-          text: a.innerText?.trim().replace(/\n/g, " ") || "",
-        }))
-        .filter((link) => link.href && link.href.startsWith("http"))
-        .filter((link) => {
-          const href = link.href.toLowerCase();
+      const results: { href: string; text: string }[] = [];
+      const seen = new Set<string>();
 
-          // Pre-filter obvious noise/menu items to keep link lists clean
-          if (href.includes("javascript:") || href.includes("mailto:"))
-            return false;
-          if (
-            href.includes("/homeloan") ||
-            href.includes("calculator") ||
-            href.includes("/advice")
-          )
-            return false;
-          if (
-            href.includes("/contactus") ||
-            href.includes("/terms") ||
-            href.includes("/privacy")
-          )
-            return false;
-          if (href.includes("/news/")) return false;
-          if (href.includes("emi-") || href.includes("eligibility-"))
-            return false;
+      const addLink = (href: string, text: string) => {
+        if (!href || !href.startsWith("http") || seen.has(href)) return;
+        seen.add(href);
+        results.push({ href, text });
+      };
 
-          // Allow links with short/empty text IF the URL path looks like
-          // a property detail slug (3+ path segments — typical of detail pages)
-          const pathSegments = new URL(href).pathname
-            .split("/")
-            .filter(Boolean);
-          if (link.text.length > 5) return true;
-          if (pathSegments.length >= 3) return true;
+      document
+        .querySelectorAll("[data-url], [data-propertyLink]")
+        .forEach((el) => {
+          let url =
+            el.getAttribute("data-url") || el.getAttribute("data-propertyLink");
 
-          return false;
+          if (url) {
+            if (!url.startsWith("http")) {
+              const prefix = url.startsWith("/") ? "" : "/";
+              url = `https://www.squareyards.com${prefix}${url}`;
+            }
+            const text =
+              (el as HTMLElement).innerText?.trim().replace(/\n/g, "") || "";
+            addLink(url, text);
+          }
         });
+
+      document.querySelectorAll<HTMLAnchorElement>("a[href]").forEach((a) => {
+        addLink(a.href, a.innerText?.trim().replace(/\n/g, " ") || "");
+      });
+      return results.filter((link) => {
+        const href = link.href.toLowerCase();
+
+        // Pre-filter obvious noise/menu items to keep link lists clean
+        if (href.includes("javascript:") || href.includes("mailto:"))
+          return false;
+        if (
+          href.includes("/homeloan") ||
+          href.includes("calculator") ||
+          href.includes("/advice")
+        )
+          return false;
+        if (
+          href.includes("/contactus") ||
+          href.includes("/terms") ||
+          href.includes("/privacy")
+        )
+          return false;
+        if (href.includes("/news/")) return false;
+        if (href.includes("emi-") || href.includes("eligibility-"))
+          return false;
+
+        // Allow links with short/empty text IF the URL path looks like
+        // a property detail slug (3+ path segments — typical of detail pages)
+        const pathSegments = new URL(href).pathname.split("/").filter(Boolean);
+        if (href.includes("squareyards.com/resale-")) return true;
+        if (link.text.length > 5) return true;
+        if (pathSegments.length >= 3) return true;
+
+        return false;
+      });
     });
 
     // Debug: log page title and link count to confirm page loaded
@@ -73,7 +94,7 @@ export async function getIndividualPropertyLinks(
       `🟡 [STEP 2/3] Extracting links from search page: "${pageTitle}" | Raw links: ${extractedLinks.length}`,
     );
     logger.info(
-      `[DEBUG] All URLs found by Playwright: \n${extractedLinks.join("\n")}`,
+      `[DEBUG] All URLs found by Playwright: \n${extractedLinks.map((l: any) => l.href).join("\n")}`,
     );
 
     await context.close();

@@ -61,7 +61,7 @@ function ScrapeInputCard({
   });
 
   useEffect(() => {
-    if (initialUrls.length > 0 && initialUrls[0] !== "") {
+    if (initialUrls.length > 0) {
       replace(initialUrls.map((u) => ({ value: u })));
     }
   }, [initialUrls]);

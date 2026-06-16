@@ -7,6 +7,7 @@ export async function GET(
 ) {
   try {
     const { filepath } = await params;
+    console.log("[DEBUG] API IMAGES HIT WITH FILEPATH: ", filepath);
 
     if (!filepath || filepath.length === 0)
       return new NextResponse("Filename is required", { status: 400 });

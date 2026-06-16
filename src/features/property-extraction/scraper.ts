@@ -265,10 +265,15 @@ async function processUrl(
     // Step 6 — Deterministic selector extraction
     const selectorData = await extractBySelectors(page);
 
+    // Filter out null/empty values from selectorData to avoid poisoning the AI prompt
+    const cleanSelectorData = Object.fromEntries(
+      Object.entries(selectorData).filter(([_, v]) => v !== null && v !== ""),
+    );
+
     if (signal?.aborted) throw new Error("Aborted by user");
     // Step 7 — AI text extraction (JSON-LD + page text)
     const { data: structuredData, tokens: textTokens } =
-      await extractStructuredData(page, cleanText, selectorData, url, signal);
+      await extractStructuredData(page, cleanText, cleanSelectorData, url, signal);
 
     // Step 8 — Merge: defaults < selectors < AI text
     const merged: Record<string, any> = {
