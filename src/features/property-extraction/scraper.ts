@@ -323,8 +323,12 @@ async function processUrl(url: string, batchId: string) {
     console.log(`   - Title: ${parsedData.data.propertyTitle || "N/A"}`);
     console.log(`   - Price: ${parsedData.data.price || "N/A"}`);
     console.log(`   - Location: ${parsedData.data.location || "N/A"}`);
-    console.log(`   - Area: ${parsedData.data.carpetArea || parsedData.data.builtupArea || parsedData.data.superBuiltupArea || "N/A"}`);
-    console.log(`   - Text AI Used: ${Object.keys(structuredData).length > 0 ? "Yes" : "No"}`);
+    console.log(
+      `   - Area: ${parsedData.data.carpetArea || parsedData.data.builtupArea || parsedData.data.superBuiltupArea || "N/A"}`,
+    );
+    console.log(
+      `   - Text AI Used: ${Object.keys(structuredData).length > 0 ? "Yes" : "No"}`,
+    );
     console.log(`   - Vision Fallback Used: ${visionUsed ? "Yes" : "No"}`);
     console.log(`   - Tokens Used: ${textTokens + visionTokens}`);
     console.log("\n🤖 Structured AI Output:");
@@ -355,5 +359,5 @@ async function processUrl(url: string, batchId: string) {
 
 type PropertyExtractionResult = Awaited<ReturnType<typeof processUrl>>;
 
-export { getSharedBrowser, createIsolatedContext, processUrl };
+export { getSharedBrowser, createIsolatedContext, navigatePage, processUrl };
 export type { PropertyExtractionResult };

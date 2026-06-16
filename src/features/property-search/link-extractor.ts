@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { ChatGoogleGenerativeAI } from "@langchain/google-genai";
-import { createIsolatedContext } from "../property-extraction/scraper";
+import { createIsolatedContext, navigatePage } from "../property-extraction/scraper";
 
 export async function getIndividualPropertyLinks(
   listingUrl: string,
@@ -12,11 +12,9 @@ export async function getIndividualPropertyLinks(
     context = await createIsolatedContext();
     const page = await context.newPage();
 
-    await page.goto(listingUrl, {
-      waitUntil: "domcontentloaded",
-      timeout: 30000,
-    });
-    await page.waitForTimeout(Math.floor(Math.random() * 2000) + 1000);
+    // Reuse the same smart navigation logic the scraper uses
+    // (waits for body, key selectors, then a 3-5s human-like pause)
+    await navigatePage(page, listingUrl);
 
     const extractedLinks = await page.evaluate(() => {
       const anchors = Array.from(document.querySelectorAll("a"));
@@ -33,26 +31,25 @@ export async function getIndividualPropertyLinks(
           if (href.includes("javascript:") || href.includes("mailto:")) return false;
           if (href.includes("/homeloan") || href.includes("calculator") || href.includes("/advice")) return false;
           if (href.includes("/contactus") || href.includes("/terms") || href.includes("/privacy")) return false;
-          if (href.includes("/propworth") || href.includes("/news/")) return false;
+          if (href.includes("/news/")) return false;
           if (href.includes("emi-") || href.includes("eligibility-")) return false;
           
-          return link.text.length > 5;
+          // Allow links with short/empty text IF the URL path looks like
+          // a property detail slug (3+ path segments — typical of detail pages)
+          const pathSegments = new URL(href).pathname.split("/").filter(Boolean);
+          if (link.text.length > 5) return true;
+          if (pathSegments.length >= 3) return true;
+
+          return false;
         });
     });
 
     // Debug: log page title and link count to confirm page loaded
     const pageTitle = await page.title();
-    // console.log(`[Link Discovery] Page title: "${pageTitle}"`);
-    // console.log(
-    //   `[Link Discovery] Total <a> tags found: ${extractedLinks.length}`,
-    // );
-    // if (extractedLinks.length > 0) {
-    //   console.log(
-    //     `[Link Discovery] First 3 links: ${JSON.stringify(extractedLinks.slice(0, 3))}`,
-    //   );
-    // }
+    console.log(`[Link Discovery] Page: "${pageTitle}" | Raw links: ${extractedLinks.length}`);
 
-    await context.close(); // Close the isolated context when done
+    await context.close();
+    context = null; // prevent double-close in finally
 
     // console.log(
     //   `[Link Discovery] Found ${extractedLinks.length} raw links. Passing to LangChain for filtering...`,
@@ -87,7 +84,7 @@ export async function getIndividualPropertyLinks(
     const linksText = extractedLinks
       .map(
         (l: { text: string; href: string }, i: number) =>
-          `[${i}] ${l.text} -> ${l.href}`,
+          `[${i}] ${l.text || "(no text)"} -> ${l.href}`,
       )
       .join("\n");
 
@@ -101,7 +98,8 @@ export async function getIndividualPropertyLinks(
       RULES:
       1. IGNORE search pages, pagination links, "contact us", "about", or privacy policy links.
       2. A property detail page usually has a specific property description in the text (e.g. "3 BHK Flat in X locality") and a long URL path often containing an ID or detailed slug.
-      3. Return ONLY the URLs.
+      3. Some links may have "(no text)" — judge them purely by their URL pattern.
+      4. Return ONLY the URLs.
      
       RAW LINKS:
       ${linksText.slice(0, 60000)}
