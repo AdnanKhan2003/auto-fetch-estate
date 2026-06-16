@@ -19,11 +19,30 @@ export const metadata: Metadata = {
   title: "V S Jadon Compare | AI-Powered Real Estate Property Analysis Tool",
   description:
     "Analyze and compare real estate properties with ease using V S Jadon Compare. Our AI-driven tool extracts structured data and visual evidence from property listings to help you make informed investment decisions with automated valuation metrics and detailed technical specifications.",
+
+  // This explicitly fixes Discord & WhatsApp
   openGraph: {
-    images: ["/vsjadon-og-image.png"],
+    title: "V S Jadon Compare | AI-Powered Real Estate",
+    description:
+      "AI-driven tool for extracting structured data and visual evidence from property listings.",
+    url: "https://auto-fetch-estate.vercel.app",
+    siteName: "V S Jadon Compare",
+    type: "website",
+    images: [
+      {
+        url: "/vsjadon-og-image.png",
+        width: 1200, // WhatsApp requires dimensions!
+        height: 630,
+        alt: "V S Jadon Compare Preview Image",
+      },
+    ],
   },
+
+  // This explicitly fixes the Twitter validation error
   twitter: {
     card: "summary_large_image",
+    title: "V S Jadon Compare",
+    description: "AI-Powered Real Estate Property Analysis Tool",
     images: ["/vsjadon-og-image.png"],
   },
 };
