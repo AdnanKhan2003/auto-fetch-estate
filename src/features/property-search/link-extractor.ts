@@ -72,6 +72,9 @@ export async function getIndividualPropertyLinks(
     logger.info(
       `🟡 [STEP 2/3] Extracting links from search page: "${pageTitle}" | Raw links: ${extractedLinks.length}`,
     );
+    logger.info(
+      `[DEBUG] All URLs found by Playwright: \n${extractedLinks.join("\n")}`,
+    );
 
     await context.close();
     context = null; // prevent double-close in finally

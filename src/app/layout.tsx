@@ -16,9 +16,9 @@ export const metadata: Metadata = {
       ? `https://${process.env.VERCEL_URL}`
       : "http://localhost:3000",
   ),
-  title: "V S Jadon Compare | AI-Powered Real Estate Property Analysis Tool",
+  title: "V S Jadon Compare | AI Real Estate Analysis",
   description:
-    "Analyze and compare real estate properties with ease using V S Jadon Compare. Our AI-driven tool extracts structured data and visual evidence from property listings to help you make informed investment decisions with automated valuation metrics and detailed technical specifications.",
+    "Analyze and compare real estate properties using AI. Extract structured data and visual evidence to make informed investment decisions instantly.",
 
   // This explicitly fixes Discord & WhatsApp
   openGraph: {
@@ -30,7 +30,7 @@ export const metadata: Metadata = {
     type: "website",
     images: [
       {
-        url: "/vsjadon-og-image.png",
+        url: "https://auto-fetch-estate.vercel.app/vsjadon-og-image.png",
         width: 1200, // WhatsApp requires dimensions!
         height: 630,
         alt: "V S Jadon Compare Preview Image",
@@ -43,7 +43,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "V S Jadon Compare",
     description: "AI-Powered Real Estate Property Analysis Tool",
-    images: ["/vsjadon-og-image.png"],
+    images: ["https://auto-fetch-estate.vercel.app/vsjadon-og-image.png"],
   },
 };
 
