@@ -9,11 +9,11 @@ interface EstateHeaderProps {
 
 function EstateHeader({ onClear }: EstateHeaderProps) {
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-border bg-background/80 backdrop-blur-md mb-0">
-      <div className="flex h-[64px] items-center justify-between gap-4 px-4 sm:px-6">
+    <header className="top-0 z-50 sticky bg-background/80 backdrop-blur-md mb-0 border-border border-b w-full">
+      <div className="flex justify-between items-center gap-4 px-4 sm:px-6 h-[64px]">
         <div className="flex items-center gap-4">
-          <SidebarTrigger className="cursor-pointer md:hidden" />
-          <h1 className="text-sm sm:text-xl font-bold tracking-tight text-foreground truncate max-w-[150px] sm:max-w-none">
+          <SidebarTrigger className="md:hidden cursor-pointer" />
+          <h1 className="max-w-[150px] sm:max-w-none font-bold text-foreground text-sm sm:text-xl truncate tracking-tight">
             V S Jadon Compare
           </h1>
         </div>
@@ -22,12 +22,12 @@ function EstateHeader({ onClear }: EstateHeaderProps) {
             variant="ghost"
             size="sm"
             onClick={onClear}
-            className="flex items-center transition-colors gap-2 text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:text-red-500  cursor-pointer"
+            className="flex items-center gap-2 font-black text-[10px] text-muted-foreground hover:text-red-500 uppercase tracking-widest transition-colors cursor-pointer"
           >
             <span className="hidden sm:inline">Clear History</span>
-            <Trash2 className="h-4 w-4 sm:h-3 sm:w-3" />
+            <Trash2 className="w-4 sm:w-3 h-4 sm:h-3" />
           </Button>
-          <div className="border-l border-border h-6 mx-1 hidden sm:block" />
+          <div className="hidden sm:block mx-1 border-border border-l h-6" />
           <ThemeToggle />
         </div>
       </div>

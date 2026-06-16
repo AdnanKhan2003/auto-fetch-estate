@@ -110,10 +110,12 @@ function ResultsTable({
   return (
     <div className="space-y-4 animate-in duration-700 fade-in">
       <div className="flex justify-between items-center px-1">
-        <h2 className="font-black text-[10px] text-muted-foreground uppercase tracking-[0.2em]">
+        <h2 className="font-semibold font-black text-[10px] text-muted-foreground text-muted-foreground text-sm uppercase tracking-[0.2em]">
           Compare Prices
         </h2>
         <Button
+          variant="default"
+          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md font-black text-[10px] text-background uppercase tracking-widest duration-200 cursor-pointer"
           onClick={() => {
             const turningOn = !showTotalArea;
             setShowTotalArea(turningOn);
@@ -135,11 +137,6 @@ function ResultsTable({
           }}
           aria-pressed={showTotalArea}
           aria-label="Toggle total carpet area"
-          className={`flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest px-2.5 py-1.5 rounded-md border duration-200 cursor-pointer ${
-            showTotalArea
-              ? "bg-foreground text-background border-foreground"
-              : "text-muted-foreground border-border hover:text-foreground hover:border-foreground/40"
-          }`}
         >
           Σ Calculate Missing Carpet Area
         </Button>
@@ -234,8 +231,15 @@ function ResultsTable({
                       .rows.map((row) => renderRow(row));
 
                     const extraSkeletons = pendingUrls
-                      .filter((url: string) => !table.getRowModel().rows.some((r) => r.original.url === url))
-                      .map((url: string) => <SkeletonRow key={`skel-${url}`} />);
+                      .filter(
+                        (url: string) =>
+                          !table
+                            .getRowModel()
+                            .rows.some((r) => r.original.url === url),
+                      )
+                      .map((url: string) => (
+                        <SkeletonRow key={`skel-${url}`} />
+                      ));
 
                     return [...naturalNodes, ...extraSkeletons];
                   })()}

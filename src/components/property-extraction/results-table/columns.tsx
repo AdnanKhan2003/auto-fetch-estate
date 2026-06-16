@@ -255,7 +255,7 @@ export const columns: ColumnDef<PropertyExtractionResult>[] = [
             checked={row.getIsSelected()}
             onCheckedChange={(value) => row.toggleSelected(!!value)}
             aria-label="Select row"
-            className="cursor-pointer"
+            className="bg-background cursor-pointer"
           />
         </TooltipWrapper>
       </div>
