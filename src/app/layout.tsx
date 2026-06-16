@@ -11,7 +11,11 @@ const poppins = Poppins({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL("http://localhost:3000"),
+  metadataBase: new URL(
+    process.env.VERCEL_URL
+      ? `https://${process.env.VERCEL_URL}`
+      : "http://localhost:3000",
+  ),
   title: "V S Jadon Compare | AI-Powered Real Estate Property Analysis Tool",
   description:
     "Analyze and compare real estate properties with ease using V S Jadon Compare. Our AI-driven tool extracts structured data and visual evidence from property listings to help you make informed investment decisions with automated valuation metrics and detailed technical specifications.",
