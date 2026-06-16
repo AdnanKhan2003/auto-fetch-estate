@@ -61,16 +61,16 @@ async function extractStructuredData(
          TASK:
          1. Scrutinize EVERY JSON-LD block and the provided page text.
          2. Extract all available property details into the provided schema.
-         3. **PRIORITY FIELDS**: Ensure you extract the following if present:
+                  3. **PRIORITY FIELDS**: Ensure you extract the following if present:
             - Property Name (propertyTitle)
-            - Price & Market Price
+            - Price & Market Price (CRITICAL: You MUST extract this even if you have to infer it from unstructured text like '1.5 Crores'. Do not leave it empty if the value exists anywhere.)
             - Carpet Area / Internal Floor Area (IMPORTANT: DO NOT copy Built-up or Super Built-up area here. If Carpet Area is not explicitly stated, leave it blank/null. Include the unit if found.)
             - Built-up Area (IMPORTANT: Include the unit, e.g. "sqm", "sqyd", "sqft")
             - Super Built-up Area (IMPORTANT: Include the unit, e.g. "sqm", "sqyd", "sqft". **CRITICAL**: If the property specifies an area but does not explicitly state whether it is Carpet, Built-up or Super Built-up, you MUST default to putting it here in superBuiltupArea.)
             - Total Area (IMPORTANT: Include the unit, e.g. "sqm", "sqyd", "sqft")
             - Rate per Area (pricePerSqft) (IMPORTANT: Include the unit, e.g. "/sqm", "/sqyd", "/sqft")
             - Building Age (ageOfBuilding)
-            - Locality (location) (IMPORTANT: Extract the neighborhood/locality and the city name, e.g., 'Sector 17 Vashi, Navi Mumbai'. Do not include flat numbers, building names, or detailed street info here.)
+            - Locality (location) (CRITICAL: You MUST extract this. Do not leave it empty if the value exists anywhere in the text. Extract the neighborhood/locality and the city name, e.g., 'Sector 17 Vashi, Navi Mumbai'. Do not include flat numbers, building names, or detailed street info here.)
             - Vertical Position (floorNo)
             - Cardinal Facing (facing)
             - Furnishing Status
@@ -113,9 +113,11 @@ async function extractStructuredData(
 
     const data = response.parsed || {};
 
-    // if (data && Object.keys(data).length > 0) {
-    //   logger.info("✅ [AI] Extraction successful!");
-    // }
+    if (data && Object.keys(data).length > 0) {
+      logger.info(
+        `✨ [STEP 4] AI Structured Data Extracted! Tokens Used: ${tokens}`,
+      );
+    }
 
     return { data, tokens };
   } catch (err: any) {

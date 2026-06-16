@@ -227,6 +227,7 @@ async function processUrl(
   try {
     context = await createIsolatedContext();
     if (signal?.aborted) throw new Error("Aborted before navigation");
+    logger.info(`🔵 [STEP 3/3] Scraping individual property details: ${url}`);
 
     // Continuously check abort before each major step
 

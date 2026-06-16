@@ -164,7 +164,7 @@ export async function POST(req: Request) {
             messages: [
               {
                 role: "user",
-                content: `Search for "${query}". The search tool will return 4 different search listing URLs. You MUST use the discover_property_links tool on ALL 4 listing URLs! Extract exactly 3 individual property links from each listing page. Finally, combine all 12 of the property detail links you discovered and pass them as an array to the scrape_property_details tool.`,
+                content: `Delegate this task to the 'property_scraper' subagent. Tell the subagent: Search for "${query}". The search tool will return 4 different search listing URLs. You MUST use the discover_property_links tool on ALL 4 listing URLs! Extract exactly 3 individual property links from each listing page. Finally, combine all 12 of the property detail links you discovered and pass them as an array to the scrape_property_details tool.`,
               },
             ],
           },

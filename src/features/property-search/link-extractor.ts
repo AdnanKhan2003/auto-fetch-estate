@@ -1,6 +1,9 @@
 import { z } from "zod";
 import { ChatGoogleGenerativeAI } from "@langchain/google-genai";
-import { createIsolatedContext, navigatePage } from "../property-extraction/scraper";
+import {
+  createIsolatedContext,
+  navigatePage,
+} from "../property-extraction/scraper";
 import logger from "@/lib/logger";
 
 export async function getIndividualPropertyLinks(
@@ -32,17 +35,31 @@ export async function getIndividualPropertyLinks(
         .filter((link) => link.href && link.href.startsWith("http"))
         .filter((link) => {
           const href = link.href.toLowerCase();
-          
+
           // Pre-filter obvious noise/menu items to keep link lists clean
-          if (href.includes("javascript:") || href.includes("mailto:")) return false;
-          if (href.includes("/homeloan") || href.includes("calculator") || href.includes("/advice")) return false;
-          if (href.includes("/contactus") || href.includes("/terms") || href.includes("/privacy")) return false;
+          if (href.includes("javascript:") || href.includes("mailto:"))
+            return false;
+          if (
+            href.includes("/homeloan") ||
+            href.includes("calculator") ||
+            href.includes("/advice")
+          )
+            return false;
+          if (
+            href.includes("/contactus") ||
+            href.includes("/terms") ||
+            href.includes("/privacy")
+          )
+            return false;
           if (href.includes("/news/")) return false;
-          if (href.includes("emi-") || href.includes("eligibility-")) return false;
-          
+          if (href.includes("emi-") || href.includes("eligibility-"))
+            return false;
+
           // Allow links with short/empty text IF the URL path looks like
           // a property detail slug (3+ path segments — typical of detail pages)
-          const pathSegments = new URL(href).pathname.split("/").filter(Boolean);
+          const pathSegments = new URL(href).pathname
+            .split("/")
+            .filter(Boolean);
           if (link.text.length > 5) return true;
           if (pathSegments.length >= 3) return true;
 
@@ -52,7 +69,9 @@ export async function getIndividualPropertyLinks(
 
     // Debug: log page title and link count to confirm page loaded
     const pageTitle = await page.title();
-    logger.info(`[Link Discovery] Page: "${pageTitle}" | Raw links: ${extractedLinks.length}`);
+    logger.info(
+      `🟡 [STEP 2/3] Extracting links from search page: "${pageTitle}" | Raw links: ${extractedLinks.length}`,
+    );
 
     await context.close();
     context = null; // prevent double-close in finally
@@ -101,11 +120,12 @@ export async function getIndividualPropertyLinks(
       TASK:
       Find EXACTLY up to 3 URLs that point to INDIVIDUAL property detail pages.
      
-      RULES:
+     RULES:
       1. IGNORE search pages, pagination links, "contact us", "about", or privacy policy links.
-      2. A property detail page usually has a specific property description in the text (e.g. "3 BHK Flat in X locality") and a long URL path often containing an ID or detailed slug.
-      3. Some links may have "(no text)" — judge them purely by their URL pattern.
-      4. Return ONLY the URLs.
+      2. CRITICAL: DO NOT extract links for entire new development projects, builder pages, or entire building complexes (e.g. URLs ending in "/project"). You MUST ONLY extract links for single, individual property listings (like a specific resale flat).
+      3. A property detail page usually has a specific property description in the text (e.g. "3 BHK Flat in X locality") and a long URL path often containing an ID or detailed slug.
+      4. Some links may have "(no text)" — judge them purely by their URL pattern.
+      5. Return ONLY the URLs.
      
       RAW LINKS:
       ${linksText.slice(0, 60000)}
@@ -127,7 +147,7 @@ export async function getIndividualPropertyLinks(
     let propertyUrls = response.parsed?.propertyUrls || [];
     propertyUrls = propertyUrls.slice(0, 3); // Hardcode to exactly 3 detail pages max
     logger.info(
-      `   └─ 🎟️ Links Discovered: ${propertyUrls.length} | Tokens Used: ${tokens}`,
+      `   └─ 🎟️ [STEP 2.1] Links Discovered: ${propertyUrls.length} | Tokens Used: ${tokens}`,
     );
     // logger.info(
     //   `[Link Discovery] LangChain successfully filtered to ${propertyUrls.length} detail pages.`,

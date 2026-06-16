@@ -21,7 +21,7 @@ export const searchRealEstateTool = tool(
     try {
       const targetSites = "99acres magicbricks nobroker squareyards";
       logger.info(
-        `\n🔍 Searching for: "${query} ${targetSites}" using Serper...`,
+        `\n🟢 [STEP 1/3] Starting AI Agent task... Searching for: "${query} ${targetSites}"`,
       );
 
       const response = await fetch("https://google.serper.dev/search", {
@@ -96,8 +96,10 @@ export const discoverLinksTool = tool(
     }
 
     logger.info(`\n📂 Extracting 3 detail pages from: ${listingUrl}`);
-    const { propertyUrls, tokens } =
-      await getIndividualPropertyLinks(listingUrl, abortController);
+    const { propertyUrls, tokens } = await getIndividualPropertyLinks(
+      listingUrl,
+      abortController,
+    );
     const links = propertyUrls.slice(0, 3);
 
     const tracker = config?.configurable?.tokenTracker;
@@ -210,7 +212,11 @@ export const scrapePropertyTool = tool(
             logger.info(`[Batch] Scraping: ${url}`);
             const { processUrl } =
               await import("../property-extraction/scraper");
-            const result = await processUrl(url.trim(), batchId, abortController);
+            const result = await processUrl(
+              url.trim(),
+              batchId,
+              abortController,
+            );
 
             if (result.status === "error") {
               throw new Error(result.error || "Scraping Failed");
