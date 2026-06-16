@@ -222,22 +222,13 @@ export const columns: ColumnDef<PropertyExtractionResult>[] = [
   {
     id: "index",
     header: () => <div className="text-center"></div>,
-    cell: ({ row, table }) => {
-      const meta = table.options.meta as any;
-      const originalUrls = meta?.originalUrls || [];
-
-      const originalIndex = originalUrls.indexOf(row.original.url);
-      const displayIndex =
-        originalIndex !== -1 ? originalIndex + 1 : row.index + 1;
-
-      return (
-        <div className="flex justify-center items-center">
-          <div className="flex justify-center items-center bg-muted/30 border border-border/50 rounded-md w-6 h-6 font-mono text-muted-foreground text-xs">
-            {displayIndex}
-          </div>
+    cell: ({ row }) => (
+      <div className="flex justify-center items-center">
+        <div className="flex justify-center items-center bg-muted/30 border border-border/50 rounded-md w-6 h-6 font-mono text-muted-foreground text-xs">
+          {row.index + 1}
         </div>
-      );
-    },
+      </div>
+    ),
   },
   {
     id: "select",

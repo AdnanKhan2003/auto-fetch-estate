@@ -1,15 +1,21 @@
 import { z } from "zod";
 import { ChatGoogleGenerativeAI } from "@langchain/google-genai";
 import { createIsolatedContext, navigatePage } from "../property-extraction/scraper";
+import logger from "@/lib/logger";
 
 export async function getIndividualPropertyLinks(
   listingUrl: string,
+  signal?: { aborted: boolean },
 ): Promise<{ propertyUrls: string[]; tokens: number }> {
   // Reuse the existing shared browser to save memory
   let context;
 
   try {
     context = await createIsolatedContext();
+    if (signal?.aborted) {
+      await context.close();
+      return { propertyUrls: [], tokens: 0 };
+    }
     const page = await context.newPage();
 
     // Reuse the same smart navigation logic the scraper uses
@@ -46,12 +52,12 @@ export async function getIndividualPropertyLinks(
 
     // Debug: log page title and link count to confirm page loaded
     const pageTitle = await page.title();
-    console.log(`[Link Discovery] Page: "${pageTitle}" | Raw links: ${extractedLinks.length}`);
+    logger.info(`[Link Discovery] Page: "${pageTitle}" | Raw links: ${extractedLinks.length}`);
 
     await context.close();
     context = null; // prevent double-close in finally
 
-    // console.log(
+    // logger.info(
     //   `[Link Discovery] Found ${extractedLinks.length} raw links. Passing to LangChain for filtering...`,
     // );
 
@@ -59,7 +65,7 @@ export async function getIndividualPropertyLinks(
       process.env.GOOGLE_API_KEY || process.env.GOOGLE_GENERATIVE_AI_API_KEY;
 
     if (!apiKey) {
-      console.error("[Link Discovery] GOOGLE_API_KEY missing.");
+      logger.error("[Link Discovery] GOOGLE_API_KEY missing.");
       return { propertyUrls: [], tokens: 0 };
     }
 
@@ -105,13 +111,14 @@ export async function getIndividualPropertyLinks(
       ${linksText.slice(0, 60000)}
     `;
 
+    if (signal?.aborted) return { propertyUrls: [], tokens: 0 };
     const response = await structuredLlm.invoke(prompt);
 
     const rawMessage = response.raw as any;
     const usage =
       rawMessage.usage_metadata || rawMessage.response_metadata?.tokenUsage;
     // if (usage) {
-    //   console.log(
+    //   logger.info(
     //     `[Token Usage] Gemini consumed -> Input: ${usage.input_tokens || usage.promptTokens}, Output: ${usage.output_tokens || usage.completionTokens}, Total: ${usage.total_tokens || usage.totalTokens} tokens`,
     //   );
     // }
@@ -119,18 +126,18 @@ export async function getIndividualPropertyLinks(
 
     let propertyUrls = response.parsed?.propertyUrls || [];
     propertyUrls = propertyUrls.slice(0, 3); // Hardcode to exactly 3 detail pages max
-    console.log(
+    logger.info(
       `   └─ 🎟️ Links Discovered: ${propertyUrls.length} | Tokens Used: ${tokens}`,
     );
-    // console.log(
+    // logger.info(
     //   `[Link Discovery] LangChain successfully filtered to ${propertyUrls.length} detail pages.`,
     // );
     return { propertyUrls, tokens };
   } catch (error: any) {
-    console.error(`[Link Discovery] FAILED for ${listingUrl}`);
-    console.error(`[Link Discovery] Error name: ${error.name}`);
-    console.error(`[Link Discovery] Error message: ${error.message}`);
-    console.error(`[Link Discovery] Full stack: ${error.stack}`);
+    logger.error(`[Link Discovery] FAILED for ${listingUrl}`);
+    logger.error(`[Link Discovery] Error name: ${error.name}`);
+    logger.error(`[Link Discovery] Error message: ${error.message}`);
+    logger.error(`[Link Discovery] Full stack: ${error.stack}`);
 
     return { propertyUrls: [], tokens: 0 };
   } finally {

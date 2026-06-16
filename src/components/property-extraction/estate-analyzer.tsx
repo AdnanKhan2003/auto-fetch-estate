@@ -98,6 +98,7 @@ export default function EstateAnalyzer() {
           }));
 
           setResults(formattedResults as any);
+          setUrls(formattedResults.map((r: any) => r.url));
 
           const initSelection: Record<string, boolean> = {};
           formattedResults.forEach((r: any) => {
@@ -349,16 +350,7 @@ export default function EstateAnalyzer() {
     { totalCarpetArea: 0, estimatedCount: 0 },
   );
 
-  const orderedResults = [...results].sort((a, b) => {
-    const indexA = urls.indexOf(a.url);
-    const indexB = urls.indexOf(b.url);
-
-    if (indexA === -1 && indexB === -1) return 0;
-    if (indexA === -1) return 1;
-    if (indexB === -1) return -1;
-
-    return indexA - indexB;
-  });
+  const orderedResults = results;
 
   if (!isMounted) return null;
 
@@ -410,7 +402,6 @@ export default function EstateAnalyzer() {
           showTotalArea={showTotalArea}
           setShowTotalArea={setShowTotalArea}
           totalCarpetArea={totalCarpetArea}
-          originalUrls={urls}
           estimatedCount={estimatedCount}
           onDelete={deleteSingleRecord}
           onUpdate={updateSingleRecord}

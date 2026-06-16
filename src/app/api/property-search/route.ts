@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { headers } from "next/headers";
 import { auth } from "@/auth/auth";
+import logger from "@/lib/logger";
 
 export async function POST(req: Request) {
   process.env.GOOGLE_API_KEY = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
@@ -70,7 +71,7 @@ export async function POST(req: Request) {
             await import("@/features/property-extraction/scraper");
 
           await writeMsg("Launching Chromium context...");
-          console.log("[TEST] Launching Chromium context...");
+          logger.info("[TEST] Launching Chromium context...");
           let context;
           let collectedUrls: string[] = [];
 
@@ -80,7 +81,7 @@ export async function POST(req: Request) {
             for (const url of testUrls) {
               const urlPreview = url.split("?")[0].substring(0, 60);
               await writeMsg(`\n--- TESTING URL: ${urlPreview}... ---`);
-              console.log(`\n[TEST] ---> Starting scrape for: ${urlPreview}`);
+              logger.info(`\n[TEST] ---> Starting scrape for: ${urlPreview}`);
 
               const page = await context.newPage();
 
@@ -121,7 +122,7 @@ export async function POST(req: Request) {
             await writeMsg("Test completed successfully!");
           } catch (err: any) {
             await writeMsg(`PLAYWRIGHT ERROR: ${err.message}`);
-            console.error(err);
+            logger.error(err);
           } finally {
             if (context) await context.close().catch(() => {});
           }
@@ -144,7 +145,7 @@ export async function POST(req: Request) {
         const abortController = { aborted: false };
         req.signal.addEventListener("abort", () => {
           abortController.aborted = true;
-          console.log("🛑 Client disconnected. Aborting agent run...");
+          logger.info("🛑 Client disconnected. Aborting agent run...");
         });
 
         const config = {
@@ -174,7 +175,7 @@ export async function POST(req: Request) {
 
         for await (const chunk of agentStream) {
           if (abortController.aborted) {
-            console.log("🛑 Loop stopped due to user abort.");
+            logger.info("🛑 Loop stopped due to user abort.");
             break;
           }
 
@@ -262,24 +263,24 @@ export async function POST(req: Request) {
           ),
         );
       } finally {
-        console.log(
+        logger.info(
           "\n" + "============================================================",
         );
-        console.log(`🏆 [GRAND SEARCH SUMMARY]`);
-        console.log(`   - Total AI Calls Made: ${tokenTracker.aiCalls}`);
-        console.log(
+        logger.info(`🏆 [GRAND SEARCH SUMMARY]`);
+        logger.info(`   - Total AI Calls Made: ${tokenTracker.aiCalls}`);
+        logger.info(
           `   - Link Discovery Tokens: ${tokenTracker.discoveryTokens}`,
         );
-        console.log(
+        logger.info(
           `   - Scraper Tokens (Text + Vision): ${tokenTracker.scrapeTokens}`,
         );
-        console.log(
+        logger.info(
           `   - Agent Orchestrator Tokens: ${tokenTracker.agentTokens}`,
         );
-        console.log(
+        logger.info(
           `   - GRAND TOTAL TOKENS SPENT: ${tokenTracker.discoveryTokens + tokenTracker.scrapeTokens + tokenTracker.agentTokens}`,
         );
-        console.log(
+        logger.info(
           "============================================================\n",
         );
 

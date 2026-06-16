@@ -2,6 +2,7 @@ import { propertySchema, Property } from "./schema";
 import { checkQuotaAndConsume } from "@/features/property-extraction/ai-rate-limiter";
 import { ChatGoogleGenerativeAI } from "@langchain/google-genai";
 import { HumanMessage } from "langchain";
+import logger from "@/lib/logger";
 
 const DEFAULT_GOOGLE_MODEL = "gemini-2.5-flash";
 
@@ -11,6 +12,7 @@ async function extractStructuredData(
   cleanText: string,
   knownData: Partial<Property> = {},
   scrapeUrl?: string,
+  signal?: { aborted: boolean },
 ): Promise<{ data: Partial<Property>; tokens: number }> {
   // Pull all JSON-LD script blocks from the page
   const jsonLdData = await page.evaluate(() => {
@@ -21,18 +23,18 @@ async function extractStructuredData(
   });
 
   const urlLabel = scrapeUrl ?? "(unknown URL)";
-  // console.log("\n" + "=".repeat(60));
-  // console.log(`JSON-LD DATA — ${urlLabel}`);
-  // console.log("=".repeat(60));
-  // console.log(
+  // logger.info("\n" + "=".repeat(60));
+  // logger.info(`JSON-LD DATA — ${urlLabel}`);
+  // logger.info("=".repeat(60));
+  // logger.info(
   //   `script blocks joined length (chars): ${jsonLdData?.length ?? 0}`,
   // );
-  // console.log(
+  // logger.info(
   //   jsonLdData?.trim()
   //     ? jsonLdData
   //     : "(empty — no application/ld+json or blank)",
   // );
-  // console.log("=".repeat(60) + "\n");
+  // logger.info("=".repeat(60) + "\n");
 
   // Nothing to work with — skip the API call
   if ((!jsonLdData || jsonLdData.length < 50) && !cleanText)
@@ -42,14 +44,14 @@ async function extractStructuredData(
   const modelName = process.env.GOOGLE_MODEL || DEFAULT_GOOGLE_MODEL;
 
   if (!apiKey) {
-    console.error(
+    logger.error(
       "❌ [AI Error] GOOGLE_GENERATIVE_AI_API_KEY is missing from .env!",
     );
     return { data: {}, tokens: 0 };
   }
 
-  // console.log(`[AI] Using API Key: ${apiKey.slice(0, 5)}...`);
-  // console.log(`[AI] Using Model: ${modelName}`);
+  // logger.info(`[AI] Using API Key: ${apiKey.slice(0, 5)}...`);
+  // logger.info(`[AI] Using Model: ${modelName}`);
 
   try {
     const prompt = `
@@ -101,6 +103,7 @@ async function extractStructuredData(
       includeRaw: true,
     });
 
+    if (signal?.aborted) return { data: {}, tokens: 0 };
     const response = await structedLlm.invoke(prompt);
 
     const rawMessage = response.raw as any;
@@ -111,14 +114,14 @@ async function extractStructuredData(
     const data = response.parsed || {};
 
     // if (data && Object.keys(data).length > 0) {
-    //   console.log("✅ [AI] Extraction successful!");
+    //   logger.info("✅ [AI] Extraction successful!");
     // }
 
     return { data, tokens };
   } catch (err: any) {
-    console.error("\n❌ [AI Error] Extraction failed!");
-    console.error(`Reason: ${err.message}`);
-    if (err.stack) console.error(err.stack);
+    logger.error("\n❌ [AI Error] Extraction failed!");
+    logger.error(`Reason: ${err.message}`);
+    if (err.stack) logger.error(err.stack);
     return { data: {}, tokens: 0 };
   }
 }
@@ -129,6 +132,7 @@ interface VisionParams {
   missingCritical: readonly string[];
   cleanDeterministic: Record<string, any>;
   cleanText: string;
+  signal?: { aborted: boolean };
 }
 
 interface VisionResult {
@@ -144,18 +148,19 @@ async function runVisionExtraction({
   missingCritical,
   cleanDeterministic,
   cleanText,
+  signal,
 }: VisionParams): Promise<VisionResult> {
   const visionApiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
   const visionModelName = process.env.GOOGLE_MODEL || DEFAULT_GOOGLE_MODEL;
 
   if (!visionApiKey) {
-    console.log("[AI] Vision skipped: GOOGLE_GENERATIVE_AI_API_KEY not set");
+    logger.info("[AI] Vision skipped: GOOGLE_GENERATIVE_AI_API_KEY not set");
     return { aiData: {}, visionUsed: false, tokens: 0 };
   }
 
   try {
-    // console.log(`[AI] Attempting Vision extraction for: ${url}`);
-    // console.log(`[AI] Vision Model: ${visionModelName}`);
+    // logger.info(`[AI] Attempting Vision extraction for: ${url}`);
+    // logger.info(`[AI] Vision Model: ${visionModelName}`);
 
     const llm = new ChatGoogleGenerativeAI({
       model: visionModelName,
@@ -190,6 +195,7 @@ async function runVisionExtraction({
       ],
     });
 
+    if (signal?.aborted) return { aiData: {}, visionUsed: false, tokens: 0 };
     const response = await structedLlm.invoke([message]);
 
     const rawMessage = response.raw as any;
@@ -197,10 +203,10 @@ async function runVisionExtraction({
       rawMessage.usage_metadata || rawMessage.response_metadata?.tokenUsage;
     const tokens = usage ? usage.total_tokens || usage.totalTokens : 0;
 
-    // console.log("\n--- LOG 3.5: AI VISION RESULT (From Screenshot) ---");
-    // console.log(JSON.stringify(response.parsed, null, 2));
-    // console.log("--------------------------------------------------\n");
-    // console.log("✅ [AI] Vision extraction successful!");
+    // logger.info("\n--- LOG 3.5: AI VISION RESULT (From Screenshot) ---");
+    // logger.info(JSON.stringify(response.parsed, null, 2));
+    // logger.info("--------------------------------------------------\n");
+    // logger.info("✅ [AI] Vision extraction successful!");
 
     return {
       aiData: response.parsed,
@@ -208,7 +214,7 @@ async function runVisionExtraction({
       tokens,
     };
   } catch (aiError: any) {
-    console.error("❌ [AI Vision Error]:", aiError.message);
+    logger.error("❌ [AI Vision Error]:", aiError.message);
     return { aiData: {}, visionUsed: false, tokens: 0 };
   }
 }

@@ -7,7 +7,7 @@ import { ActionButtons } from "./scrape-input/action-buttons";
 import { useForm, useFieldArray } from "react-hook-form";
 import z from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Loader2, Search, X } from "lucide-react";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
@@ -59,6 +59,12 @@ function ScrapeInputCard({
     control: form.control,
     name: "urls",
   });
+
+  useEffect(() => {
+    if (initialUrls.length > 0 && initialUrls[0] !== "") {
+      replace(initialUrls.map((u) => ({ value: u })));
+    }
+  }, [initialUrls]);
 
   const watchedUrls = form.watch("urls");
 
@@ -241,7 +247,9 @@ function ScrapeInputCard({
           <ActionButtons
             isLoading={isLoading}
             isExecuteDisabled={
-              isLoading || watchedUrls.every((u) => !u.value.trim())
+              isLoading ||
+              isSearching ||
+              watchedUrls.every((u) => !u.value.trim())
             }
             onAddTarget={() => {
               append({ value: "" });

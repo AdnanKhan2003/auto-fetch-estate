@@ -4,6 +4,7 @@ import { headers } from "next/headers";
 import { propertyListing, session } from "@/db/schema";
 import { db } from "@/db";
 import { and, eq } from "drizzle-orm";
+import logger from "@/lib/logger";
 
 export async function POST(request: Request) {
   try {
@@ -25,15 +26,25 @@ export async function POST(request: Request) {
 
     const activeUrls = urls.filter((url: string) => url.trim());
 
-    console.log("\n\n" + "=".repeat(60));
-    console.log(`🔗 PROCESSING ${activeUrls.length} URLs IN PARALLEL`);
-    console.log("=".repeat(60) + "\n");
+    logger.info("\n\n" + "=".repeat(60));
+    logger.info(`🔗 PROCESSING ${activeUrls.length} URLs IN PARALLEL`);
+    logger.info("=".repeat(60) + "\n");
 
     const encoder = new TextEncoder();
 
     const stream = new ReadableStream({
       async start(controller) {
         try {
+          const abortController = { aborted: false };
+          request.signal.addEventListener(
+            "abort",
+            () => {
+              abortController.aborted = true;
+              logger.info("🛑 Manual scrape aborted by user.");
+            },
+            { once: true },
+          );
+
           const { scrapePropertyTool } =
             await import("@/features/property-search/agent-tools");
           await scrapePropertyTool.invoke(
@@ -42,11 +53,12 @@ export async function POST(request: Request) {
               configurable: {
                 userId,
                 streamWriter: controller,
+                abortController,
               },
             },
           );
         } catch (e: any) {
-          console.error("[Direct Scrape Tool Error]", e);
+          logger.error({ error: e }, "[Direct Scrape Tool Error]");
         } finally {
           controller.close();
         }
@@ -61,7 +73,7 @@ export async function POST(request: Request) {
       },
     });
   } catch (error: any) {
-    console.error("[Batch Error]", error);
+    logger.error({ error }, "[Batch Error]");
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
@@ -87,7 +99,7 @@ export async function GET(request: Request) {
 
     return NextResponse.json(properties);
   } catch (error) {
-    console.error("Error fetching properties: ", error);
+    logger.error({ error }, "Error fetching properties: ");
     return NextResponse.json(
       { error: "Internal Server Error" },
       { status: 500 },
@@ -157,7 +169,7 @@ export async function PATCH(request: Request) {
       updatedAt: now.toISOString(),
     });
   } catch (error: any) {
-    console.error("Error updating property: ", error);
+    logger.error({ error }, "Error updating property: ");
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
@@ -189,7 +201,7 @@ export async function DELETE(request: Request) {
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("Error deleting properties: ", error);
+    logger.error({ error }, "Error deleting properties: ");
     return NextResponse.json(
       { error: "Internal Server Error" },
       { status: 500 },

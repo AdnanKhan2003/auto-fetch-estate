@@ -25,6 +25,7 @@ import {
 } from "./page-utils";
 import { extractStructuredData, runVisionExtraction } from "./ai-extractor";
 import { uploadScreenshotToS3 } from "@/lib/s3-client";
+import logger from "@/lib/logger";
 
 // Re-export schema so existing consumers (e.g. route.ts) don't need changing
 export { propertySchema };
@@ -134,7 +135,7 @@ async function navigatePage(page: any, url: string) {
       timeout: 5000,
     })
     .catch(() =>
-      console.log("[Scraper] Major markers not found, proceeding anyway..."),
+      logger.info("[Scraper] Major markers not found, proceeding anyway..."),
     );
   // Human-like random pause (3–5s)
   await page.waitForTimeout(Math.floor(Math.random() * 2000) + 3000);
@@ -217,10 +218,18 @@ function applyNormalizations(data: Record<string, any>): void {
 }
 
 // Runs the complete pipeline: downloads page content, screenshots, parses html, and triggers AI extraction
-async function processUrl(url: string, batchId: string) {
+async function processUrl(
+  url: string,
+  batchId: string,
+  signal?: { aborted: boolean },
+) {
   let context;
   try {
     context = await createIsolatedContext();
+    if (signal?.aborted) throw new Error("Aborted before navigation");
+
+    // Continuously check abort before each major step
+
     const page = await context.newPage();
     // Step 1 — Navigate
     await navigatePage(page, url);
@@ -231,6 +240,7 @@ async function processUrl(url: string, batchId: string) {
     if (isBlocked(pageTitle, pageHtml))
       throw new Error("Bot protection triggered");
 
+    if (signal?.aborted) throw new Error("Aborted by user");
     // Step 3 — Screenshot
     const { screenshotName, screenshotBuffer } = await takeScreenshot(
       page,
@@ -247,16 +257,17 @@ async function processUrl(url: string, batchId: string) {
       ERROR_PAGE_PHRASES.some((phrase) => lowerClean.includes(phrase)) &&
       cleanText.length < 500;
     if (is404) {
-      console.log(`[Scraper] ⚠️  Error/404 page detected for: ${url}`);
+      logger.info(`[Scraper] ⚠️  Error/404 page detected for: ${url}`);
       throw new Error("Page returned a 404 or error page");
     }
 
     // Step 6 — Deterministic selector extraction
     const selectorData = await extractBySelectors(page);
 
+    if (signal?.aborted) throw new Error("Aborted by user");
     // Step 7 — AI text extraction (JSON-LD + page text)
     const { data: structuredData, tokens: textTokens } =
-      await extractStructuredData(page, cleanText, selectorData, url);
+      await extractStructuredData(page, cleanText, selectorData, url, signal);
 
     // Step 8 — Merge: defaults < selectors < AI text
     const merged: Record<string, any> = {
@@ -275,6 +286,7 @@ async function processUrl(url: string, batchId: string) {
       Object.entries(merged).filter(([_, v]) => v !== null && v !== ""),
     );
 
+    if (signal?.aborted) throw new Error("Aborted by user");
     // Step 9 — Vision fallback (only when critical fields are still missing)
     let aiData: Partial<Property> = {};
     let visionUsed = false;
@@ -293,6 +305,7 @@ async function processUrl(url: string, batchId: string) {
           : missingCritical,
         cleanDeterministic: cleanMerged,
         cleanText,
+        signal,
       }));
     }
 
@@ -305,7 +318,7 @@ async function processUrl(url: string, batchId: string) {
 
     const parsedData = propertySchema.safeParse(finalData);
     if (!parsedData.success) {
-      console.error(`[Zod Error] Schema validation failed for ${url}`);
+      logger.error(`[Zod Error] Schema validation failed for ${url}`);
       throw new Error(`Data validation Failed:
         ${parsedData.error.issues[0].path} -
         ${parsedData.error.issues[0].message}
@@ -318,22 +331,22 @@ async function processUrl(url: string, batchId: string) {
     // =====================================================================
     // 🕵️ DEBUG LOGGING: Print clean structured summary directly to the console
     // =====================================================================
-    console.log("\n" + "=".repeat(60));
-    console.log(`📊 [SCRAPE RESULT] ${url}`);
-    console.log(`   - Title: ${parsedData.data.propertyTitle || "N/A"}`);
-    console.log(`   - Price: ${parsedData.data.price || "N/A"}`);
-    console.log(`   - Location: ${parsedData.data.location || "N/A"}`);
-    console.log(
+    logger.info("\n" + "=".repeat(60));
+    logger.info(`📊 [SCRAPE RESULT] ${url}`);
+    logger.info(`   - Title: ${parsedData.data.propertyTitle || "N/A"}`);
+    logger.info(`   - Price: ${parsedData.data.price || "N/A"}`);
+    logger.info(`   - Location: ${parsedData.data.location || "N/A"}`);
+    logger.info(
       `   - Area: ${parsedData.data.carpetArea || parsedData.data.builtupArea || parsedData.data.superBuiltupArea || "N/A"}`,
     );
-    console.log(
+    logger.info(
       `   - Text AI Used: ${Object.keys(structuredData).length > 0 ? "Yes" : "No"}`,
     );
-    console.log(`   - Vision Fallback Used: ${visionUsed ? "Yes" : "No"}`);
-    console.log(`   - Tokens Used: ${textTokens + visionTokens}`);
-    console.log("\n🤖 Structured AI Output:");
-    console.log(JSON.stringify(parsedData.data, null, 2));
-    console.log("=".repeat(60) + "\n");
+    logger.info(`   - Vision Fallback Used: ${visionUsed ? "Yes" : "No"}`);
+    logger.info(`   - Tokens Used: ${textTokens + visionTokens}`);
+    logger.info("\n🤖 Structured AI Output:");
+    logger.info(JSON.stringify(parsedData.data, null, 2));
+    logger.info("=".repeat(60) + "\n");
     // =====================================================================
 
     return {
@@ -348,7 +361,7 @@ async function processUrl(url: string, batchId: string) {
       tokensUsed: textTokens + visionTokens,
     };
   } catch (error: any) {
-    console.error(`Failed to process ${url}:`, error);
+    logger.error(`Failed to process ${url}:`, error);
     return { url, status: "error" as const, error: error.message };
   } finally {
     if (context) {

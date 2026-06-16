@@ -10,6 +10,7 @@ import {
 import { db } from "@/db";
 import { propertyListing } from "@/db/schema";
 import { and, eq } from "drizzle-orm";
+import logger from "@/lib/logger";
 
 export const searchRealEstateTool = tool(
   async ({ query }) => {
@@ -19,7 +20,7 @@ export const searchRealEstateTool = tool(
 
     try {
       const targetSites = "99acres magicbricks nobroker squareyards";
-      console.log(
+      logger.info(
         `\n🔍 Searching for: "${query} ${targetSites}" using Serper...`,
       );
 
@@ -57,14 +58,14 @@ export const searchRealEstateTool = tool(
             uniqueResults.push(r);
           }
         } catch (error) {
-          console.log(error);
+          logger.info(error);
         }
       }
 
       const topResults = uniqueResults.slice(0, 4);
 
-      console.log(`\n📍 Found ${topResults.length} listing URLs:`);
-      topResults.forEach((r: any) => console.log(` - ${r.link}`));
+      logger.info(`\n📍 Found ${topResults.length} listing URLs:`);
+      topResults.forEach((r: any) => logger.info(` - ${r.link}`));
 
       const snippets = topResults.map(
         (r: any) => `- ${r.title}: ${r.snippet}\n  Link: ${r.link}`,
@@ -90,13 +91,13 @@ export const discoverLinksTool = tool(
   async ({ listingUrl }, config) => {
     const abortController = config?.configurable?.abortController;
     if (abortController?.aborted) {
-      console.log("🛑 Discovery aborted.");
+      logger.info("🛑 Discovery aborted.");
       return "Error: Process was aborted by the user.";
     }
 
-    console.log(`\n📂 Extracting 3 detail pages from: ${listingUrl}`);
+    logger.info(`\n📂 Extracting 3 detail pages from: ${listingUrl}`);
     const { propertyUrls, tokens } =
-      await getIndividualPropertyLinks(listingUrl);
+      await getIndividualPropertyLinks(listingUrl, abortController);
     const links = propertyUrls.slice(0, 3);
 
     const tracker = config?.configurable?.tokenTracker;
@@ -106,11 +107,11 @@ export const discoverLinksTool = tool(
     }
 
     if (links.length === 0) {
-      console.log(" ❌ No detail pages found on this page.");
+      logger.info(" ❌ No detail pages found on this page.");
       return "No individual property links found on this page.";
     }
 
-    links.forEach((l, i) => console.log(`   ${i + 1}. ${l}`));
+    links.forEach((l, i) => logger.info(`   ${i + 1}. ${l}`));
     return `Found ${links.length} property detail links:\n${links.map((l) => `- ${l}`).join("\n")}`;
   },
   {
@@ -136,7 +137,7 @@ export const scrapePropertyTool = tool(
     const abortController = config?.configurable?.abortController;
 
     if (!userId) {
-      console.error(
+      logger.error(
         "[Tool Error] User ID not supplied in configurable context.",
       );
       return "Error: User ID session lost.";
@@ -144,17 +145,17 @@ export const scrapePropertyTool = tool(
 
     const uniqueUrls = Array.from(new Set(detailUrls.map((url) => url.trim())));
 
-    console.log(
+    logger.info(
       `\n🚀 Scraper executing for ${uniqueUrls.length} unique URLs (was ${detailUrls.length}):`,
     );
     uniqueUrls.forEach((url: string, index: number) => {
-      console.log(`   ${index + 1}. ${url}`);
+      logger.info(`   ${index + 1}. ${url}`);
     });
     const CONCURRENCY_LIMIT = 2;
 
     for (let i = 0; i < uniqueUrls.length; i += CONCURRENCY_LIMIT) {
       if (abortController?.aborted) {
-        console.log("🛑 Scraping batch aborted.");
+        logger.info("🛑 Scraping batch aborted.");
         return "Error: Process was aborted by the user.";
       }
 
@@ -175,7 +176,7 @@ export const scrapePropertyTool = tool(
               )
               .limit(1);
             if (existing.length > 0 && existing[0].status === "success") {
-              console.log(`[Batch] Already scraped (skipping fetch): ${url}`);
+              logger.info(`[Batch] Already scraped (skipping fetch): ${url}`);
               const metrics = await getQuotaMetrics();
               const enrichedResult = {
                 status: "success" as const,
@@ -206,15 +207,15 @@ export const scrapePropertyTool = tool(
               }
               return;
             }
-            console.log(`[Batch] Scraping: ${url}`);
+            logger.info(`[Batch] Scraping: ${url}`);
             const { processUrl } =
               await import("../property-extraction/scraper");
-            const result = await processUrl(url.trim(), batchId);
+            const result = await processUrl(url.trim(), batchId, abortController);
 
             if (result.status === "error") {
               throw new Error(result.error || "Scraping Failed");
             }
-            console.log(`[Batch] Done: ${url}`);
+            logger.info(`[Batch] Done: ${url}`);
 
             const newId = crypto.randomUUID();
 
@@ -268,7 +269,7 @@ export const scrapePropertyTool = tool(
               );
             }
           } catch (e: any) {
-            console.log(`[Batch] Error on ${url}: ${e.message}`);
+            logger.info(`[Batch] Error on ${url}: ${e.message}`);
             const errorId = crypto.randomUUID();
             await db.insert(propertyListing).values({
               id: errorId,
@@ -304,7 +305,7 @@ export const scrapePropertyTool = tool(
       );
 
       if (i + CONCURRENCY_LIMIT < detailUrls.length) {
-        console.log(
+        logger.info(
           `[Batch] Cooldown: Waiting 11 seconds before next chunk...`,
         );
         // allow target server & API limits to reset

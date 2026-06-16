@@ -41,7 +41,6 @@ interface ResultsTableProps {
   setShowTotalArea: (val: boolean) => void;
   totalCarpetArea: number;
   estimatedCount: number;
-  originalUrls: string[];
   onDelete: (id: string) => void;
   onUpdate: (id: string, updates: any) => void;
 }
@@ -64,7 +63,7 @@ function ResultsTable({
   setShowTotalArea,
   totalCarpetArea,
   estimatedCount,
-  originalUrls,
+
   onDelete,
   onUpdate,
 }: ResultsTableProps) {
@@ -89,7 +88,6 @@ function ResultsTable({
       globalConversionFactor,
       rowFactors,
       setRowFactors,
-      originalUrls,
       onDelete,
       onUpdate,
     },
@@ -110,9 +108,9 @@ function ResultsTable({
   }, [focusedUrl]);
 
   return (
-    <div className="space-y-4 animate-in fade-in duration-700">
-      <div className="px-1 flex items-center justify-between">
-        <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">
+    <div className="space-y-4 animate-in duration-700 fade-in">
+      <div className="flex justify-between items-center px-1">
+        <h2 className="font-black text-[10px] text-muted-foreground uppercase tracking-[0.2em]">
           Compare Prices
         </h2>
         <Button
@@ -146,7 +144,7 @@ function ResultsTable({
           Σ Calculate Missing Carpet Area
         </Button>
       </div>
-      <Card className="overflow-hidden rounded-xl border-border bg-card shadow-none">
+      <Card className="bg-card shadow-none border-border rounded-xl overflow-hidden">
         <div className="overflow-x-auto">
           <Table>
             <TableHeader className="hover:bg-transparent border-none">
@@ -230,39 +228,23 @@ function ResultsTable({
                       return [...sortedNodes, ...loadingNodes];
                     }
 
-                    // Fallback to input order + inline skeletons when not sorting
-                    const currentSessionNodes = originalUrls.map((url) => {
-                      renderedUrls.add(url);
-                      const completedRow = table
-                        .getRowModel()
-                        .rows.find((r) => r.original.url === url);
-                      if (completedRow) return renderRow(completedRow);
-                      if (pendingUrls.includes(url))
-                        return <SkeletonRow key={`skel-${url}`} />;
-                      return null;
-                    });
-
-                    const historyNodes = table
+                    // No sorting active — render in natural order
+                    const naturalNodes = table
                       .getRowModel()
-                      .rows.filter((row) => !renderedUrls.has(row.original.url))
-                      .map((row) => renderRow(row));
+                      .rows.map((row) => renderRow(row));
 
                     const extraSkeletons = pendingUrls
-                      .filter((url) => !renderedUrls.has(url))
-                      .map((url) => <SkeletonRow key={`skel-extra-${url}`} />);
+                      .filter((url: string) => !table.getRowModel().rows.some((r) => r.original.url === url))
+                      .map((url: string) => <SkeletonRow key={`skel-${url}`} />);
 
-                    return [
-                      ...currentSessionNodes,
-                      ...historyNodes,
-                      ...extraSkeletons,
-                    ];
+                    return [...naturalNodes, ...extraSkeletons];
                   })()}
                 </>
               ) : (
                 <TableRow>
                   <TableCell
                     colSpan={columns.length}
-                    className="h-24 text-center text-muted-foreground"
+                    className="h-24 text-muted-foreground text-center"
                   >
                     No properties extracted yet.
                   </TableCell>
