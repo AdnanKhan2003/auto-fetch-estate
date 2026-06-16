@@ -25,10 +25,9 @@ const schema = z.object({
   urls: z
     .array(
       z.object({
-        value: z
-          .string()
-          .min(1, "URL is required")
-          .url("Please enter a valid URL"),
+        value: z.string().refine((val) => val === "" || z.string().url().safeParse(val).success, {
+          message: "Please enter a valid URL",
+        }),
       }),
     )
     .min(1),

@@ -19,10 +19,10 @@ function EstateHeader({ onClear }: EstateHeaderProps) {
         </div>
         <div className="flex items-center gap-3">
           <Button
-            variant="ghost"
+            variant="default"
             size="sm"
             onClick={onClear}
-            className="flex items-center gap-2 font-black text-[10px] text-muted-foreground hover:text-red-500 uppercase tracking-widest transition-colors cursor-pointer"
+            className="flex items-center gap-2 hover:bg-destructive font-medium text-background hover:text-destructive-foreground text-xs transition-all cursor-pointer"
           >
             <span className="hidden sm:inline">Clear History</span>
             <Trash2 className="w-4 sm:w-3 h-4 sm:h-3" />

@@ -22,6 +22,7 @@ import {
 } from "@tanstack/react-table";
 import { PropertyExtractionResult } from "@/features/property-extraction/scraper";
 import { Button } from "../ui/button";
+import { Scale } from "lucide-react";
 
 interface ResultsTableProps {
   results: PropertyExtractionResult[];
@@ -110,9 +111,14 @@ function ResultsTable({
   return (
     <div className="space-y-4 animate-in duration-700 fade-in">
       <div className="flex justify-between items-center px-1">
-        <h2 className="font-semibold font-black text-[10px] text-muted-foreground text-muted-foreground text-sm uppercase tracking-[0.2em]">
-          Compare Prices
-        </h2>
+        <div className="flex items-center gap-2">
+          <div className="flex justify-center items-center bg-primary/10 rounded-md w-6 h-6">
+            <Scale className="w-3.5 h-3.5 text-primary" />
+          </div>
+          <h2 className="font-semibold text-foreground text-lg tracking-tight">
+            Compare Prices
+          </h2>
+        </div>
         <Button
           variant="default"
           className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md font-black text-[10px] text-background uppercase tracking-widest duration-200 cursor-pointer"
