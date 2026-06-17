@@ -16,6 +16,11 @@ A high-performance, AI-powered real estate data extraction and analysis tool bui
 - **Automated Stealth Scraping:** Bypasses aggressive WAF protections on major real estate portals using Playwright and the Puppeteer Stealth plugin.
 - **AI-Driven Data Structuring:** Leverages Google's Gemini models via the Vercel AI SDK to predictably extract over 50 specific data points (carpet area, price per sqft, amenities, etc.) from unstructured HTML.
 - **AI-Powered Property Search Engine:** Processes natural language search queries by running a LangChain-based orchestrator agent that queries Google Serper API, discovers listing links on aggregator pages, scrapes their details, and streams real-time status updates back to the client.
+- **Multi-Agent Orchestration:** Utilizes a supervisor/worker architecture with **2 independent AI Agents** (an Orchestrator and a Scraper Subagent).
+- **3-Step Tool Pipeline:** The AI autonomously navigates a sequential toolchain:
+  1. `search_real_estate`: Queries Serper API to find aggregator site listings.
+  2. `discover_property_links`: Uses Playwright to extract 3 distinct property URLs per listing.
+  3. `scrape_property_details`: Deep-scrapes 12 individual URLs in parallel, structuring the DOM into JSON.
 - **Intelligent Normalization:** Backend sanitization pipelines prevent AI hallucinations (e.g., ensuring carpet area does not exceed built-up area).
 - **Parallel Batch Processing:** Efficiently streams NDJSON results to the client, utilizing concurrency limits to prevent API quota exhaustion.
 - **Modern Authentication:** Secure, session-based authentication managed by `better-auth`.
@@ -48,7 +53,7 @@ This project follows a highly scalable, domain-driven architecture utilizing Nex
 │   ├── components/             # Reusable UI components (shadcn/ui, layout, modals)
 │   ├── db/                     # Database schemas and Drizzle ORM connection logic
 │   ├── features/               # Core Domain Logic (Decoupled from API routes)
-│   │   ├── property-extraction/# Scraper engine, AI extractors, Zod schemas, normalizers
+│   │   ├── property-extraction/# Core extraction engine
 │   │   └── property-search/    # AI agent orchestrator logic, tools, and link extractors
 │   └── lib/                    # Third-party integrations (e.g., s3-client.ts) and utils
 ```
