@@ -133,7 +133,22 @@ export default function EstateAnalyzer() {
     { totalCarpetArea: 0, estimatedCount: 0 },
   );
 
-  const orderedResults = results;
+  const orderedResults = [...results].sort((a, b) => {
+    // Find the index of each property's URL inside the 'pendingUrls' array
+    // (We use pendingUrls because it is correctly updated by both Manual and AI scrapes!)
+    const indexA = pendingUrls.indexOf(a.url);
+    const indexB = pendingUrls.indexOf(b.url);
+    
+    // If neither URL is in pendingUrls (e.g. from history), maintain their natural order
+    if (indexA === -1 && indexB === -1) return 0;
+    
+    // If only one URL isn't in the input boxes, shove it to the bottom
+    if (indexA === -1) return 1;
+    if (indexB === -1) return -1;
+    
+    // Otherwise, sort them mathematically by their index (1 to 12)
+    return indexA - indexB;
+  });
 
   // Lifecycle
   useEffect(() => {
@@ -157,7 +172,9 @@ export default function EstateAnalyzer() {
           }));
 
           setResults(formattedResults as any);
-          setUrls(formattedResults.map((r: any) => r.url));
+          const dbUrls = formattedResults.map((r: any) => r.url);
+          setUrls(dbUrls);
+          setPendingUrls(dbUrls); // Keep pendingUrls perfectly synced on page load!
 
           const initSelection: Record<string, boolean> = {};
           formattedResults.forEach((r: any) => {
@@ -360,6 +377,7 @@ export default function EstateAnalyzer() {
       setResults([]);
       setRowSelection({});
       setUrls([""]);
+      setPendingUrls([]);
     } catch (e) {
       console.error("Failed to clear DB", e);
     }
@@ -385,7 +403,10 @@ export default function EstateAnalyzer() {
           onStopScrape={() => {
             if (abortControllerRef.current) abortControllerRef.current.abort();
           }}
-          onUrlsFound={(foundUrls) => setPendingUrls(foundUrls)}
+          onUrlsFound={(foundUrls) => {
+            setPendingUrls(foundUrls);
+            setUrls(foundUrls);
+          }}
         />
         <ResultsTable
           results={orderedResults}

@@ -91,6 +91,7 @@ function ResultsTable({
       setRowFactors,
       onDelete,
       onUpdate,
+      pendingUrls,
     },
   });
 
@@ -223,31 +224,29 @@ function ResultsTable({
                         .getRowModel()
                         .rows.map((row) => renderRow(row));
 
-                      // 2. Append pending loading skeletons to the bottom
-                      const loadingNodes = pendingUrls.map((url) => (
-                        <SkeletonRow key={`skel-${url}`} />
-                      ));
+                      // 2. Append pending loading skeletons to the bottom (only for missing rows)
+                      const loadingNodes = pendingUrls
+                        .filter((url) => !table.getRowModel().rows.some((r) => r.original.url === url))
+                        .map((url) => <SkeletonRow key={`skel-${url}`} />);
 
                       return [...sortedNodes, ...loadingNodes];
                     }
 
-                    // No sorting active — render in natural order
-                    const naturalNodes = table
+                    // No sorting active — render exactly in the visual order of pendingUrls!
+                    // This perfectly interleaves Skeletons and Data rows.
+                    const nodes = pendingUrls.map((url) => {
+                      const existingRow = table.getRowModel().rows.find((r) => r.original.url === url);
+                      if (existingRow) return renderRow(existingRow);
+                      return <SkeletonRow key={`skel-${url}`} />;
+                    });
+
+                    // Catch any extra data rows that exist in the table but aren't in pendingUrls (e.g. from DB history)
+                    const historyNodes = table
                       .getRowModel()
-                      .rows.map((row) => renderRow(row));
+                      .rows.filter((r) => !pendingUrls.includes(r.original.url))
+                      .map((row) => renderRow(row));
 
-                    const extraSkeletons = pendingUrls
-                      .filter(
-                        (url: string) =>
-                          !table
-                            .getRowModel()
-                            .rows.some((r) => r.original.url === url),
-                      )
-                      .map((url: string) => (
-                        <SkeletonRow key={`skel-${url}`} />
-                      ));
-
-                    return [...naturalNodes, ...extraSkeletons];
+                    return [...nodes, ...historyNodes];
                   })()}
                 </>
               ) : (

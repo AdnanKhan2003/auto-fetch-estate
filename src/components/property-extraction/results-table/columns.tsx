@@ -222,13 +222,21 @@ export const columns: ColumnDef<PropertyExtractionResult>[] = [
   {
     id: "index",
     header: () => <div className="text-center"></div>,
-    cell: ({ row }) => (
-      <div className="flex justify-center items-center">
-        <div className="flex justify-center items-center bg-muted/30 border border-border/50 rounded-md w-6 h-6 font-mono text-muted-foreground text-xs">
-          {row.index + 1}
+    cell: ({ row, table }) => {
+      const meta = table.options.meta as any;
+      const url = row.original.url;
+      // Get the absolute index from pendingUrls so it perfectly matches the Input Boxes (1 to 12)
+      const pendingIndex = meta?.pendingUrls?.indexOf(url);
+      const displayIndex = pendingIndex !== undefined && pendingIndex !== -1 ? pendingIndex + 1 : row.index + 1;
+
+      return (
+        <div className="flex justify-center items-center">
+          <div className="flex justify-center items-center bg-muted/30 border border-border/50 rounded-md w-6 h-6 font-mono text-muted-foreground text-xs">
+            {displayIndex}
+          </div>
         </div>
-      </div>
-    ),
+      );
+    },
   },
   {
     id: "select",

@@ -145,7 +145,19 @@ export const scrapePropertyTool = tool(
       return "Error: User ID session lost.";
     }
 
-    const uniqueUrls = Array.from(new Set(detailUrls.map((url) => url.trim())));
+    const trimmedUrls = detailUrls.map((url) => url.trim());
+    const uniqueUrls = Array.from(new Set(trimmedUrls));
+
+    if (uniqueUrls.length < trimmedUrls.length) {
+      const seen = new Set<string>();
+      const duplicates = new Set<string>();
+      for (const url of trimmedUrls) {
+        if (seen.has(url)) duplicates.add(url);
+        seen.add(url);
+      }
+      logger.info(`\n🗑️ [DEDUPLICATION] Filtered out ${duplicates.size} duplicate URLs:`);
+      duplicates.forEach((url) => logger.info(`   - ${url}`));
+    }
 
     logger.info(
       `\n🚀 Scraper executing for ${uniqueUrls.length} unique URLs (was ${detailUrls.length}):`,
