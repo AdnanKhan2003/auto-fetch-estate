@@ -153,6 +153,18 @@ export const scrapePropertyTool = tool(
     uniqueUrls.forEach((url: string, index: number) => {
       logger.info(`   ${index + 1}. ${url}`);
     });
+
+    if (writer) {
+      await writer.write(
+        encoder.encode(
+          JSON.stringify({
+            type: "urls_found",
+            urls: uniqueUrls,
+          }) + "\n",
+        ),
+      );
+    }
+
     const CONCURRENCY_LIMIT = 2;
 
     for (let i = 0; i < uniqueUrls.length; i += CONCURRENCY_LIMIT) {

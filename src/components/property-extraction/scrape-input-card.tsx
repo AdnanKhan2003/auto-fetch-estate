@@ -19,15 +19,21 @@ interface ScrapeInputCardProps {
   setFocusedUrl: (url: string | null) => void;
   onPropertyScraped?: (data: any) => void;
   onStopScrape?: () => void;
+  onUrlsFound?: (urls: string[]) => void;
 }
 
 const schema = z.object({
   urls: z
     .array(
       z.object({
-        value: z.string().refine((val) => val === "" || z.string().url().safeParse(val).success, {
-          message: "Please enter a valid URL",
-        }),
+        value: z
+          .string()
+          .refine(
+            (val) => val === "" || z.string().url().safeParse(val).success,
+            {
+              message: "Please enter a valid URL",
+            },
+          ),
       }),
     )
     .min(1),
@@ -42,6 +48,7 @@ function ScrapeInputCard({
   setFocusedUrl,
   onPropertyScraped,
   onStopScrape,
+  onUrlsFound,
 }: ScrapeInputCardProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearching, setIsSearching] = useState(false);
@@ -125,6 +132,13 @@ function ScrapeInputCard({
                 : "Search failed. Please try again.";
               setSearchStatus(freindlyMessage);
               setIsSearching(false);
+            } else if (data.type === "urls_found") {
+              setSearchStatus(
+                `Found ${data.urls.length} URLs! Starting scrape...`,
+              );
+
+              replace(data.urls.map((u: string) => ({ value: u })));
+              if (onUrlsFound) onUrlsFound(data.urls);
             } else if (data.type === "property_scraped") {
               setSearchStatus(
                 `Scraped property: ${data.data?.data?.propertyTitle?.substring(0, 30) || "Unknown"}...`,

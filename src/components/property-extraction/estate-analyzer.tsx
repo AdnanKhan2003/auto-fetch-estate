@@ -42,30 +42,29 @@ function hasValidArea(r: any): boolean {
 
 export default function EstateAnalyzer() {
   // Core Input Url state
-  const [duplicateUrls, setDuplicateUrls] = useState<string[]>([]);
-  const [urls, setUrls] = useState<string[]>([""]);
-  const [isLoading, setIsLoading] = useState(false);
   const [pendingUrls, setPendingUrls] = useState<string[]>([]);
   const [results, setResults] = useState<
     (PropertyExtractionResult & { id?: string })[]
   >([]);
 
+  const [duplicateUrls, setDuplicateUrls] = useState<string[]>([]);
+  const [urls, setUrls] = useState<string[]>([""]);
+  const [isLoading, setIsLoading] = useState(false);
+
   // Hydration issue fix
   const [isMounted, setIsMounted] = useState(false);
 
-  // Calculate missing carpet area
-  const [showTotalArea, setShowTotalArea] = useState(false);
-
   // Checkbox
   const [rowSelection, setRowSelection] = useState<Record<string, boolean>>({});
+  // Calculate missing carpet area
+  const [showTotalArea, setShowTotalArea] = useState(false);
+  // locate in table
+  const [focusedUrl, setFocusedUrl] = useState<string | null>(null);
 
   // Factor to convert to carpet area
   const [rowFactors, setRowFactors] = useState<Record<string, number>>({});
   // Default fallback
   const [conversionFactor, setConversionFactor] = useState<number>(0.72);
-
-  // locate in table
-  const [focusedUrl, setFocusedUrl] = useState<string | null>(null);
 
   // discount
   const [discountPercentage, setDiscountPercentage] = useState<number>(0);
@@ -77,6 +76,66 @@ export default function EstateAnalyzer() {
 
   const abortControllerRef = useRef<AbortController | null>(null);
 
+  // Derived State
+  const rowsForAvg = results.filter(
+    (r) => rowSelection[r.url] && r.data?.price && hasValidArea(r),
+  );
+
+  const validPrices = rowsForAvg
+    .map((r) => {
+      let effectiveArea: number | null = null;
+      if (r.data?.carpetArea) {
+        effectiveArea = parseIndianPrice(r.data.carpetArea);
+      } else {
+        const factor = rowFactors[r.url];
+        if (r.data?.builtupArea) {
+          effectiveArea =
+            parseIndianPrice(r.data.builtupArea) * (factor ?? 0.85); // default builtup to carpet
+        } else if (r.data?.superBuiltupArea) {
+          effectiveArea =
+            parseIndianPrice(r.data.superBuiltupArea) * (factor ?? 0.72); // default super builtup to carpet
+        }
+      }
+
+      const calcRate = calculateRatePerSqft(r.data?.price, effectiveArea);
+      return calcRate !== null
+        ? calcRate
+        : parsePricePerSqft(r.data?.pricePerSqft);
+    })
+    .filter((p): p is number => p !== null && p > 0);
+
+  const averagePrice =
+    validPrices.length > 0
+      ? Math.round(validPrices.reduce((a, b) => a + b, 0) / validPrices.length)
+      : 0;
+  const discountAmount = Math.round((averagePrice * discountPercentage) / 100);
+  const discountedAverage = Math.max(averagePrice - discountAmount, 0);
+
+  // Sum of effective carpet areas — uses same row set as the avg calculation.
+  const { totalCarpetArea, estimatedCount } = rowsForAvg.reduce(
+    (acc, r) => {
+      let factor = rowFactors[r.url];
+      if (r.data?.carpetArea) {
+        acc.totalCarpetArea += parseIndianPrice(r.data.carpetArea);
+      } else if (r.data?.builtupArea) {
+        acc.totalCarpetArea += Math.round(
+          parseIndianPrice(r.data.builtupArea) * (factor ?? 0.85),
+        );
+        acc.estimatedCount++;
+      } else if (r.data?.superBuiltupArea) {
+        acc.totalCarpetArea += Math.round(
+          parseIndianPrice(r.data.superBuiltupArea) * (factor ?? 0.72),
+        );
+        acc.estimatedCount++;
+      }
+      return acc;
+    },
+    { totalCarpetArea: 0, estimatedCount: 0 },
+  );
+
+  const orderedResults = results;
+
+  // Lifecycle
   useEffect(() => {
     async function loadData() {
       try {
@@ -117,71 +176,6 @@ export default function EstateAnalyzer() {
   useEffect(() => {
     setIsMounted(true);
   }, []);
-
-  const updateSingleRecord = async (idToUpdate: string, updates: any) => {
-    try {
-      const response = await fetch("/api/property-extraction", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: idToUpdate, updates }),
-      });
-
-      if (!response.ok) throw new Error("Failed to update record");
-
-      const resData = await response.json();
-
-      setResults((prev) =>
-        prev.map((r: any) =>
-          r.id === idToUpdate
-            ? { ...r, data: resData.updatedData, updatedAt: resData.updatedAt }
-            : r,
-        ),
-      );
-
-      if (selectedProperty?.id === idToUpdate) {
-        setSelectedProperty((prev) =>
-          prev
-            ? {
-                ...prev,
-                data: resData.updatedData,
-                updatedAt: resData.updatedAt,
-              }
-            : null,
-        );
-      }
-    } catch (error) {
-      console.error("Failed to update record", error);
-    }
-  };
-
-  const deleteSingleRecord = async (idToDelete: string) => {
-    try {
-      const response = await fetch(
-        `/api/property-extraction?id=${idToDelete}`,
-        {
-          method: "DELETE",
-        },
-      );
-
-      if (!response.ok) throw new Error("Failed to delete record");
-
-      setResults((prev) => prev.filter((r: any) => r.id !== idToDelete));
-
-      setRowSelection((prev) => {
-        const next = { ...prev };
-        const deletedUrl = results.find((r: any) => r.id === idToDelete)?.url;
-
-        if (deletedUrl) delete next[deletedUrl];
-        return next;
-      });
-
-      if (selectedProperty?.id === idToDelete) {
-        setSelectedProperty(null);
-      }
-    } catch (e) {
-      console.error("Failed to delete record", e);
-    }
-  };
 
   const handleScrape = async (submittedUrls: string[]) => {
     setUrls(submittedUrls);
@@ -269,6 +263,88 @@ export default function EstateAnalyzer() {
     }
   };
 
+  const handlePropertyScraped = (result: any) => {
+    // Silently drop discarded results
+    if (result.status === "discarded") return;
+
+    setResults((prev) => {
+      const merged = [...prev, result];
+      const unique = Array.from(
+        new Map(merged.map((item) => [item.url, item])).values(),
+      );
+      return unique;
+    });
+
+    if (result.data?.carpetArea) {
+      setRowSelection((prev) => ({ ...prev, [result.url]: true }));
+    }
+  };
+
+  const updateSingleRecord = async (idToUpdate: string, updates: any) => {
+    try {
+      const response = await fetch("/api/property-extraction", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: idToUpdate, updates }),
+      });
+
+      if (!response.ok) throw new Error("Failed to update record");
+
+      const resData = await response.json();
+
+      setResults((prev) =>
+        prev.map((r: any) =>
+          r.id === idToUpdate
+            ? { ...r, data: resData.updatedData, updatedAt: resData.updatedAt }
+            : r,
+        ),
+      );
+
+      if (selectedProperty?.id === idToUpdate) {
+        setSelectedProperty((prev) =>
+          prev
+            ? {
+                ...prev,
+                data: resData.updatedData,
+                updatedAt: resData.updatedAt,
+              }
+            : null,
+        );
+      }
+    } catch (error) {
+      console.error("Failed to update record", error);
+    }
+  };
+
+  const deleteSingleRecord = async (idToDelete: string) => {
+    try {
+      const response = await fetch(
+        `/api/property-extraction?id=${idToDelete}`,
+        {
+          method: "DELETE",
+        },
+      );
+
+      if (!response.ok) throw new Error("Failed to delete record");
+
+      setResults((prev) => prev.filter((r: any) => r.id !== idToDelete));
+
+      setRowSelection((prev) => {
+        const next = { ...prev };
+        const deletedUrl = results.find((r: any) => r.id === idToDelete)?.url;
+
+        if (deletedUrl) delete next[deletedUrl];
+        return next;
+      });
+
+      if (selectedProperty?.id === idToDelete) {
+        setSelectedProperty(null);
+      }
+    } catch (e) {
+      console.error("Failed to delete record", e);
+    }
+  };
+
   const clearHistory = async () => {
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
@@ -294,82 +370,7 @@ export default function EstateAnalyzer() {
   // When OFF: only manually checked rows are counted (existing behaviour).
   // (hasValidArea is now defined at the file level)
 
-  const rowsForAvg = results.filter(
-    (r) => rowSelection[r.url] && r.data?.price && hasValidArea(r),
-  );
-
-  const validPrices = rowsForAvg
-    .map((r) => {
-      let effectiveArea: number | null = null;
-      if (r.data?.carpetArea) {
-        effectiveArea = parseIndianPrice(r.data.carpetArea);
-      } else {
-        const factor = rowFactors[r.url];
-        if (r.data?.builtupArea) {
-          effectiveArea =
-            parseIndianPrice(r.data.builtupArea) * (factor ?? 0.85); // default builtup to carpet
-        } else if (r.data?.superBuiltupArea) {
-          effectiveArea =
-            parseIndianPrice(r.data.superBuiltupArea) * (factor ?? 0.72); // default super builtup to carpet
-        }
-      }
-
-      const calcRate = calculateRatePerSqft(r.data?.price, effectiveArea);
-      return calcRate !== null
-        ? calcRate
-        : parsePricePerSqft(r.data?.pricePerSqft);
-    })
-    .filter((p): p is number => p !== null && p > 0);
-
-  const averagePrice =
-    validPrices.length > 0
-      ? Math.round(validPrices.reduce((a, b) => a + b, 0) / validPrices.length)
-      : 0;
-  const discountAmount = Math.round((averagePrice * discountPercentage) / 100);
-  const discountedAverage = Math.max(averagePrice - discountAmount, 0);
-
-  // Sum of effective carpet areas — uses same row set as the avg calculation.
-  const { totalCarpetArea, estimatedCount } = rowsForAvg.reduce(
-    (acc, r) => {
-      let factor = rowFactors[r.url];
-      if (r.data?.carpetArea) {
-        acc.totalCarpetArea += parseIndianPrice(r.data.carpetArea);
-      } else if (r.data?.builtupArea) {
-        acc.totalCarpetArea += Math.round(
-          parseIndianPrice(r.data.builtupArea) * (factor ?? 0.85),
-        );
-        acc.estimatedCount++;
-      } else if (r.data?.superBuiltupArea) {
-        acc.totalCarpetArea += Math.round(
-          parseIndianPrice(r.data.superBuiltupArea) * (factor ?? 0.72),
-        );
-        acc.estimatedCount++;
-      }
-      return acc;
-    },
-    { totalCarpetArea: 0, estimatedCount: 0 },
-  );
-
-  const orderedResults = results;
-
   if (!isMounted) return null;
-
-  const handlePropertyScraped = (result: any) => {
-    // Silently drop discarded results
-    if (result.status === "discarded") return;
-
-    setResults((prev) => {
-      const merged = [...prev, result];
-      const unique = Array.from(
-        new Map(merged.map((item) => [item.url, item])).values(),
-      );
-      return unique;
-    });
-
-    if (result.data?.carpetArea) {
-      setRowSelection((prev) => ({ ...prev, [result.url]: true }));
-    }
-  };
 
   return (
     <div className="space-y-6 sm:space-y-10 bg-background px-0 pb-8 text-foreground">
@@ -384,6 +385,7 @@ export default function EstateAnalyzer() {
           onStopScrape={() => {
             if (abortControllerRef.current) abortControllerRef.current.abort();
           }}
+          onUrlsFound={(foundUrls) => setPendingUrls(foundUrls)}
         />
         <ResultsTable
           results={orderedResults}
