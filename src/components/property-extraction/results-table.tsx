@@ -44,6 +44,7 @@ interface ResultsTableProps {
   estimatedCount: number;
   onDelete: (id: string) => void;
   onUpdate: (id: string, updates: any) => void;
+  isLoadingHistory?: boolean;
 }
 
 function ResultsTable({
@@ -64,9 +65,9 @@ function ResultsTable({
   setShowTotalArea,
   totalCarpetArea,
   estimatedCount,
-
   onDelete,
   onUpdate,
+  isLoadingHistory = false,
 }: ResultsTableProps) {
   const [sorting, setSorting] = useState<SortingState>([]);
 
@@ -248,6 +249,12 @@ function ResultsTable({
 
                     return [...nodes, ...historyNodes];
                   })()}
+                </>
+              ) : isLoadingHistory ? (
+                <>
+                  <SkeletonRow />
+                  <SkeletonRow />
+                  <SkeletonRow />
                 </>
               ) : (
                 <TableRow>

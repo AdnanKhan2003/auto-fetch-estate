@@ -50,6 +50,7 @@ export default function EstateAnalyzer() {
   const [duplicateUrls, setDuplicateUrls] = useState<string[]>([]);
   const [urls, setUrls] = useState<string[]>([""]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(true);
 
   // Hydration issue fix
   const [isMounted, setIsMounted] = useState(false);
@@ -154,6 +155,7 @@ export default function EstateAnalyzer() {
   useEffect(() => {
     async function loadData() {
       try {
+        setIsLoadingHistory(true);
         const response = await fetch("/api/property-extraction");
         if (!response.ok) throw new Error("Failed to fetch properties");
 
@@ -184,6 +186,8 @@ export default function EstateAnalyzer() {
         }
       } catch (error) {
         console.error("Failed to load from DB", error);
+      } finally {
+        setIsLoadingHistory(false);
       }
     }
 
@@ -411,14 +415,15 @@ export default function EstateAnalyzer() {
         <ResultsTable
           results={orderedResults}
           pendingUrls={pendingUrls}
+          focusedUrl={focusedUrl}
           onRowClick={setSelectedProperty}
+          isLoadingHistory={isLoadingHistory}
           averagePrice={averagePrice}
           discountPercentage={discountPercentage}
           setDiscountPercentage={setDiscountPercentage}
           discountedAverage={discountedAverage}
           rowSelection={rowSelection}
           setRowSelection={setRowSelection}
-          focusedUrl={focusedUrl}
           globalConversionFactor={conversionFactor}
           rowFactors={rowFactors}
           setRowFactors={setRowFactors}
