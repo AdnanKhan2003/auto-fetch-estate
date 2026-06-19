@@ -63,6 +63,14 @@ async function getSharedBrowser() {
           "--disable-setuid-sandbox",
         ],
       };
+
+      if (process.env.PROXY_SERVER) {
+        launchOptions.proxy = {
+          server: process.env.PROXY_SERVER,
+        };
+        logger.info("[Scraper] Proxy-enabled browser launched.");
+      }
+
       if (isVercel) {
         // On Vercel: use @sparticuz/chromium binary
         const sparticuzChromium = (await import("@sparticuz/chromium")).default;
@@ -94,7 +102,7 @@ async function createIsolatedContext() {
   const userAgent =
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36";
 
-  const context = await browser.newContext({
+  const contextOptions: any = {
     viewport: { width: 1280, height: 800 },
     userAgent,
     deviceScaleFactor: 1,
@@ -113,7 +121,23 @@ async function createIsolatedContext() {
       "sec-fetch-user": "?1",
       "upgrade-insecure-requests": "1",
     },
-  });
+  };
+
+  // Per-context proxy with unique session ID → each context gets a fresh IP
+  if (
+    process.env.PROXY_SERVER &&
+    process.env.PROXY_USERNAME &&
+    process.env.PROXY_PASSWORD
+  ) {
+    const sessionId = Math.random().toString(36).substring(2, 10);
+    contextOptions.proxy = {
+      server: process.env.PROXY_SERVER,
+      username: `${process.env.PROXY_USERNAME}-session-${sessionId}`,
+      password: process.env.PROXY_PASSWORD,
+    };
+  }
+
+  const context = await browser.newContext(contextOptions);
 
   return context;
 }
@@ -223,10 +247,21 @@ async function processUrl(
   batchId: string,
   signal?: { aborted: boolean },
 ) {
-  let context;
-  try {
-    context = await createIsolatedContext();
-    if (signal?.aborted) throw new Error("Aborted before navigation");
+  const MAX_RETRIES = 3;
+  const RETRYABLE_ERRORS = [
+    "ECONNRESET",
+    "Bot protection",
+    "net::ERR_",
+    "Timeout",
+    "Access Denied",
+  ];
+  let lastError: any;
+
+  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+    let context;
+    try {
+      context = await createIsolatedContext();
+      if (signal?.aborted) throw new Error("Aborted before navigation");
     logger.info(`🔵 [STEP 3/3] Scraping individual property details: ${url}`);
 
     // Continuously check abort before each major step
@@ -273,7 +308,13 @@ async function processUrl(
     if (signal?.aborted) throw new Error("Aborted by user");
     // Step 7 — AI text extraction (JSON-LD + page text)
     const { data: structuredData, tokens: textTokens } =
-      await extractStructuredData(page, cleanText, cleanSelectorData, url, signal);
+      await extractStructuredData(
+        page,
+        cleanText,
+        cleanSelectorData,
+        url,
+        signal,
+      );
 
     // Step 8 — Merge: defaults < selectors < AI text
     const merged: Record<string, any> = {
@@ -366,14 +407,39 @@ async function processUrl(
       cleanText,
       tokensUsed: textTokens + visionTokens,
     };
-  } catch (error: any) {
-    logger.error(`Failed to process ${url}:`, error);
-    return { url, status: "error" as const, error: error.message };
-  } finally {
-    if (context) {
-      await context.close().catch(console.error);
+    } catch (error: any) {
+      lastError = error;
+      if (context) {
+        await context.close().catch(console.error);
+        context = null;
+      }
+
+      const isRetryable = RETRYABLE_ERRORS.some(
+        (p) => error.message?.includes(p) || error.name?.includes(p),
+      );
+
+      if (isRetryable && attempt < MAX_RETRIES) {
+        logger.warn(
+          `[Scraper] Attempt ${attempt}/${MAX_RETRIES} failed for ${url}: ${error.message}. Retrying with fresh proxy IP...`,
+        );
+        continue;
+      }
+
+      logger.error(`Failed to process ${url}:`, error);
+      return { url, status: "error" as const, error: error.message };
+    } finally {
+      if (context) {
+        await context.close().catch(console.error);
+      }
     }
   }
+
+  logger.error(`Failed to process ${url} after ${MAX_RETRIES} attempts.`);
+  return {
+    url,
+    status: "error" as const,
+    error: lastError?.message || "Max retries exceeded",
+  };
 }
 
 type PropertyExtractionResult = Awaited<ReturnType<typeof processUrl>>;

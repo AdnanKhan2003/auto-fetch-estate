@@ -4,28 +4,52 @@ import {
   createIsolatedContext,
   navigatePage,
 } from "../property-extraction/scraper";
+import { isBlocked } from "../property-extraction/page-utils";
 import logger from "@/lib/logger";
 
 export async function getIndividualPropertyLinks(
   listingUrl: string,
   signal?: { aborted: boolean },
 ): Promise<{ propertyUrls: string[]; tokens: number }> {
-  // Reuse the existing shared browser to save memory
-  let context;
+  const MAX_RETRIES = 3;
+  const BLOCK_PHRASES = ["Access Denied", "Just a moment", "Attention Required", "Precondition Failed", "403", "412", "Forbidden"];
+  let extractedLinks: { href: string; text: string }[] = [];
 
-  try {
-    context = await createIsolatedContext();
-    if (signal?.aborted) {
-      await context.close();
-      return { propertyUrls: [], tokens: 0 };
-    }
-    const page = await context.newPage();
+  // Phase 1: Navigate and extract links (with retries for proxy blocks)
+  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+    let context;
+    try {
+      context = await createIsolatedContext();
+      if (signal?.aborted) {
+        await context.close();
+        return { propertyUrls: [], tokens: 0 };
+      }
+      const page = await context.newPage();
+      await navigatePage(page, listingUrl);
 
-    // Reuse the same smart navigation logic the scraper uses
-    // (waits for body, key selectors, then a 3-5s human-like pause)
-    await navigatePage(page, listingUrl);
+      // Block detection BEFORE extracting links (saves AI tokens)
+      const pageTitle = await page.title();
+      const pageHtml = await page.content();
+      const blocked =
+        BLOCK_PHRASES.some((p) => pageTitle.includes(p)) ||
+        isBlocked(pageTitle, pageHtml);
 
-    const extractedLinks = await page.evaluate(() => {
+      if (blocked) {
+        await context.close();
+        context = null;
+        if (attempt < MAX_RETRIES) {
+          logger.warn(
+            `[Link Discovery] Attempt ${attempt}/${MAX_RETRIES}: Blocked ("${pageTitle}"). Retrying with fresh IP...`,
+          );
+          continue;
+        }
+        logger.warn(
+          `[Link Discovery] All ${MAX_RETRIES} attempts blocked for ${listingUrl}. Giving up.`,
+        );
+        return { propertyUrls: [], tokens: 0 };
+      }
+
+    extractedLinks = await page.evaluate(() => {
       const results: { href: string; text: string }[] = [];
       const seen = new Set<string>();
 
@@ -88,22 +112,47 @@ export async function getIndividualPropertyLinks(
       });
     });
 
-    // Debug: log page title and link count to confirm page loaded
-    const pageTitle = await page.title();
-    logger.info(
-      `🟡 [STEP 2/3] Extracting links from search page: "${pageTitle}" | Raw links: ${extractedLinks.length}`,
-    );
-    logger.info(
-      `[DEBUG] All URLs found by Playwright: \n${extractedLinks.map((l: any) => l.href).join("\n")}`,
-    );
+      // Debug: log page title and link count to confirm page loaded
+      logger.info(
+        `🟡 [STEP 2/3] Extracting links from search page: "${pageTitle}" | Raw links: ${extractedLinks.length}`,
+      );
+      logger.info(
+        `[DEBUG] All URLs found by Playwright: \n${extractedLinks.map((l: any) => l.href).join("\n")}`,
+      );
 
-    await context.close();
-    context = null; // prevent double-close in finally
+      await context.close();
+      context = null;
+      break; // Navigation successful, exit retry loop
+    } catch (error: any) {
+      if (context) await context.close().catch(() => {});
+      context = null;
 
-    // logger.info(
-    //   `[Link Discovery] Found ${extractedLinks.length} raw links. Passing to LangChain for filtering...`,
-    // );
+      const isRetryable = ["ECONNRESET", "Timeout", "net::ERR_"].some(
+        (p) => error.message?.includes(p) || error.name?.includes(p),
+      );
 
+      if (isRetryable && attempt < MAX_RETRIES) {
+        logger.warn(
+          `[Link Discovery] Attempt ${attempt}/${MAX_RETRIES}: ${error.message}. Retrying...`,
+        );
+        continue;
+      }
+
+      logger.error(`[Link Discovery] FAILED for ${listingUrl}: ${error.message}`);
+      return { propertyUrls: [], tokens: 0 };
+    } finally {
+      if (context) await context.close().catch(() => {});
+    }
+  }
+
+  // Phase 2: Skip AI call if no links were extracted
+  if (extractedLinks.length === 0) {
+    logger.info(`   └─ 🎟️ [STEP 2.1] No links to filter. Skipping AI call.`);
+    return { propertyUrls: [], tokens: 0 };
+  } // prevent double-close in finally
+
+  // Phase 3: AI filtering of extracted links
+  try {
     const apiKey =
       process.env.GOOGLE_API_KEY || process.env.GOOGLE_GENERATIVE_AI_API_KEY;
 
@@ -120,9 +169,9 @@ export async function getIndividualPropertyLinks(
     });
 
     const schema = z.object({
-      propertyUrls: z
-        .array(z.string().url())
-        .describe("Array of up to 3 individual property detail URLs"),
+      propertyIndexes: z
+        .array(z.number().int().nonnegative())
+        .describe("Array of up to 3 index numbers from the link list that point to individual property detail pages"),
     });
 
     const structuredLlm = llm.withStructuredOutput(schema, {
@@ -139,19 +188,20 @@ export async function getIndividualPropertyLinks(
 
     const prompt = `
       You are an expert real estate data parser.
-      I am giving you a raw list of links scraped from a real estate search results page.
+      I am giving you a numbered list of links scraped from a real estate search results page.
      
       TASK:
-      Find EXACTLY up to 3 URLs that point to INDIVIDUAL property detail pages.
+      Find EXACTLY up to 3 links that point to INDIVIDUAL property detail pages.
+      Return ONLY the INDEX NUMBERS (e.g. 0, 33, 35) — do NOT return URLs.
      
      RULES:
       1. IGNORE search pages, pagination links, "contact us", "about", or privacy policy links.
-      2. CRITICAL: DO NOT extract links for entire new development projects, builder pages, or entire building complexes (e.g. URLs ending in "/project"). You MUST ONLY extract links for single, individual property listings (like a specific resale flat).
+      2. CRITICAL: DO NOT pick links for entire new development projects, builder pages, or entire building complexes (e.g. URLs ending in "/project"). You MUST ONLY pick links for single, individual property listings (like a specific resale flat).
       3. A property detail page usually has a specific property description in the text (e.g. "3 BHK Flat in X locality") and a long URL path often containing an ID or detailed slug.
       4. Some links may have "(no text)" — judge them purely by their URL pattern.
-      5. Return ONLY the URLs.
+      5. Return ONLY the index numbers.
      
-      RAW LINKS:
+      NUMBERED LINKS:
       ${linksText.slice(0, 60000)}
     `;
 
@@ -168,23 +218,18 @@ export async function getIndividualPropertyLinks(
     // }
     const tokens = usage ? usage.total_tokens || usage.totalTokens : 0;
 
-    let propertyUrls = response.parsed?.propertyUrls || [];
-    propertyUrls = propertyUrls.slice(0, 3); // Hardcode to exactly 3 detail pages max
+    const indexes = response.parsed?.propertyIndexes || [];
+    const propertyUrls = indexes
+      .filter((idx: number) => idx >= 0 && idx < extractedLinks.length)
+      .slice(0, 3)
+      .map((idx: number) => extractedLinks[idx].href);
     logger.info(
       `   └─ 🎟️ [STEP 2.1] Links Discovered: ${propertyUrls.length} | Tokens Used: ${tokens}`,
     );
-    // logger.info(
-    //   `[Link Discovery] LangChain successfully filtered to ${propertyUrls.length} detail pages.`,
-    // );
     return { propertyUrls, tokens };
   } catch (error: any) {
-    logger.error(`[Link Discovery] FAILED for ${listingUrl}`);
-    logger.error(`[Link Discovery] Error name: ${error.name}`);
-    logger.error(`[Link Discovery] Error message: ${error.message}`);
-    logger.error(`[Link Discovery] Full stack: ${error.stack}`);
-
+    logger.error(`[Link Discovery] AI filtering FAILED for ${listingUrl}`);
+    logger.error(`[Link Discovery] Error: ${error.message}`);
     return { propertyUrls: [], tokens: 0 };
-  } finally {
-    if (context) await context.close().catch(() => {});
   }
 }
