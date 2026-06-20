@@ -2,7 +2,11 @@
 
 import { Document, Page, Text, View, Image } from "@react-pdf/renderer";
 import { createTw } from "react-pdf-tailwind";
-import { parseIndianPrice, formatRatePerSqft } from "@/lib/format-utils";
+import {
+  parseIndianPrice,
+  formatRatePerSqft,
+  calculateRatePerSqft,
+} from "@/lib/format-utils";
 
 // Initialize Tailwind for React-PDF
 const tw = createTw({
@@ -22,6 +26,40 @@ export const PropertyReportPdf = ({
   for (let i = 0; i < properties.length; i += 2) {
     imageRows.push(properties.slice(i, i + 2));
   }
+
+  // Calculate Average Rate
+  let totalRate = 0;
+  let validRateCount = 0;
+
+  properties.forEach((p) => {
+    let effectiveArea = null;
+    let factor = rowFactors[p.url];
+
+    if (p.data?.carpetArea) {
+      effectiveArea = parseIndianPrice(p.data.carpetArea);
+    } else if (p.data?.builtupArea) {
+      effectiveArea = parseIndianPrice(p.data.builtupArea) * (factor ?? 0.85);
+    } else if (p.data?.superBuiltupArea) {
+      effectiveArea =
+        parseIndianPrice(p.data.superBuiltupArea) * (factor ?? 0.72);
+    }
+
+    let rateNum = calculateRatePerSqft(p.data?.price, effectiveArea);
+
+    if (!rateNum && p.data?.pricePerSqft) {
+      rateNum = parseIndianPrice(p.data.pricePerSqft);
+    }
+
+    if (rateNum && rateNum > 0) {
+      totalRate += rateNum;
+      validRateCount++;
+    }
+  });
+
+  const avgRate =
+    validRateCount > 0 ? Math.round(totalRate / validRateCount) : 0;
+  const avgRateStr =
+    avgRate > 0 ? avgRate.toLocaleString("en-IN") : "N/A";
 
   return (
     <Document>
@@ -88,7 +126,7 @@ export const PropertyReportPdf = ({
             if (p.data?.price) {
               const numericPrice = parseIndianPrice(p.data.price);
               if (numericPrice) {
-                price = `₹${numericPrice.toLocaleString("en-IN")}`;
+                price = `${numericPrice.toLocaleString("en-IN")}`;
               }
             }
 
@@ -104,11 +142,20 @@ export const PropertyReportPdf = ({
               effectiveArea =
                 parseIndianPrice(p.data.superBuiltupArea) * (factor ?? 0.72);
             }
-            const calculatedRate = formatRatePerSqft(
+            const calculatedRateNum = calculateRatePerSqft(
               p.data?.price,
               effectiveArea,
             );
-            const rate = calculatedRate || p.data?.pricePerSqft || "N/A";
+            
+            let rate = "N/A";
+            if (calculatedRateNum && calculatedRateNum > 0) {
+              rate = calculatedRateNum.toLocaleString("en-IN");
+            } else if (p.data?.pricePerSqft) {
+              const parsedRate = parseIndianPrice(p.data.pricePerSqft);
+              if (parsedRate > 0) {
+                rate = parsedRate.toLocaleString("en-IN");
+              }
+            }
 
             return (
               <View style={tw("flex flex-row")} key={index}>
@@ -150,6 +197,30 @@ export const PropertyReportPdf = ({
               </View>
             );
           })}
+
+          {/* Average Rate Footer Row */}
+          {validRateCount > 0 && (
+            <View
+              style={tw("flex flex-row py-3 mt-1 border-t-2 border-gray-900")}
+            >
+              <View style={tw("w-[78%]")}>
+                <Text
+                  style={tw(
+                    "text-gray-900 font-bold text-right uppercase tracking-widest text-[9px]",
+                  )}
+                >
+                  Average Rate/Sqft:
+                </Text>
+              </View>
+              <View style={tw("w-[22%]")}>
+                <Text
+                  style={tw("text-gray-900 font-bold text-right text-[11px]")}
+                >
+                  {avgRateStr}
+                </Text>
+              </View>
+            </View>
+          )}
         </View>
       </Page>
 
