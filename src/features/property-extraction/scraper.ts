@@ -191,13 +191,16 @@ async function takeScreenshot(
   const screenshotName = `${batchId}/${slug}-${Date.now()}.png`;
 
   // 1. Wait for HTML structure and CSS
-  await page.waitForLoadState("load", { timeout: 20000 }).catch(() => {});
+  await page.waitForLoadState("load", { timeout: 10000 }).catch(() => {});
+
   // 2. The "Human Jiggle" - scroll down 300px, wait a split second, and scroll back up
-  await page.evaluate(() => window.scrollBy(0, 300)).catch(() => {});
-  await page.waitForTimeout(100);
-  await page.evaluate(() => window.scrollTo(0, 0)).catch(() => {});
+  // await page.evaluate(() => window.scrollBy(0, 300)).catch(() => {});
+  // await page.waitForTimeout(100);
+  // await page.evaluate(() => window.scrollTo(0, 0)).catch(() => {});
+
   // 3. Give the triggered images 3 seconds to actually download and render
-  await page.waitForTimeout(3000);
+  // await page.waitForTimeout(3000);
+
   // 4. Take the top viewport screenshot
   const screenshotBuffer = await page.screenshot({ timeout: 60000 });
 
