@@ -50,9 +50,9 @@ async function getSharedBrowser() {
         !!process.env.VERCEL || !!process.env.AWS_LAMBDA_FUNCTION_NAME;
 
       let launchOptions: any = {
-        headless: true,
+        headless: false,
         args: [
-          "--headless=new",
+          // "--headless=new",
           "--disable-blink-features=AutomationControlled",
           "--no-sandbox",
           "--disable-dev-shm-usage",
@@ -110,16 +110,16 @@ async function createIsolatedContext() {
     locale: "en-IN",
     timezoneId: "Asia/Kolkata",
     extraHTTPHeaders: {
-      "accept-language": "en-IN,en;q=0.9,en-US;q=0.8",
       "sec-ch-ua":
         '"Chromium";v="136", "Google Chrome";v="136", "Not-A.Brand";v="99"',
-      "sec-ch-ua-mobile": "?0",
-      "sec-ch-ua-platform": '"Windows"',
-      "sec-fetch-dest": "document",
-      "sec-fetch-mode": "navigate",
-      "sec-fetch-site": "none",
-      "sec-fetch-user": "?1",
-      "upgrade-insecure-requests": "1",
+      // "accept-language": "en-IN,en;q=0.9,en-US;q=0.8",
+      // "sec-ch-ua-mobile": "?0",
+      // "sec-ch-ua-platform": '"Windows"',
+      // "sec-fetch-dest": "document",
+      // "sec-fetch-mode": "navigate",
+      // "sec-fetch-site": "none",
+      // "sec-fetch-user": "?1",
+      // "upgrade-insecure-requests": "1",
     },
   };
 
@@ -189,6 +189,16 @@ async function takeScreenshot(
   } catch (e) {}
 
   const screenshotName = `${batchId}/${slug}-${Date.now()}.png`;
+
+  // 1. Wait for HTML structure and CSS
+  await page.waitForLoadState("load", { timeout: 20000 }).catch(() => {});
+  // 2. The "Human Jiggle" - scroll down 300px, wait a split second, and scroll back up
+  await page.evaluate(() => window.scrollBy(0, 300)).catch(() => {});
+  await page.waitForTimeout(100);
+  await page.evaluate(() => window.scrollTo(0, 0)).catch(() => {});
+  // 3. Give the triggered images 3 seconds to actually download and render
+  await page.waitForTimeout(3000);
+  // 4. Take the top viewport screenshot
   const screenshotBuffer = await page.screenshot({ timeout: 60000 });
 
   await uploadScreenshotToS3(screenshotBuffer, screenshotName);
