@@ -23,6 +23,8 @@ import {
 import { PropertyExtractionResult } from "@/features/property-extraction/scraper";
 import { Button } from "../ui/button";
 import { Scale } from "lucide-react";
+import { PDFDownloadLink } from "@react-pdf/renderer";
+import { PropertyReportPdf } from "./property-report-pdf";
 
 interface ResultsTableProps {
   results: PropertyExtractionResult[];
@@ -121,34 +123,56 @@ function ResultsTable({
             Compare Prices
           </h2>
         </div>
-        <Button
-          variant="default"
-          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md font-black text-[10px] text-background uppercase tracking-widest duration-200 cursor-pointer"
-          onClick={() => {
-            const turningOn = !showTotalArea;
-            setShowTotalArea(turningOn);
-            if (turningOn) {
-              // Select ALL rows so user sees every row is counted
-              setRowSelection(
-                Object.fromEntries(results.map((r) => [r.url, true])),
-              );
-            } else {
-              // Restore to only rows that have actual carpet area
-              setRowSelection(
-                Object.fromEntries(
-                  results
-                    .filter((r) => r.data?.carpetArea)
-                    .map((r) => [r.url, true]),
-                ),
-              );
-            }
-          }}
-          aria-pressed={showTotalArea}
-          aria-label="Toggle total carpet area"
-        >
-          Σ Calculate Missing Carpet Area
-        </Button>
+
+        <div className="flex items-center gap-2">
+          {/* NEW PDF DOWNLOAD BUTTON */}
+          {results.length > 0 && (
+            <PDFDownloadLink
+              document={
+                <PropertyReportPdf
+                  properties={results.filter((r) => rowSelection[r.url])}
+                  rowFactors={rowFactors}
+                />
+              }
+              fileName={`property_report_${Date.now()}.pdf`}
+              className="flex justify-center items-center gap-2 bg-background hover:bg-accent shadow-sm px-3 py-1.5 border border-input rounded-md h-8 font-semibold text-foreground text-xs transition-colors hover:text-accent-foreground cursor-pointer"
+            >
+              {/* @ts-ignore */}
+              {({ loading }) => (loading ? "Preparing PDF..." : "Export PDF")}
+            </PDFDownloadLink>
+          )}
+
+          {/* YOUR EXISTING CARPET AREA BUTTON */}
+          <Button
+            variant="default"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md font-black text-[10px] text-background uppercase tracking-widest duration-200 cursor-pointer"
+            onClick={() => {
+              const turningOn = !showTotalArea;
+              setShowTotalArea(turningOn);
+              if (turningOn) {
+                // Select ALL rows so user sees every row is counted
+                setRowSelection(
+                  Object.fromEntries(results.map((r) => [r.url, true])),
+                );
+              } else {
+                // Restore to only rows that have actual carpet area
+                setRowSelection(
+                  Object.fromEntries(
+                    results
+                      .filter((r) => r.data?.carpetArea)
+                      .map((r) => [r.url, true]),
+                  ),
+                );
+              }
+            }}
+            aria-pressed={showTotalArea}
+            aria-label="Toggle total carpet area"
+          >
+            Σ Calculate Missing Carpet Area
+          </Button>
+        </div>
       </div>
+
       <Card className="bg-card shadow-none border-border rounded-xl overflow-hidden">
         <div className="overflow-x-auto">
           <Table>
@@ -227,7 +251,12 @@ function ResultsTable({
 
                       // 2. Append pending loading skeletons to the bottom (only for missing rows)
                       const loadingNodes = pendingUrls
-                        .filter((url) => !table.getRowModel().rows.some((r) => r.original.url === url))
+                        .filter(
+                          (url) =>
+                            !table
+                              .getRowModel()
+                              .rows.some((r) => r.original.url === url),
+                        )
                         .map((url) => <SkeletonRow key={`skel-${url}`} />);
 
                       return [...sortedNodes, ...loadingNodes];
@@ -236,7 +265,9 @@ function ResultsTable({
                     // No sorting active — render exactly in the visual order of pendingUrls!
                     // This perfectly interleaves Skeletons and Data rows.
                     const nodes = pendingUrls.map((url) => {
-                      const existingRow = table.getRowModel().rows.find((r) => r.original.url === url);
+                      const existingRow = table
+                        .getRowModel()
+                        .rows.find((r) => r.original.url === url);
                       if (existingRow) return renderRow(existingRow);
                       return <SkeletonRow key={`skel-${url}`} />;
                     });

@@ -50,7 +50,7 @@ async function getSharedBrowser() {
         !!process.env.VERCEL || !!process.env.AWS_LAMBDA_FUNCTION_NAME;
 
       let launchOptions: any = {
-        headless: false,
+        headless: true,
         args: [
           // "--headless=new",
           "--disable-blink-features=AutomationControlled",

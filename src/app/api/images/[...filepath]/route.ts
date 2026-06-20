@@ -7,7 +7,6 @@ export async function GET(
 ) {
   try {
     const { filepath } = await params;
-    console.log("[DEBUG] API IMAGES HIT WITH FILEPATH: ", filepath);
 
     if (!filepath || filepath.length === 0)
       return new NextResponse("Filename is required", { status: 400 });
@@ -15,9 +14,27 @@ export async function GET(
     const s3Key = filepath.join("/");
     const presignedUrl = await getPresignedScreenshotUrl(s3Key);
 
-    return NextResponse.redirect(presignedUrl);
+    // Fetch the image from S3 on the SERVER SIDE
+    const imageResponse = await fetch(presignedUrl);
+
+    if (!imageResponse.ok) {
+      return new NextResponse("Failed to fetch image from S3", {
+        status: imageResponse.status,
+      });
+    }
+
+    const arrayBuffer = await imageResponse.arrayBuffer();
+
+    // Return the raw image buffer so the browser never interacts with S3 directly
+    return new NextResponse(arrayBuffer, {
+      headers: {
+        "Content-Type":
+          imageResponse.headers.get("content-type") || "image/png",
+        "Cache-Control": "public, max-age=31536000, immutable",
+      },
+    });
   } catch (error) {
-    console.error("Error generating presigned URL: ", error);
+    console.error("Error fetching image: ", error);
     return NextResponse.json(
       { error: "Internal Server Error" },
       { status: 500 },
