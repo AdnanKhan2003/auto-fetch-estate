@@ -129,10 +129,9 @@ async function createIsolatedContext() {
     process.env.PROXY_USERNAME &&
     process.env.PROXY_PASSWORD
   ) {
-    const sessionId = Math.random().toString(36).substring(2, 10);
     contextOptions.proxy = {
       server: process.env.PROXY_SERVER,
-      username: `${process.env.PROXY_USERNAME}-session-${sessionId}`,
+      username: `${process.env.PROXY_USERNAME}__cr.in`,
       password: process.env.PROXY_PASSWORD,
     };
   }
@@ -262,151 +261,153 @@ async function processUrl(
     try {
       context = await createIsolatedContext();
       if (signal?.aborted) throw new Error("Aborted before navigation");
-    logger.info(`🔵 [STEP 3/3] Scraping individual property details: ${url}`);
+      logger.info(`🔵 [STEP 3/3] Scraping individual property details: ${url}`);
 
-    // Continuously check abort before each major step
+      // Continuously check abort before each major step
 
-    const page = await context.newPage();
-    // Step 1 — Navigate
-    await navigatePage(page, url);
+      const page = await context.newPage();
+      // Step 1 — Navigate
+      await navigatePage(page, url);
 
-    // Step 2 — Bot detection
-    const pageTitle = await page.title();
-    const pageHtml = await page.content();
-    if (isBlocked(pageTitle, pageHtml))
-      throw new Error("Bot protection triggered");
+      // Step 2 — Bot detection
+      const pageTitle = await page.title();
+      const pageHtml = await page.content();
+      if (isBlocked(pageTitle, pageHtml))
+        throw new Error("Bot protection triggered");
 
-    if (signal?.aborted) throw new Error("Aborted by user");
-    // Step 3 — Screenshot
-    const { screenshotName, screenshotBuffer } = await takeScreenshot(
-      page,
-      url,
-      batchId,
-    );
-
-    // Step 4 — Clean text
-    const cleanText = await extractCleanBody(page);
-
-    // Step 5 — 404 / removed listing detection
-    const lowerClean = cleanText.toLowerCase();
-    const is404 =
-      ERROR_PAGE_PHRASES.some((phrase) => lowerClean.includes(phrase)) &&
-      cleanText.length < 500;
-    if (is404) {
-      logger.info(`[Scraper] ⚠️  Error/404 page detected for: ${url}`);
-      throw new Error("Page returned a 404 or error page");
-    }
-
-    // Step 6 — Deterministic selector extraction
-    const selectorData = await extractBySelectors(page);
-
-    // Filter out null/empty values from selectorData to avoid poisoning the AI prompt
-    const cleanSelectorData = Object.fromEntries(
-      Object.entries(selectorData).filter(([_, v]) => v !== null && v !== ""),
-    );
-
-    if (signal?.aborted) throw new Error("Aborted by user");
-    // Step 7 — AI text extraction (JSON-LD + page text)
-    const { data: structuredData, tokens: textTokens } =
-      await extractStructuredData(
+      if (signal?.aborted) throw new Error("Aborted by user");
+      // Step 3 — Screenshot
+      const { screenshotName, screenshotBuffer } = await takeScreenshot(
         page,
-        cleanText,
-        cleanSelectorData,
         url,
-        signal,
+        batchId,
       );
 
-    // Step 8 — Merge: defaults < selectors < AI text
-    const merged: Record<string, any> = {
-      ...buildDefaultData(),
-      ...selectorData,
-      ...structuredData,
-    };
+      // Step 4 — Clean text
+      const cleanText = await extractCleanBody(page);
 
-    const missingCritical = CRITICAL_FIELDS.filter((f) => !merged[f]);
-    const hasAnyArea =
-      merged.carpetArea || merged.builtupArea || merged.superBuiltupArea;
-    const filledFields = Object.values(merged).filter(
-      (v) => v !== null && v !== "",
-    ).length;
-    const cleanMerged = Object.fromEntries(
-      Object.entries(merged).filter(([_, v]) => v !== null && v !== ""),
-    );
+      // Step 5 — 404 / removed listing detection
+      const lowerClean = cleanText.toLowerCase();
+      const is404 =
+        ERROR_PAGE_PHRASES.some((phrase) => lowerClean.includes(phrase)) &&
+        cleanText.length < 500;
+      if (is404) {
+        logger.info(`[Scraper] ⚠️  Error/404 page detected for: ${url}`);
+        throw new Error("Page returned a 404 or error page");
+      }
 
-    if (signal?.aborted) throw new Error("Aborted by user");
-    // Step 9 — Vision fallback (only when critical fields are still missing)
-    let aiData: Partial<Property> = {};
-    let visionUsed = false;
-    let visionTokens = 0;
+      // Step 6 — Deterministic selector extraction
+      const selectorData = await extractBySelectors(page);
 
-    if (missingCritical.length > 0 || !hasAnyArea || filledFields < 15) {
-      ({
-        aiData,
-        visionUsed,
-        tokens: visionTokens,
-      } = await runVisionExtraction({
-        url,
-        screenshotBuffer,
-        missingCritical: !hasAnyArea
-          ? [...missingCritical, "Area"]
-          : missingCritical,
-        cleanDeterministic: cleanMerged,
-        cleanText,
-        signal,
-      }));
-    }
+      // Filter out null/empty values from selectorData to avoid poisoning the AI prompt
+      const cleanSelectorData = Object.fromEntries(
+        Object.entries(selectorData).filter(([_, v]) => v !== null && v !== ""),
+      );
 
-    // Step 10 — Final merge, normalise, sanity-check
-    const cleanAiData = Object.fromEntries(
-      Object.entries(aiData).filter(([_, v]) => v !== null && v !== undefined),
-    );
-    const finalData: Record<string, any> = { ...cleanMerged, ...cleanAiData };
-    applyNormalizations(finalData);
+      if (signal?.aborted) throw new Error("Aborted by user");
+      // Step 7 — AI text extraction (JSON-LD + page text)
+      const { data: structuredData, tokens: textTokens } =
+        await extractStructuredData(
+          page,
+          cleanText,
+          cleanSelectorData,
+          url,
+          signal,
+        );
 
-    const parsedData = propertySchema.safeParse(finalData);
-    if (!parsedData.success) {
-      logger.error(`[Zod Error] Schema validation failed for ${url}`);
-      throw new Error(`Data validation Failed:
+      // Step 8 — Merge: defaults < selectors < AI text
+      const merged: Record<string, any> = {
+        ...buildDefaultData(),
+        ...selectorData,
+        ...structuredData,
+      };
+
+      const missingCritical = CRITICAL_FIELDS.filter((f) => !merged[f]);
+      const hasAnyArea =
+        merged.carpetArea || merged.builtupArea || merged.superBuiltupArea;
+      const filledFields = Object.values(merged).filter(
+        (v) => v !== null && v !== "",
+      ).length;
+      const cleanMerged = Object.fromEntries(
+        Object.entries(merged).filter(([_, v]) => v !== null && v !== ""),
+      );
+
+      if (signal?.aborted) throw new Error("Aborted by user");
+      // Step 9 — Vision fallback (only when critical fields are still missing)
+      let aiData: Partial<Property> = {};
+      let visionUsed = false;
+      let visionTokens = 0;
+
+      if (missingCritical.length > 0 || !hasAnyArea || filledFields < 15) {
+        ({
+          aiData,
+          visionUsed,
+          tokens: visionTokens,
+        } = await runVisionExtraction({
+          url,
+          screenshotBuffer,
+          missingCritical: !hasAnyArea
+            ? [...missingCritical, "Area"]
+            : missingCritical,
+          cleanDeterministic: cleanMerged,
+          cleanText,
+          signal,
+        }));
+      }
+
+      // Step 10 — Final merge, normalise, sanity-check
+      const cleanAiData = Object.fromEntries(
+        Object.entries(aiData).filter(
+          ([_, v]) => v !== null && v !== undefined,
+        ),
+      );
+      const finalData: Record<string, any> = { ...cleanMerged, ...cleanAiData };
+      applyNormalizations(finalData);
+
+      const parsedData = propertySchema.safeParse(finalData);
+      if (!parsedData.success) {
+        logger.error(`[Zod Error] Schema validation failed for ${url}`);
+        throw new Error(`Data validation Failed:
         ${parsedData.error.issues[0].path} -
         ${parsedData.error.issues[0].message}
         `);
-    }
+      }
 
-    // Step 11 — Return
-    const hasAiData = Object.keys(structuredData).length > 0 || visionUsed;
+      // Step 11 — Return
+      const hasAiData = Object.keys(structuredData).length > 0 || visionUsed;
 
-    // =====================================================================
-    // 🕵️ DEBUG LOGGING: Print clean structured summary directly to the console
-    // =====================================================================
-    logger.info("\n" + "=".repeat(60));
-    logger.info(`📊 [SCRAPE RESULT] ${url}`);
-    logger.info(`   - Title: ${parsedData.data.propertyTitle || "N/A"}`);
-    logger.info(`   - Price: ${parsedData.data.price || "N/A"}`);
-    logger.info(`   - Location: ${parsedData.data.location || "N/A"}`);
-    logger.info(
-      `   - Area: ${parsedData.data.carpetArea || parsedData.data.builtupArea || parsedData.data.superBuiltupArea || "N/A"}`,
-    );
-    logger.info(
-      `   - Text AI Used: ${Object.keys(structuredData).length > 0 ? "Yes" : "No"}`,
-    );
-    logger.info(`   - Vision Fallback Used: ${visionUsed ? "Yes" : "No"}`);
-    logger.info(`   - Tokens Used: ${textTokens + visionTokens}`);
-    logger.info("\n🤖 Structured AI Output:");
-    logger.info(JSON.stringify(parsedData.data, null, 2));
-    logger.info("=".repeat(60) + "\n");
-    // =====================================================================
+      // =====================================================================
+      // 🕵️ DEBUG LOGGING: Print clean structured summary directly to the console
+      // =====================================================================
+      logger.info("\n" + "=".repeat(60));
+      logger.info(`📊 [SCRAPE RESULT] ${url}`);
+      logger.info(`   - Title: ${parsedData.data.propertyTitle || "N/A"}`);
+      logger.info(`   - Price: ${parsedData.data.price || "N/A"}`);
+      logger.info(`   - Location: ${parsedData.data.location || "N/A"}`);
+      logger.info(
+        `   - Area: ${parsedData.data.carpetArea || parsedData.data.builtupArea || parsedData.data.superBuiltupArea || "N/A"}`,
+      );
+      logger.info(
+        `   - Text AI Used: ${Object.keys(structuredData).length > 0 ? "Yes" : "No"}`,
+      );
+      logger.info(`   - Vision Fallback Used: ${visionUsed ? "Yes" : "No"}`);
+      logger.info(`   - Tokens Used: ${textTokens + visionTokens}`);
+      logger.info("\n🤖 Structured AI Output:");
+      logger.info(JSON.stringify(parsedData.data, null, 2));
+      logger.info("=".repeat(60) + "\n");
+      // =====================================================================
 
-    return {
-      url,
-      screenshotUrl: screenshotName,
-      data: parsedData.data,
-      status: "success" as const,
-      aiUsed: hasAiData,
-      visionUsed,
-      missingFields: missingCritical,
-      cleanText,
-      tokensUsed: textTokens + visionTokens,
-    };
+      return {
+        url,
+        screenshotUrl: screenshotName,
+        data: parsedData.data,
+        status: "success" as const,
+        aiUsed: hasAiData,
+        visionUsed,
+        missingFields: missingCritical,
+        cleanText,
+        tokensUsed: textTokens + visionTokens,
+      };
     } catch (error: any) {
       lastError = error;
       if (context) {
