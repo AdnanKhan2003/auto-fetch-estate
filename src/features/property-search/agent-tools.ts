@@ -35,6 +35,13 @@ export const searchRealEstateTool = tool(
 
       const data = await response.json();
 
+      logger.info(
+        `\n📋 [DEBUG] Raw Serper results (${(data.organic || []).length} total):`,
+      );
+      (data.organic || []).forEach((r: any, i: number) => {
+        logger.info(`   ${i + 1}. [${new URL(r.link).hostname}] ${r.link}`);
+      });
+
       const allowedDomains = [
         "99acres",
         "magicbricks",
@@ -59,6 +66,60 @@ export const searchRealEstateTool = tool(
           }
         } catch (error) {
           logger.info(error);
+        }
+      }
+
+      const missingDomains = allowedDomains.filter((d) => !seenDomains.has(d));
+      logger.info(`\n[:D] Missing domains: ${missingDomains.join(", ")}`);
+
+      if (missingDomains.length > 0) {
+        logger.info(
+          `\n🔄 [FALLBACK] Missing ${missingDomains.length} domains: ${missingDomains.join(", ")}. Firing site-specific searches...`,
+        );
+      }
+
+      for (const missing of missingDomains) {
+        try {
+          const siteMap: Record<string, string> = {
+            "99acres": "99acres.com",
+            magicbricks: "magicbricks.com",
+            nobroker: "nobroker.in",
+            squareyards: "squareyards.com",
+          };
+
+          const fallbackResponse = await fetch(
+            "https://google.serper.dev/search",
+            {
+              method: "POST",
+              headers: {
+                "X-API-KEY": process.env.SERPER_API_KEY,
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                q: `${query} ${siteMap[missing]}`,
+                num: 5,
+              }),
+            },
+          );
+
+          const fallbackData = await fallbackResponse.json();
+          const firstResult = (fallbackData.organic || [])[0];
+
+          if (firstResult) {
+            logger.info(
+              `   ✅ [FALLBACK] Found ${missing}: ${firstResult.link}`,
+            );
+            seenDomains.add(missing);
+            uniqueResults.push(firstResult);
+          } else {
+            logger.info(
+              `   ❌ [FALLBACK] No results for ${missing} even with site: search`,
+            );
+          }
+        } catch (error: any) {
+          logger.info(
+            `   ❌ [FALLBACK] Error searching ${missing}: ${error.message}`,
+          );
         }
       }
 
@@ -155,7 +216,9 @@ export const scrapePropertyTool = tool(
         if (seen.has(url)) duplicates.add(url);
         seen.add(url);
       }
-      logger.info(`\n🗑️ [DEDUPLICATION] Filtered out ${duplicates.size} duplicate URLs:`);
+      logger.info(
+        `\n🗑️ [DEDUPLICATION] Filtered out ${duplicates.size} duplicate URLs:`,
+      );
       duplicates.forEach((url) => logger.info(`   - ${url}`));
     }
 
