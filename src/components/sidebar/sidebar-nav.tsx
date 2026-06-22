@@ -8,6 +8,7 @@ import {
   UserPlus,
   Users,
   Calculator,
+  FolderArchive,
 } from "lucide-react";
 import { SidebarMenu, SidebarMenuButton, SidebarMenuItem } from "../ui/sidebar";
 import { usePathname } from "next/navigation";
@@ -21,6 +22,8 @@ function SidebarNav() {
 
   const navItems = [
     { title: "Dashboard", href: "/", icon: LayoutDashboard },
+    { title: "Saved Researches", href: "/researches", icon: FolderArchive }, // <-- Add this line!
+
     { title: "Tools", href: "/tools", icon: Calculator },
     ...(isAdmin
       ? [
@@ -44,7 +47,7 @@ function SidebarNav() {
             isActive={pathname === item.href}
           >
             <Link href={item.href} aria-label={item.title} title={item.title}>
-              <item.icon className="h-4 w-4" />
+              <item.icon className="w-4 h-4" />
               <span>{item.title}</span>
             </Link>
           </SidebarMenuButton>

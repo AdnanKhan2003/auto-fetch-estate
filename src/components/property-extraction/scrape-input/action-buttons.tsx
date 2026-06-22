@@ -4,6 +4,7 @@ import { Button } from "../../ui/button";
 interface ActionButtonsProps {
   isLoading: boolean;
   isExecuteDisabled: boolean;
+  isAddTargetDisabled?: boolean;
   onAddTarget: () => void;
   onExecute: () => void;
   onStopScrape?: () => void;
@@ -12,6 +13,7 @@ interface ActionButtonsProps {
 export function ActionButtons({
   isLoading,
   isExecuteDisabled,
+  isAddTargetDisabled,
   onAddTarget,
   onExecute,
   onStopScrape,
@@ -22,6 +24,7 @@ export function ActionButtons({
         variant="outline"
         size="sm"
         onClick={onAddTarget}
+        disabled={isLoading || isAddTargetDisabled}
         className="gap-2 hover:bg-muted border-border font-medium text-foreground cursor-pointer"
       >
         <Plus size={14} /> Add Target

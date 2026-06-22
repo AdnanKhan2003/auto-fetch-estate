@@ -49,6 +49,7 @@ interface ResultsTableProps {
   isLoadingHistory?: boolean;
   adoptedRate: number;
   setAdoptedRate: (value: number) => void;
+  isProcessing?: boolean;
 }
 
 function ResultsTable({
@@ -73,7 +74,8 @@ function ResultsTable({
   estimatedCount,
   onDelete,
   onUpdate,
-  isLoadingHistory = false,
+  isLoadingHistory,
+  isProcessing = false,
 }: ResultsTableProps) {
   const selectedCount = Object.values(rowSelection).filter(Boolean).length;
   const [sorting, setSorting] = useState<SortingState>([]);
@@ -100,6 +102,7 @@ function ResultsTable({
       onDelete,
       onUpdate,
       pendingUrls,
+      isProcessing,
     },
   });
 
@@ -132,24 +135,37 @@ function ResultsTable({
         <div className="flex items-center gap-2">
           {/* NEW PDF DOWNLOAD BUTTON */}
           {results.length > 0 && (
-            <PDFDownloadLink
-              document={
-                <PropertyReportPdf
-                  properties={results.filter((r) => rowSelection[r.url])}
-                  rowFactors={rowFactors}
-                />
-              }
-              fileName={`property_report_${Date.now()}.pdf`}
-              className="flex justify-center items-center gap-2 bg-background hover:bg-accent shadow-sm px-3 py-1.5 border border-input rounded-md h-8 font-semibold text-foreground text-xs transition-colors hover:text-accent-foreground cursor-pointer"
+            <div
+              className={`transition-opacity ${
+                isProcessing ||
+                isLoadingHistory === true ||
+                Object.values(rowSelection).filter(Boolean).length === 0
+                  ? "opacity-50 pointer-events-none"
+                  : "opacity-100"
+              }`}
             >
-              {/* @ts-ignore */}
-              {({ loading }) => (loading ? "Preparing PDF..." : "Export PDF")}
-            </PDFDownloadLink>
+              <PDFDownloadLink
+                document={
+                  <PropertyReportPdf
+                    properties={results.filter((r) => rowSelection[r.url])}
+                    rowFactors={rowFactors}
+                  />
+                }
+                fileName={`property_report_${Date.now()}.pdf`}
+                className="flex justify-center items-center gap-2 bg-background hover:bg-accent shadow-sm px-3 py-1.5 border border-input rounded-md h-8 font-semibold text-foreground text-xs transition-colors hover:text-accent-foreground cursor-pointer"
+              >
+                {/* @ts-ignore */}
+                {({ loading }) => (loading ? "Preparing PDF..." : "Export PDF")}
+              </PDFDownloadLink>
+            </div>
           )}
 
           {/* YOUR EXISTING CARPET AREA BUTTON */}
           <Button
             variant="default"
+            disabled={
+              results.length === 0 || isProcessing || isLoadingHistory === true
+            }
             className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md font-black text-[10px] text-background uppercase tracking-widest duration-200 cursor-pointer"
             onClick={() => {
               const turningOn = !showTotalArea;

@@ -324,23 +324,6 @@ export const scrapePropertyTool = tool(
               }
             }
 
-            await db.insert(propertyListing).values({
-              id: newId,
-              userId,
-              url: url.trim(),
-              referenceNumber: referenceNumber || null,
-              title: result.data?.propertyTitle || null,
-              propertyType: result.data?.propertyType || null,
-              city: result.data?.city || null,
-              location: result.data?.location || null,
-              price: result.data?.price || null,
-              carpetArea: result.data?.carpetArea || null,
-              screenshotUrl: result.screenshotUrl || null,
-              extractedData: result.data,
-              status: "success",
-              tokensUsed: result.tokensUsed,
-            });
-
             const metrics = await getQuotaMetrics();
 
             const enrichedResult = {
@@ -366,15 +349,6 @@ export const scrapePropertyTool = tool(
           } catch (e: any) {
             logger.info(`[Batch] Error on ${url}: ${e.message}`);
             const errorId = crypto.randomUUID();
-            await db.insert(propertyListing).values({
-              id: errorId,
-              userId: userId,
-              url: url.trim(),
-              referenceNumber: referenceNumber || null,
-              status: "error",
-              errorMessage: e.message,
-              tokensUsed: 0,
-            });
 
             const metrics = await getQuotaMetrics();
             const errorResult = {

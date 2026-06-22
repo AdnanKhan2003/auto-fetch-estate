@@ -139,7 +139,7 @@ export function ResultsTableFooter({
         {/* Empty cell for actions column */}
         <TableCell colSpan={1} />
       </TableRow>
-      <TableRow className="bg-background hover:bg-background border-5 text-foreground">
+      <TableRow className="bg-background hover:bg-background border-0 text-foreground">
         <TableCell
           colSpan={labelSpan}
           className="py-4 pl-6 font-medium text-muted-foreground text-right"

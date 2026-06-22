@@ -240,34 +240,43 @@ export const columns: ColumnDef<PropertyExtractionResult>[] = [
   },
   {
     id: "select",
-    header: ({ table }) => (
-      <div className="flex justify-center items-center h-full">
-        <Checkbox
-          checked={
-            table.getIsAllPageRowsSelected() ||
-            (table.getIsSomePageRowsSelected() && "indeterminate")
-          }
-          onCheckedChange={(value) => table.toggleAllRowsSelected(!!value)}
-          aria-label="Select all"
-          className="translate-y-[2px] cursor-pointer"
-        />
-      </div>
-    ),
-    cell: ({ row }) => (
-      <div
-        className="flex justify-center items-center"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <TooltipWrapper content="Include in Calculation">
+    header: ({ table }) => {
+      const meta = table.options.meta as any;
+      return (
+        <div className="flex justify-center items-center h-full">
           <Checkbox
-            checked={row.getIsSelected()}
-            onCheckedChange={(value) => row.toggleSelected(!!value)}
-            aria-label="Select row"
-            className="bg-background cursor-pointer"
+            checked={
+              table.getRowCount() > 0 &&
+              (table.getIsAllPageRowsSelected() ||
+                (table.getIsSomePageRowsSelected() && "indeterminate"))
+            }
+            onCheckedChange={(value) => table.toggleAllRowsSelected(!!value)}
+            disabled={table.getRowCount() === 0 || meta?.isProcessing}
+            aria-label="Select all"
+            className="translate-y-[2px] cursor-pointer"
           />
-        </TooltipWrapper>
-      </div>
-    ),
+        </div>
+      );
+    },
+    cell: ({ row, table }) => {
+      const meta = table.options.meta as any;
+      return (
+        <div
+          className="flex justify-center items-center"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <TooltipWrapper content="Include in Calculation">
+            <Checkbox
+              checked={row.getIsSelected()}
+              onCheckedChange={(value) => row.toggleSelected(!!value)}
+              disabled={meta?.isProcessing}
+              aria-label="Select row"
+              className="bg-background cursor-pointer"
+            />
+          </TooltipWrapper>
+        </div>
+      );
+    },
     enableSorting: false,
     enableHiding: false,
   },
@@ -506,6 +515,7 @@ export const columns: ColumnDef<PropertyExtractionResult>[] = [
               variant="ghost"
               size="icon"
               onClick={() => meta.onDelete(propertyId)}
+              disabled={meta?.isProcessing}
               className="hover:bg-destructive/10 text-muted-foreground hover:text-destructive cursor-pointer"
               title="Delete Property"
             >

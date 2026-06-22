@@ -8,6 +8,7 @@ import PropertyDetailsModal from "./property-details-modal";
 import { PropertyExtractionResult } from "@/features/property-extraction/scraper";
 import { COMMA_REGEX, NUMERIC_REGEX } from "@/lib/regex";
 import { calculateRatePerSqft, parseIndianPrice } from "@/lib/format-utils";
+import { Button } from "@/components/ui/button";
 
 import {
   AlertDialog,
@@ -50,7 +51,8 @@ export default function EstateAnalyzer() {
   const [duplicateUrls, setDuplicateUrls] = useState<string[]>([]);
   const [urls, setUrls] = useState<string[]>([""]);
   const [isLoading, setIsLoading] = useState(false);
-  const [isLoadingHistory, setIsLoadingHistory] = useState(true);
+  const [isAgentSearching, setIsAgentSearching] = useState(false);
+  const isProcessing = isLoading || isAgentSearching;
 
   // Hydration issue fix
   const [isMounted, setIsMounted] = useState(false);
@@ -77,6 +79,9 @@ export default function EstateAnalyzer() {
   const [selectedProperty, setSelectedProperty] = useState<
     (PropertyExtractionResult & { id?: string }) | null
   >(null);
+
+  const [isSaving, setIsSaving] = useState(false);
+  const [currentBatchRef, setCurrentBatchRef] = useState<string | null>(null);
 
   const abortControllerRef = useRef<AbortController | null>(null);
 
@@ -154,49 +159,6 @@ export default function EstateAnalyzer() {
     return indexA - indexB;
   });
 
-  // Lifecycle
-  useEffect(() => {
-    async function loadData() {
-      try {
-        setIsLoadingHistory(true);
-        const response = await fetch("/api/property-extraction");
-        if (!response.ok) throw new Error("Failed to fetch properties");
-
-        const properties = await response.json();
-
-        if (properties && properties.length > 0) {
-          const formattedResults = properties.map((p: any) => ({
-            id: p.id,
-            url: p.url,
-            status: p.status,
-            data: p.extractedData,
-            tokens: p.tokensUsed,
-            screenshotUrl: p.screenshotUrl,
-            createdAt: p.createdAt,
-            updatedAt: p.updatedAt,
-          }));
-
-          setResults(formattedResults as any);
-          const dbUrls = formattedResults.map((r: any) => r.url);
-          setUrls(dbUrls);
-          setPendingUrls(dbUrls); // Keep pendingUrls perfectly synced on page load!
-
-          const initSelection: Record<string, boolean> = {};
-          formattedResults.forEach((r: any) => {
-            if (r.data?.carpetArea) initSelection[r.url] = true;
-          });
-          setRowSelection(initSelection);
-        }
-      } catch (error) {
-        console.error("Failed to load from DB", error);
-      } finally {
-        setIsLoadingHistory(false);
-      }
-    }
-
-    loadData();
-  }, []);
-
   useEffect(() => {
     setAdoptedRate(discountedAverage);
   }, [discountedAverage]);
@@ -205,11 +167,39 @@ export default function EstateAnalyzer() {
     setIsMounted(true);
   }, []);
 
+  const handleSaveBatch = async () => {
+    if (results.length === 0) return;
+
+    setIsSaving(true);
+
+    try {
+      const res = await fetch("/api/property-extraction/save-batch", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          properties: results,
+          referenceNumber: currentBatchRef,
+        }),
+      });
+
+      if (!res.ok) {
+        throw new Error("Failed to save batch to database.");
+      }
+    } catch (e) {
+      console.error("Failed to save", e);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   const handleScrape = async (
     submittedUrls: string[],
     referenceNumber?: string,
   ) => {
     setUrls(submittedUrls);
+    setCurrentBatchRef(referenceNumber || null);
     setIsLoading(true);
 
     const existingUrls = submittedUrls.filter((url) =>
@@ -219,6 +209,7 @@ export default function EstateAnalyzer() {
     if (existingUrls.length > 0) {
       setDuplicateUrls(existingUrls);
       setIsLoading(false);
+      setPendingUrls([]);
       return;
     }
     // Deduplicate URLs to prevent key collisions and redundant scrapes
@@ -421,31 +412,46 @@ export default function EstateAnalyzer() {
             setPendingUrls(foundUrls);
             setUrls(foundUrls);
           }}
+          onSearchStart={() => setIsAgentSearching(true)}
+          onSearchEnd={() => setIsAgentSearching(false)}
         />
-        <ResultsTable
-          results={orderedResults}
-          pendingUrls={pendingUrls}
-          focusedUrl={focusedUrl}
-          onRowClick={setSelectedProperty}
-          isLoadingHistory={isLoadingHistory}
-          averagePrice={averagePrice}
-          discountPercentage={discountPercentage}
-          setDiscountPercentage={setDiscountPercentage}
-          discountedAverage={discountedAverage}
-          adoptedRate={adoptedRate}
-          setAdoptedRate={setAdoptedRate}
-          rowSelection={rowSelection}
-          setRowSelection={setRowSelection}
-          globalConversionFactor={conversionFactor}
-          rowFactors={rowFactors}
-          setRowFactors={setRowFactors}
-          showTotalArea={showTotalArea}
-          setShowTotalArea={setShowTotalArea}
-          totalCarpetArea={totalCarpetArea}
-          estimatedCount={estimatedCount}
-          onDelete={deleteSingleRecord}
-          onUpdate={updateSingleRecord}
-        />
+        <div className="slide-in-from-bottom-4 space-y-4 animate-in duration-500 fade-in">
+          <div className="flex justify-end h-[40px]">
+            {results.length > 0 && (
+              <Button
+                onClick={handleSaveBatch}
+                disabled={isSaving || isProcessing}
+                className="bg-primary hover:bg-primary/90 shadow-lg px-6 text-primary-foreground cursor-pointer"
+              >
+                {isSaving ? "Saving..." : "Save"}
+              </Button>
+            )}
+          </div>
+          <ResultsTable
+            results={orderedResults}
+            pendingUrls={pendingUrls}
+            focusedUrl={focusedUrl}
+            onRowClick={setSelectedProperty}
+            averagePrice={averagePrice}
+            discountPercentage={discountPercentage}
+            setDiscountPercentage={setDiscountPercentage}
+            discountedAverage={discountedAverage}
+            adoptedRate={adoptedRate}
+            setAdoptedRate={setAdoptedRate}
+            rowSelection={rowSelection}
+            setRowSelection={setRowSelection}
+            globalConversionFactor={conversionFactor}
+            rowFactors={rowFactors}
+            setRowFactors={setRowFactors}
+            showTotalArea={showTotalArea}
+            setShowTotalArea={setShowTotalArea}
+            totalCarpetArea={totalCarpetArea}
+            estimatedCount={estimatedCount}
+            onDelete={deleteSingleRecord}
+            onUpdate={updateSingleRecord}
+            isProcessing={isProcessing}
+          />
+        </div>
       </main>
       <PropertyDetailsModal
         property={selectedProperty}

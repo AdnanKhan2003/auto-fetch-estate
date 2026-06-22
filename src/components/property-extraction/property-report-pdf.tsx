@@ -58,8 +58,7 @@ export const PropertyReportPdf = ({
 
   const avgRate =
     validRateCount > 0 ? Math.round(totalRate / validRateCount) : 0;
-  const avgRateStr =
-    avgRate > 0 ? avgRate.toLocaleString("en-IN") : "N/A";
+  const avgRateStr = avgRate > 0 ? avgRate.toLocaleString("en-IN") : "N/A";
 
   return (
     <Document>
@@ -115,13 +114,26 @@ export const PropertyReportPdf = ({
           {properties.map((p, index) => {
             const nameMatch = p.url.match(/https?:\/\/(?:www\.)?([^./]+)\./i);
             const siteName = nameMatch ? nameMatch[1] : "Unknown";
-            const area =
-              p.data?.carpetArea ||
-              p.data?.builtupArea ||
-              p.data?.superBuiltupArea ||
-              "N/A";
 
-            // Convert Price text to actual Numbers (e.g. 2 Cr -> 2,00,00,000)
+            // Calculate Rate
+            let effectiveArea = null;
+            let factor = rowFactors[p.url];
+            let area = "N/A";
+            if (p.data?.carpetArea) {
+              effectiveArea = parseIndianPrice(p.data.carpetArea);
+              area = p.data.carpetArea;
+            } else if (p.data?.builtupArea) {
+              effectiveArea = Math.round(
+                parseIndianPrice(p.data.builtupArea) * (factor ?? 0.85),
+              );
+              area = `${effectiveArea.toLocaleString("en-IN")} sqft*`;
+            } else if (p.data?.superBuiltupArea) {
+              effectiveArea = Math.round(
+                parseIndianPrice(p.data.superBuiltupArea) * (factor ?? 0.72),
+              );
+              area = `${effectiveArea.toLocaleString("en-IN")} sqft*`;
+            }
+
             let price = p.data?.price || "N/A";
             if (p.data?.price) {
               const numericPrice = parseIndianPrice(p.data.price);
@@ -130,23 +142,11 @@ export const PropertyReportPdf = ({
               }
             }
 
-            // Calculate Rate
-            let effectiveArea = null;
-            let factor = rowFactors[p.url];
-            if (p.data?.carpetArea) {
-              effectiveArea = parseIndianPrice(p.data.carpetArea);
-            } else if (p.data?.builtupArea) {
-              effectiveArea =
-                parseIndianPrice(p.data.builtupArea) * (factor ?? 0.85);
-            } else if (p.data?.superBuiltupArea) {
-              effectiveArea =
-                parseIndianPrice(p.data.superBuiltupArea) * (factor ?? 0.72);
-            }
             const calculatedRateNum = calculateRatePerSqft(
               p.data?.price,
               effectiveArea,
             );
-            
+
             let rate = "N/A";
             if (calculatedRateNum && calculatedRateNum > 0) {
               rate = calculatedRateNum.toLocaleString("en-IN");

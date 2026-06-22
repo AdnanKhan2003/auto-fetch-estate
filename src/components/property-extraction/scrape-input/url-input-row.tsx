@@ -11,6 +11,7 @@ interface UrlInputRowProps {
   canDelete: boolean;
   onDelete: () => void;
   onFocus?: () => void;
+  isLoading?: boolean;
 }
 
 export function UrlInputRow({
@@ -19,6 +20,7 @@ export function UrlInputRow({
   canDelete,
   onDelete,
   onFocus,
+  isLoading,
 }: UrlInputRowProps) {
   // useEffect(() => [field.value]);
   return (
@@ -37,7 +39,8 @@ export function UrlInputRow({
                 id={`url-${index}`}
                 spellCheck="false"
                 aria-label="Property Listing URL"
-                className="h-11 border-border bg-background text-foreground focus-visible:ring-ring"
+                disabled={isLoading}
+                className="h-11 border-border bg-background text-foreground focus-visible:ring-ring disabled:opacity-50"
                 placeholder="Paste Listing URL here..."
                 aria-invalid={fieldState.invalid}
               />
@@ -50,7 +53,7 @@ export function UrlInputRow({
                 size="icon"
                 type="button"
                 onClick={onFocus}
-                disabled={!field.value}
+                disabled={!field.value || isLoading}
                 className="h-11 w-11 cursor-pointer text-muted-foreground hover:bg-primary/10 hover:text-primary"
               >
                 <TooltipWrapper content="Locate in Table">
@@ -65,6 +68,7 @@ export function UrlInputRow({
                 size="icon"
                 type="button"
                 onClick={onDelete}
+                disabled={isLoading}
                 className="h-11 w-11 cursor-pointer text-muted-foreground hover:bg-red-500/10 hover:text-red-500"
               >
                 <TooltipWrapper content="Delete URL">

@@ -20,6 +20,8 @@ interface ScrapeInputCardProps {
   onPropertyScraped?: (data: any) => void;
   onStopScrape?: () => void;
   onUrlsFound?: (urls: string[]) => void;
+  onSearchStart?: () => void;
+  onSearchEnd?: () => void;
 }
 
 const schema = z.object({
@@ -49,15 +51,17 @@ function ScrapeInputCard({
   onPropertyScraped,
   onStopScrape,
   onUrlsFound,
+  onSearchStart,
+  onSearchEnd,
 }: ScrapeInputCardProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearching, setIsSearching] = useState(false);
   const [searchStatus, setSearchStatus] = useState<string>("");
-  // const [referenceNumber, setReferenceNumber] = useState<string | null>(null);
+  const [referenceNumber, setReferenceNumber] = useState<string | null>(null);
   // Dev purpose only
-  const [referenceNumber, setReferenceNumber] = useState<string | null>(
-    "DEV-A1B2C3D4",
-  );
+  // const [referenceNumber, setReferenceNumber] = useState<string | null>(
+  //   "DEV-A1B2C3D4",
+  // );
 
   const abortSearchRef = useRef<AbortController | null>(null);
 
@@ -85,7 +89,9 @@ function ScrapeInputCard({
       .map((u) => u.value)
       .filter((v) => v.trim() !== "");
     if (activeUrls.length > 0) {
-      const newRef = Math.floor(1000000000 + Math.random() * 9000000000).toString();
+      const newRef = Math.floor(
+        1000000000 + Math.random() * 9000000000,
+      ).toString();
       setReferenceNumber(newRef);
       onScrape(activeUrls, newRef);
     }
@@ -95,10 +101,13 @@ function ScrapeInputCard({
     e.preventDefault();
     if (!searchQuery.trim()) return;
 
-    const newRef = Math.floor(1000000000 + Math.random() * 9000000000).toString();
+    const newRef = Math.floor(
+      1000000000 + Math.random() * 9000000000,
+    ).toString();
     setReferenceNumber(newRef);
 
     setIsSearching(true);
+    if (onSearchStart) onSearchStart();
     setSearchStatus("Initializing AI Agent...");
 
     abortSearchRef.current = new AbortController();
@@ -143,6 +152,7 @@ function ScrapeInputCard({
                 : "Search failed. Please try again.";
               setSearchStatus(freindlyMessage);
               setIsSearching(false);
+              if (onSearchEnd) onSearchEnd();
             } else if (data.type === "urls_found") {
               setSearchStatus(
                 `Found ${data.urls.length} URLs! Starting scrape...`,
@@ -190,6 +200,7 @@ function ScrapeInputCard({
       setSearchStatus("Search failed. Please try again.");
     } finally {
       setIsSearching(false);
+      if (onSearchEnd) onSearchEnd();
       setTimeout(() => setSearchStatus(""), 3000); // Clear status after 3s
     }
   };
@@ -274,6 +285,7 @@ function ScrapeInputCard({
                 canDelete={fields.length > 1}
                 onDelete={() => remove(index)}
                 onFocus={() => setFocusedUrl(watchedUrls[index]?.value || null)}
+                isLoading={isLoading || isSearching}
               />
             ))}
           </div>
@@ -285,6 +297,7 @@ function ScrapeInputCard({
               isSearching ||
               watchedUrls.every((u) => !u.value.trim())
             }
+            isAddTargetDisabled={isSearching}
             onAddTarget={() => {
               append({ value: "" });
               const newIndex = fields.length;
