@@ -63,7 +63,7 @@ async function extractStructuredData(
          2. Extract all available property details into the provided schema.
                   3. **PRIORITY FIELDS**: Ensure you extract the following if present:
             - Property Name (propertyTitle)
-            - Price & Market Price (CRITICAL: You MUST extract this even if you have to infer it from unstructured text like '1.5 Crores'. Do not leave it empty if the value exists anywhere.)
+            - Price & Market Price (CRITICAL: You MUST extract this even if you have to infer it from unstructured text like '1.5 Crores'. If you receive a messy, concatenated string for the price (e.g., '2.38 Cr - 3.20 Cr1,2,3 BHK...'), you MUST extract ONLY the primary lowest price (e.g., '2.38 Cr') and completely discard the rest of the text. Do not leave it empty if the value exists anywhere.)
             - Carpet Area / Internal Floor Area (IMPORTANT: DO NOT copy Built-up or Super Built-up area here. If Carpet Area is not explicitly stated, leave it blank/null. Include the unit if found.)
             - Built-up Area (IMPORTANT: Include the unit, e.g. "sqm", "sqyd", "sqft")
             - Super Built-up Area (IMPORTANT: Include the unit, e.g. "sqm", "sqyd", "sqft". **CRITICAL**: If the property specifies an area but does not explicitly state whether it is Carpet, Built-up or Super Built-up, you MUST default to putting it here in superBuiltupArea.)

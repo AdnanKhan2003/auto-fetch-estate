@@ -198,6 +198,7 @@ export const scrapePropertyTool = tool(
     const encoder = new TextEncoder();
     const batchId = crypto.randomUUID();
     const abortController = config?.configurable?.abortController;
+    const referenceNumber = config?.configurable?.referenceNumber;
 
     if (!userId) {
       logger.error(
@@ -327,6 +328,7 @@ export const scrapePropertyTool = tool(
               id: newId,
               userId,
               url: url.trim(),
+              referenceNumber: referenceNumber || null,
               title: result.data?.propertyTitle || null,
               propertyType: result.data?.propertyType || null,
               city: result.data?.city || null,
@@ -368,6 +370,7 @@ export const scrapePropertyTool = tool(
               id: errorId,
               userId: userId,
               url: url.trim(),
+              referenceNumber: referenceNumber || null,
               status: "error",
               errorMessage: e.message,
               tokensUsed: 0,

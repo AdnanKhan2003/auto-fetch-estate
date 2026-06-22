@@ -205,7 +205,10 @@ export default function EstateAnalyzer() {
     setIsMounted(true);
   }, []);
 
-  const handleScrape = async (submittedUrls: string[]) => {
+  const handleScrape = async (
+    submittedUrls: string[],
+    referenceNumber?: string,
+  ) => {
     setUrls(submittedUrls);
     setIsLoading(true);
 
@@ -229,7 +232,7 @@ export default function EstateAnalyzer() {
       const response = await fetch("/api/property-extraction", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ urls: uniqueUrls }),
+        body: JSON.stringify({ urls: uniqueUrls, referenceNumber }),
         signal: abortControllerRef.current.signal,
       });
 

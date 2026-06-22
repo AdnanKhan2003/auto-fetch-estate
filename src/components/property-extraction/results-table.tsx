@@ -75,6 +75,7 @@ function ResultsTable({
   onUpdate,
   isLoadingHistory = false,
 }: ResultsTableProps) {
+  const selectedCount = Object.values(rowSelection).filter(Boolean).length;
   const [sorting, setSorting] = useState<SortingState>([]);
 
   const table = useReactTable({
@@ -312,6 +313,7 @@ function ResultsTable({
               showTotalArea={showTotalArea}
               totalCarpetArea={totalCarpetArea}
               estimatedCount={estimatedCount}
+              selectedCount={selectedCount}
             />
           </Table>
         </div>

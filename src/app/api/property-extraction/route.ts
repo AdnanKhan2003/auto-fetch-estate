@@ -14,7 +14,7 @@ export async function POST(request: Request) {
     }
     const userId = sessionData.user.id;
 
-    const { urls } = await request.json();
+    const { urls, referenceNumber } = await request.json();
     const batchId = crypto.randomUUID();
 
     if (!urls || !Array.isArray(urls)) {
@@ -54,6 +54,7 @@ export async function POST(request: Request) {
                 userId,
                 streamWriter: controller,
                 abortController,
+                referenceNumber,
               },
             },
           );

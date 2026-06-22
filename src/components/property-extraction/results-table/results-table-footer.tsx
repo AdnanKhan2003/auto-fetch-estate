@@ -11,6 +11,7 @@ interface ResultsTableFooterProps {
   estimatedCount: number;
   adoptedRate: number;
   setAdoptedRate: (val: number) => void;
+  selectedCount: number;
 }
 
 export function ResultsTableFooter({
@@ -22,6 +23,7 @@ export function ResultsTableFooter({
   totalCarpetArea,
   estimatedCount,
   adoptedRate,
+  selectedCount,
   setAdoptedRate,
 }: ResultsTableFooterProps) {
   // When "Calc. Carpet Area" column is visible (showTotalArea ON) there are 9
@@ -61,11 +63,20 @@ export function ResultsTableFooter({
 
       {/* ── Avg Price/sqft ── */}
       <TableRow className="bg-secondary hover:bg-secondary text-secondary-foreground">
-        <TableCell
-          colSpan={labelSpan}
-          className="py-4 pl-6 font-medium text-secondary-foreground/70 text-right"
-        >
-          Avg Price/sqft:
+        <TableCell colSpan={labelSpan} className="py-4 pr-6 pl-6">
+          <div className="flex justify-between items-center w-full">
+            <div className="flex items-center gap-2 animate-in fade-in">
+              <span className="font-medium text-secondary-foreground/70 text-sm">
+                Total Records Selected:
+              </span>
+              <span className="bg-secondary-foreground/10 shadow-sm px-2 py-0.5 rounded-md font-bold text-secondary-foreground text-sm">
+                {selectedCount}
+              </span>
+            </div>
+            <span className="font-medium text-secondary-foreground/70 text-right">
+              Avg Price/sqft:
+            </span>
+          </div>
         </TableCell>
         <TableCell colSpan={1} className="py-4 pr-6 text-right">
           <span className="font-black text-secondary-foreground text-xl">

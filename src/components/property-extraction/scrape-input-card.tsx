@@ -15,7 +15,7 @@ import { Input } from "../ui/input";
 interface ScrapeInputCardProps {
   urls: string[];
   isLoading: boolean;
-  onScrape: (activeUrls: string[]) => void;
+  onScrape: (activeUrls: string[], refNumber?: string) => void;
   setFocusedUrl: (url: string | null) => void;
   onPropertyScraped?: (data: any) => void;
   onStopScrape?: () => void;
@@ -53,6 +53,12 @@ function ScrapeInputCard({
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearching, setIsSearching] = useState(false);
   const [searchStatus, setSearchStatus] = useState<string>("");
+  // const [referenceNumber, setReferenceNumber] = useState<string | null>(null);
+  // Dev purpose only
+  const [referenceNumber, setReferenceNumber] = useState<string | null>(
+    "DEV-A1B2C3D4",
+  );
+
   const abortSearchRef = useRef<AbortController | null>(null);
 
   const form = useForm<FormValues>({
@@ -79,13 +85,18 @@ function ScrapeInputCard({
       .map((u) => u.value)
       .filter((v) => v.trim() !== "");
     if (activeUrls.length > 0) {
-      onScrape(activeUrls);
+      const newRef = Math.floor(1000000000 + Math.random() * 9000000000).toString();
+      setReferenceNumber(newRef);
+      onScrape(activeUrls, newRef);
     }
   };
 
   const handleAISearch = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!searchQuery.trim()) return;
+
+    const newRef = Math.floor(1000000000 + Math.random() * 9000000000).toString();
+    setReferenceNumber(newRef);
 
     setIsSearching(true);
     setSearchStatus("Initializing AI Agent...");
@@ -167,7 +178,7 @@ function ScrapeInputCard({
 
               // Automatically trigger the scrape
               setTimeout(() => {
-                onScrape(data.urls);
+                onScrape(data.urls, newRef);
               }, 500);
             }
           } catch (e) {
@@ -229,6 +240,16 @@ function ScrapeInputCard({
             <p className="text-muted-foreground text-xs animate-pulse">
               {searchStatus}
             </p>
+          )}
+          {referenceNumber && (
+            <div className="flex items-center gap-2 slide-in-from-top-1 pt-1 animate-in fade-in">
+              <span className="font-medium text-muted-foreground text-xs">
+                Reference No:
+              </span>
+              <span className="bg-primary/10 shadow-sm px-2 py-0.5 rounded-md font-bold text-primary text-xs uppercase tracking-widest">
+                {referenceNumber}
+              </span>
+            </div>
           )}
         </div>
 
