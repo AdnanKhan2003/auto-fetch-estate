@@ -70,6 +70,9 @@ export default function EstateAnalyzer() {
   // discount
   const [discountPercentage, setDiscountPercentage] = useState<number>(0);
 
+  // Adopted Rate State
+  const [adoptedRate, setAdoptedRate] = useState<number>(0);
+
   // Row detail (Modal)
   const [selectedProperty, setSelectedProperty] = useState<
     (PropertyExtractionResult & { id?: string }) | null
@@ -139,14 +142,14 @@ export default function EstateAnalyzer() {
     // (We use pendingUrls because it is correctly updated by both Manual and AI scrapes!)
     const indexA = pendingUrls.indexOf(a.url);
     const indexB = pendingUrls.indexOf(b.url);
-    
+
     // If neither URL is in pendingUrls (e.g. from history), maintain their natural order
     if (indexA === -1 && indexB === -1) return 0;
-    
+
     // If only one URL isn't in the input boxes, shove it to the bottom
     if (indexA === -1) return 1;
     if (indexB === -1) return -1;
-    
+
     // Otherwise, sort them mathematically by their index (1 to 12)
     return indexA - indexB;
   });
@@ -193,6 +196,10 @@ export default function EstateAnalyzer() {
 
     loadData();
   }, []);
+
+  useEffect(() => {
+    setAdoptedRate(discountedAverage);
+  }, [discountedAverage]);
 
   useEffect(() => {
     setIsMounted(true);
@@ -422,6 +429,8 @@ export default function EstateAnalyzer() {
           discountPercentage={discountPercentage}
           setDiscountPercentage={setDiscountPercentage}
           discountedAverage={discountedAverage}
+          adoptedRate={adoptedRate}
+          setAdoptedRate={setAdoptedRate}
           rowSelection={rowSelection}
           setRowSelection={setRowSelection}
           globalConversionFactor={conversionFactor}

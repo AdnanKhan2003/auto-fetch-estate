@@ -9,6 +9,8 @@ interface ResultsTableFooterProps {
   showTotalArea: boolean;
   totalCarpetArea: number;
   estimatedCount: number;
+  adoptedRate: number;
+  setAdoptedRate: (val: number) => void;
 }
 
 export function ResultsTableFooter({
@@ -19,6 +21,8 @@ export function ResultsTableFooter({
   showTotalArea,
   totalCarpetArea,
   estimatedCount,
+  adoptedRate,
+  setAdoptedRate,
 }: ResultsTableFooterProps) {
   // When "Calc. Carpet Area" column is visible (showTotalArea ON) there are 9
   // columns total, so the label cell must span 8; otherwise 7.
@@ -122,6 +126,32 @@ export function ResultsTableFooter({
           </span>
         </TableCell>
         {/* Empty cell for actions column */}
+        <TableCell colSpan={1} />
+      </TableRow>
+      <TableRow className="bg-background hover:bg-background border-5 text-foreground">
+        <TableCell
+          colSpan={labelSpan}
+          className="py-4 pl-6 font-medium text-muted-foreground text-right"
+        >
+          Adopted Rate / sqft:
+        </TableCell>
+        <TableCell colSpan={1} className="py-4 pr-6 text-right">
+          <div className="flex justify-end items-center gap-1">
+            <span className="font-black text-foreground text-lg">₹</span>
+            <Input
+              id="adoptedRate"
+              aria-label="Adopted Rate"
+              type="number"
+              min={0}
+              value={adoptedRate}
+              onChange={(e) => {
+                const value = Number(e.target.value);
+                setAdoptedRate(Number.isNaN(value) ? 0 : Math.max(0, value));
+              }}
+              className="bg-background border-border w-28 h-9 font-black text-foreground text-lg text-right"
+            />
+          </div>
+        </TableCell>
         <TableCell colSpan={1} />
       </TableRow>
     </TableFooter>

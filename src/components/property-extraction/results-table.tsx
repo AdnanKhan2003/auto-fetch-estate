@@ -47,11 +47,15 @@ interface ResultsTableProps {
   onDelete: (id: string) => void;
   onUpdate: (id: string, updates: any) => void;
   isLoadingHistory?: boolean;
+  adoptedRate: number;
+  setAdoptedRate: (value: number) => void;
 }
 
 function ResultsTable({
   results,
   pendingUrls,
+  adoptedRate,
+  setAdoptedRate,
   onRowClick,
   averagePrice,
   discountPercentage,
@@ -300,6 +304,8 @@ function ResultsTable({
             </TableBody>
             <ResultsTableFooter
               averagePrice={averagePrice}
+              adoptedRate={adoptedRate}
+              setAdoptedRate={setAdoptedRate}
               discountPercentage={discountPercentage}
               setDiscountPercentage={setDiscountPercentage}
               discountedAverage={discountedAverage}
