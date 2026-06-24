@@ -82,6 +82,7 @@ export default function ResearchesPage() {
           status: d.status,
           error: d.errorMessage,
           tokensUsed: d.tokensUsed,
+          referenceNumber: d.referenceNumber
         }));
         setResults(formatted);
 

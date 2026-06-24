@@ -11,6 +11,8 @@ import { useEffect, useRef, useState } from "react";
 import { Loader2, Search, X } from "lucide-react";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
+import { Label } from "../ui/label";
+import { cn } from "@/lib/utils";
 
 interface ScrapeInputCardProps {
   urls: string[];
@@ -58,6 +60,7 @@ function ScrapeInputCard({
   const [isSearching, setIsSearching] = useState(false);
   const [searchStatus, setSearchStatus] = useState<string>("");
   const [referenceNumber, setReferenceNumber] = useState<string | null>(null);
+  const [refError, setRefError] = useState(false);
   // Dev purpose only
   // const [referenceNumber, setReferenceNumber] = useState<string | null>(
   //   "DEV-A1B2C3D4",
@@ -85,26 +88,28 @@ function ScrapeInputCard({
   const watchedUrls = form.watch("urls");
 
   const handleSubmit = (data: FormValues) => {
+    if (!referenceNumber || referenceNumber.trim() === "") {
+      setRefError(true);
+      return;
+    }
+
     const activeUrls = data.urls
       .map((u) => u.value)
       .filter((v) => v.trim() !== "");
+    
     if (activeUrls.length > 0) {
-      const newRef = Math.floor(
-        1000000000 + Math.random() * 9000000000,
-      ).toString();
-      setReferenceNumber(newRef);
-      onScrape(activeUrls, newRef);
+      onScrape(activeUrls, referenceNumber);
     }
   };
 
   const handleAISearch = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!searchQuery.trim()) return;
 
-    const newRef = Math.floor(
-      1000000000 + Math.random() * 9000000000,
-    ).toString();
-    setReferenceNumber(newRef);
+    if(!referenceNumber?.trim()) {
+      setRefError(true);
+      return;
+    }
+    if (!searchQuery.trim()) return;
 
     setIsSearching(true);
     if (onSearchStart) onSearchStart();
@@ -188,7 +193,9 @@ function ScrapeInputCard({
 
               // Automatically trigger the scrape
               setTimeout(() => {
-                onScrape(data.urls, newRef);
+                if (referenceNumber) {
+                  onScrape(data.urls, referenceNumber);
+                }
               }, 500);
             }
           } catch (e) {
@@ -209,6 +216,37 @@ function ScrapeInputCard({
     <Card className="bg-card shadow-none border-border rounded-xl">
       <ScrapeInputHeader />
       <CardContent className="space-y-6">
+        {/* Mandatory Reference Number Input */}
+        <div className="space-y-3">
+          <div className="flex flex-col gap-1">
+            <Label htmlFor="reference-number" className="font-semibold text-foreground text-sm">
+              Reference Number <span className="text-destructive">*</span>
+            </Label>
+            <p className="text-muted-foreground text-xs">
+              Required identifier for this scraping batch.
+            </p>
+          </div>
+          <Input
+            id="reference-number"
+            placeholder="e.g. BATCH-Q2-VASHI"
+            value={referenceNumber || ""}
+            disabled={isSearching || isLoading}
+            onChange={(e) => {
+              setReferenceNumber(e.target.value || null);
+              setRefError(false);
+            }}
+            className={cn(
+              "bg-background max-w-sm",
+              refError && "border-destructive focus-visible:ring-destructive"
+            )}
+          />
+          {refError && (
+            <p className="text-destructive text-xs font-medium mt-1">
+              Reference number is required.
+            </p>
+          )}
+        </div>
+
         {/* New AI Search Section */}
         <div className="space-y-3 bg-muted/30 p-4 border border-border rounded-lg">
           <label className="font-semibold text-foreground text-sm">
@@ -252,16 +290,8 @@ function ScrapeInputCard({
               {searchStatus}
             </p>
           )}
-          {referenceNumber && (
-            <div className="flex items-center gap-2 slide-in-from-top-1 pt-1 animate-in fade-in">
-              <span className="font-medium text-muted-foreground text-xs">
-                Reference No:
-              </span>
-              <span className="bg-primary/10 shadow-sm px-2 py-0.5 rounded-md font-bold text-primary text-xs uppercase tracking-widest">
-                {referenceNumber}
-              </span>
-            </div>
-          )}
+
+
         </div>
 
         <div className="relative">
